@@ -1,0 +1,124 @@
+name: deploy
+
+# Push to main → check → upload wp-content over FTP → confirm the site reports
+# this exact commit. Any other branch only runs the check.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Only list what would be uploaded"
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.1"
+          tools: none
+      - run: bash scripts/check.sh
+      - run: bash scripts/zip.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stland-home
+          path: dist/stland-home.zip
+
+  deploy:
+    needs: check
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # for the rolling "latest" release with the plugin zip
+    env:
+      FTP_SERVER: ${{ secrets.FTP_SERVER }}
+      FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+      FTP_PROTOCOL: ${{ secrets.FTP_PROTOCOL || 'ftps' }}
+      FTP_PORT: ${{ secrets.FTP_PORT || '21' }}
+      # Path of the WordPress root as the FTP user sees it, e.g. /public_html/
+      FTP_REMOTE_DIR: ${{ secrets.FTP_REMOTE_DIR || '/public_html/' }}
+      SITE_URL: ${{ vars.SITE_URL || 'https://stland.ir' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # Release first: it needs no secrets, so the zip fallback always exists.
+      - name: Publish plugin zip (release "latest")
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          bash scripts/zip.sh
+          gh release delete latest --cleanup-tag -y 2>/dev/null || true
+          gh release create latest dist/stland-home.zip --target "$GITHUB_SHA" \
+            --title "stland-home (latest main)" \
+            --notes "Commit $GITHUB_SHA. If FTP deploy is not set up, upload this zip in WordPress: Plugins > Add New > Upload Plugin > Replace current." \
+            --latest
+
+      # No secrets yet → skip with a clear message (green, not red).
+      # A workflow that is always red hides the day it really breaks.
+      - name: FTP secrets present?
+        id: gate
+        run: |
+          if [ -z "$FTP_SERVER" ] || [ -z "$FTP_USERNAME" ] || [ -z "$FTP_PASSWORD" ]; then
+            echo "::notice title=Deploy skipped::FTP_SERVER / FTP_USERNAME / FTP_PASSWORD secrets are not set. Upload the zip from release 'latest' manually. See README."
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Stamp build
+        if: steps.gate.outputs.ok == 'true'
+        run: |
+          mkdir -p wp-content/mu-plugins/stland-site
+          printf "<?php\ndefine( 'STLS_BUILD_SHA', '%s' );\ndefine( 'STLS_BUILD_AT', '%s' );\n" \
+            "$GITHUB_SHA" "$(date -u +%FT%TZ)" > wp-content/mu-plugins/stland-site/build.php
+
+      - name: Upload over FTP
+        if: steps.gate.outputs.ok == 'true'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ env.FTP_SERVER }}
+          username: ${{ env.FTP_USERNAME }}
+          password: ${{ env.FTP_PASSWORD }}
+          protocol: ${{ env.FTP_PROTOCOL }}
+          port: ${{ env.FTP_PORT }}
+          local-dir: ./wp-content/
+          server-dir: ${{ env.FTP_REMOTE_DIR }}wp-content/
+          # Only files this workflow uploaded are ever deleted; everything
+          # else in wp-content (uploads, other plugins, themes) is untouched.
+          state-name: .stland-deploy-state.json
+          dry-run: ${{ inputs.dry_run == true }}
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.DS_Store
+
+      - name: Confirm the site runs this commit
+        if: steps.gate.outputs.ok == 'true' && inputs.dry_run != true
+        run: |
+          url="$SITE_URL/wp-json/stland/v1/health?t=$(date +%s)"
+          for i in 1 2 3 4 5; do
+            body=$(curl -fsS -m 20 -H 'Cache-Control: no-cache' "$url" || true)
+            if [ -n "$body" ]; then
+              echo "$body"
+              if echo "$body" | grep -q "\"build\":\"$GITHUB_SHA\""; then
+                echo "Site is on $GITHUB_SHA"; exit 0
+              fi
+            fi
+            sleep $((i * 5))
+          done
+          if [ -z "$body" ]; then
+            # Iranian hosts often block foreign HTTP; FTP worked, so warn only.
+            echo "::warning title=Not verified::$url did not answer from GitHub. Open it in a browser and check that build = $GITHUB_SHA."
+            exit 0
+          fi
+          echo "::error title=Wrong folder?::Upload finished but the site reports another build. FTP_REMOTE_DIR probably does not point at the WordPress root."
+          exit 1

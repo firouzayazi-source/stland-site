@@ -1,0 +1,6 @@
+dist/
+wp-content/mu-plugins/stland-site/build.php
+.stland-deploy-state.json
+.env
+*.zip
+.DS_Store

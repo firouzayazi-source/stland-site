@@ -1,0 +1,4 @@
+{
+  "_": "Meta keys the accounting app (sthesabland: src/lib/woo/describe.ts cardMeta) writes on every phone product, and stland-home reads for card badges (stlh_defaults card_badges). Rename on both sides together.",
+  "keys": ["battery", "registry"]
+}
