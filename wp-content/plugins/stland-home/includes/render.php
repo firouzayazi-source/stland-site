@@ -18,14 +18,23 @@ function stlh_banner(): string {
 		return $h1;
 	}
 
+	// srcset: مرورگر گوشی نسخه‌ی کوچک‌ترِ همان عکس را می‌گیرد، نه ۱۹۲۰ پیکسلی را.
+	// بنر اولین چیزی است که دیده می‌شود، پس وزنش مستقیم زمانِ باز شدن صفحه است.
+	$srcset = static function ( int $id, string $fallback ): string {
+		return wp_get_attachment_image_srcset( $id, 'full' ) ?: $fallback;
+	};
+
 	$source = '';
 	if ( $d_id && $m_id && ( $ms = wp_get_attachment_image_src( $m_id, 'full' ) ) ) {
-		$source = sprintf( '<source media="(max-width: 767px)" srcset="%s" width="%d" height="%d">', esc_url( $ms[0] ), $ms[1], $ms[2] );
+		$source = sprintf(
+			'<source media="(max-width: 767px)" srcset="%s" sizes="100vw" width="%d" height="%d">',
+			esc_attr( $srcset( $m_id, $ms[0] ) ), $ms[1], $ms[2]
+		);
 	}
 
 	$pic = sprintf(
-		'<picture>%s<img src="%s" width="%d" height="%d" alt="%s" fetchpriority="high" decoding="async"></picture>',
-		$source, esc_url( $src[0] ), $src[1], $src[2], esc_attr( (string) stlh_opt( 'banner_alt' ) )
+		'<picture>%s<img src="%s" srcset="%s" sizes="100vw" width="%d" height="%d" alt="%s" fetchpriority="high" decoding="async"></picture>',
+		$source, esc_url( $src[0] ), esc_attr( $srcset( $main, $src[0] ) ), $src[1], $src[2], esc_attr( (string) stlh_opt( 'banner_alt' ) )
 	);
 
 	if ( $link = stlh_opt( 'banner_link' ) ) {
@@ -287,15 +296,20 @@ function stlh_flash_deal(): string {
 	if ( 'off' === $mode || ! stlh_woo() ) {
 		return '';
 	}
-	$p = null;
+	// ⛔ گوشی تک‌عددی است و زود فروش می‌رود؛ «پیشنهاد ویژه»ی ناموجود
+	//    بدترین چیزی است که می‌شود وسط صفحه اصلی نشان داد. پس محصولِ دستیِ
+	//    ناموجود کنار می‌رود و جایش آخرین محصولِ «ویژه»ی موجود می‌آید؛ اگر
+	//    هیچ‌کدام نبود، کل بخش پنهان می‌شود.
+	$ok = static fn( $p ): bool => $p instanceof WC_Product && 'publish' === $p->get_status() && $p->is_in_stock() && $p->is_visible();
+	$p  = null;
 	if ( 'manual' === $mode && ( $id = (int) stlh_opt( 'flash_product' ) ) ) {
 		$p = wc_get_product( $id );
 	}
-	if ( ! $p ) {
-		$found = wc_get_products( [ 'status' => 'publish', 'featured' => true, 'limit' => 1, 'orderby' => 'modified', 'order' => 'DESC' ] );
-		$p     = $found[0] ?? null;
+	if ( ! $ok( $p ) ) {
+		$found = wc_get_products( [ 'status' => 'publish', 'featured' => true, 'stock_status' => 'instock', 'limit' => 5, 'orderby' => 'modified', 'order' => 'DESC' ] );
+		$p     = current( array_filter( $found, $ok ) ) ?: null;
 	}
-	if ( ! $p || 'publish' !== $p->get_status() ) {
+	if ( ! $p ) {
 		return '';
 	}
 
@@ -303,7 +317,7 @@ function stlh_flash_deal(): string {
 	$desc  = wp_trim_words( wp_strip_all_tags( $desc ), 40 );
 	$cats  = get_the_terms( $p->get_id(), 'product_cat' );
 	$label = ( $cats && ! is_wp_error( $cats ) ) ? $cats[0]->name : '';
-	$stock = $p->is_in_stock() ? 'موجود در فروشگاه' : 'ناموجود';
+	$stock = 'موجود در فروشگاه';
 
 	ob_start();
 	?>
@@ -311,7 +325,7 @@ function stlh_flash_deal(): string {
 		<div class="st-fd-content">
 			<div class="st-fd-badge-box">
 				<span class="st-fd-badge"><?php echo esc_html( (string) stlh_opt( 'flash_badge' ) ); ?></span>
-				<span class="st-fd-timer-badge<?php echo $p->is_in_stock() ? ' is-in' : ''; ?>"><?php echo esc_html( $stock ); ?></span>
+				<span class="st-fd-timer-badge is-in"><?php echo esc_html( $stock ); ?></span>
 			</div>
 			<?php $fbadges = stlh_badges( $p, 4 ); if ( $fbadges ) : ?>
 				<div class="st-fd-specs"><?php foreach ( $fbadges as $b ) : ?><span class="st-chip"><?php echo esc_html( $b ); ?></span><?php endforeach; ?></div>

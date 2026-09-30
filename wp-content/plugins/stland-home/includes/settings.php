@@ -81,12 +81,16 @@ function stlh_sanitize( mixed $in ): array {
 			in_array( $k, [ 'banner_desktop', 'banner_mobile', 'flash_product', 'posts_count', 'group_limit' ], true ) => absint( $v ),
 			'banner_link' === $k                                                                         => esc_url_raw( (string) $v ),
 			in_array( $k, [ 'categories', 'product_rows', 'faq', 'address', 'trust', 'card_badges' ], true ) => sanitize_textarea_field( (string) $v ),
+			'order' === $k                                                                               => implode( "\n", array_values( array_intersect( array_unique( stlh_lines( sanitize_textarea_field( (string) $v ) ) ), array_keys( stlh_sections() ) ) ) ),
 			in_array( $k, [ 'font_enable', 'font_sitewide', 'takeover' ], true )                                     => empty( $in[ $k ] ) ? '' : '1',
 			'cat_style' === $k                                                                           => 'photo' === $v ? 'photo' : 'icon',
 			'accent' === $k                                                                              => sanitize_hex_color( (string) $v ) ?: '#007bff',
 			'flash_mode' === $k                                                                          => in_array( $v, [ 'featured', 'manual', 'off' ], true ) ? $v : 'featured',
 			default                                                                                      => sanitize_text_field( (string) $v ),
 		};
+	}
+	if ( '' === $out['order'] ) {
+		$out['order'] = stlh_defaults()['order']; // خالی یعنی اشتباه، نه «هیچ بخشی»
 	}
 	$out['posts_count'] = min( 12, $out['posts_count'] );
 	$out['group_limit'] = max( 1, min( 24, $out['group_limit'] ) );
@@ -171,6 +175,7 @@ function stlh_settings_page(): void {
 				<?php
 				stlh_row_check( 'نمایش خودکار در صفحه اصلی', 'takeover', (string) $o['takeover'], 'صفحه اصلی سایت را این افزونه می‌سازد', 'روشن: هدر و فوتر از قالب، محتوای وسط از این افزونه؛ نیازی به المنتور نیست. خاموش: فقط جایی که شورت‌کد [stl_home] گذاشته شود.' );
 				stlh_row_check( 'استفاده از وزیرمتن', 'font_enable', (string) $o['font_enable'], 'در بخش‌های صفحه اصلی' );
+				stlh_row_textarea( 'ترتیب بخش‌ها', 'order', (string) $o['order'], 'هر خط یک بخش، از بالا به پایین. برای پنهان کردن یک بخش، خطش را پاک کنید. بخش‌ها: ' . implode( '، ', array_map( fn( $k, $l ) => "$k ($l)", array_keys( stlh_sections() ), stlh_sections() ) ), 9 );
 				stlh_row_check( 'وزیرمتن در کل سایت', 'font_sitewide', (string) $o['font_sitewide'], 'فونت همه صفحات سایت هم وزیرمتن شود', 'پیش‌فرض خاموش؛ قبل از روشن کردن، صفحات محصول و سبد خرید را چک کنید.' );
 				?>
 			</table>
@@ -186,7 +191,7 @@ function stlh_settings_page(): void {
 				?>
 			</table>
 
-			<h2>نوار اعتماد (قبل از سوالات متداول)</h2>
+			<h2>نوار اعتماد</h2>
 			<table class="form-table" role="presentation">
 				<?php stlh_row_textarea( 'آیتم‌ها', 'trust', (string) $o['trust'], 'هر خط: آیکن|عنوان|توضیح — آیکن‌ها: shield, clock, card, store, truck, check. خالی = مخفی', 5 ); ?>
 			</table>
@@ -248,6 +253,7 @@ function stlh_settings_page(): void {
 				stlh_row_text( 'آیدی ربات تلگرام', 'telegram_bot', (string) $o['telegram_bot'], 'بدون @' );
 				stlh_row_text( 'شماره تماس', 'phone', (string) $o['phone'], 'با ارقام انگلیسی' );
 				stlh_row_textarea( 'آدرس فروشگاه', 'address', (string) $o['address'], '', 2 );
+				stlh_row_text( 'شهر', 'city', (string) $o['city'], 'برای گوگل (جستجوی محلی و نقشه). آدرس، تلفن و شهر به‌صورت «فروشگاه موبایل» به گوگل معرفی می‌شوند.' );
 				?>
 			</table>
 
