@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       StockLand Updater
  * Description:       افزونه‌های استوک لند را از گیت‌هاب به‌روز می‌کند — مثل آپدیت معمولی افزونه‌ها، بدون FTP.
- * Version:           1.0.0
+ * Version:           1.0.1
  * Requires at least: 6.3
  * Requires PHP:      8.1
  * Text Domain:       stland-updater
