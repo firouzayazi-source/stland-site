@@ -11,7 +11,13 @@ while IFS= read -r -d '' f; do
   php -l "$f" >/dev/null || { say "PHP syntax error: $f"; fail=1; }
 done < <(find wp-content -name '*.php' -print0)
 
-# 2) Plugin header Version must equal STLH_VER (it is the CSS/JS cache-buster)
+# 2) Every plugin has <slug>/<slug>.php with a Version header (zip.sh and the updater rely on it)
+for dir in wp-content/plugins/*/; do
+  slug=$(basename "$dir")
+  grep -qP '^\s*\*\s*Version:\s*[0-9.]+' "$dir$slug.php" 2>/dev/null || { say "$slug: $slug.php with a Version header is required"; fail=1; }
+done
+
+# 2b) Plugin header Version must equal STLH_VER (it is the CSS/JS cache-buster)
 main=wp-content/plugins/stland-home/stland-home.php
 hv=$(grep -oP '^\s*\*\s*Version:\s*\K[0-9.]+' "$main")
 cv=$(grep -oP "define\(\s*'STLH_VER',\s*'\K[0-9.]+" "$main")
