@@ -99,15 +99,55 @@ function stlh_term_url( string $slug ): string {
 }
 
 /* ---------- دسته‌بندی‌ها ---------- */
+
+/**
+ * دسته‌های اصلیِ فروشگاه، به ترتیبِ خودِ ووکامرس.
+ *
+ * «یکی کردن با سایت» در حسابداری درختِ دسته‌ها را دوطرفه یکی می‌کند؛ پس
+ * هر دسته‌ی اصلی که اینجا می‌آید همان دسته‌ی حسابداری است. دسته‌ای که
+ * هیچ محصولی — نه خودش نه زیردسته‌هایش — ندارد، و «دسته‌بندی نشده»، نمی‌آیند.
+ *
+ * @return WP_Term[]
+ */
+function stlh_top_categories(): array {
+	$all = get_terms( [ 'taxonomy' => 'product_cat', 'hide_empty' => false, 'menu_order' => 'ASC' ] );
+	if ( is_wp_error( $all ) || ! $all ) {
+		return [];
+	}
+	$children = [];
+	foreach ( $all as $t ) {
+		$children[ $t->parent ][] = $t;
+	}
+	$total = static function ( WP_Term $t ) use ( &$total, $children ): int {
+		$n = (int) $t->count;
+		foreach ( $children[ $t->term_id ] ?? [] as $c ) {
+			$n += $total( $c );
+		}
+		return $n;
+	};
+	$skip = (int) get_option( 'default_product_cat' );
+	return array_values( array_filter( $children[0] ?? [], static fn( WP_Term $t ) => $t->term_id !== $skip && $total( $t ) > 0 ) );
+}
+
+/** [دسته, کلیدِ آیکن] برای بخشِ دسته‌بندی‌ها */
+function stlh_category_items(): array {
+	if ( 'manual' !== stlh_opt( 'cat_source' ) ) {
+		return array_map( static fn( WP_Term $t ) => [ $t, '' ], stlh_top_categories() );
+	}
+	$items = [];
+	foreach ( stlh_lines( (string) stlh_opt( 'categories' ) ) as $line ) {
+		[ $slug, $icon_key ] = array_pad( array_map( 'trim', explode( '|', $line ) ), 2, '' );
+		if ( $term = stlh_resolve_cat( $slug ) ) {
+			$items[] = [ $term, $icon_key ];
+		}
+	}
+	return $items;
+}
+
 function stlh_categories(): string {
 	$photo_mode = 'photo' === stlh_opt( 'cat_style' );
 	$cards      = '';
-	foreach ( stlh_lines( (string) stlh_opt( 'categories' ) ) as $line ) {
-		[ $slug, $icon_key ] = array_pad( array_map( 'trim', explode( '|', $line ) ), 2, '' );
-		$term = stlh_resolve_cat( $slug );
-		if ( ! $term ) {
-			continue;
-		}
+	foreach ( stlh_category_items() as [ $term, $icon_key ] ) {
 		$link = get_term_link( $term );
 		if ( is_wp_error( $link ) ) {
 			continue;
@@ -116,7 +156,7 @@ function stlh_categories(): string {
 		if ( $photo_mode && ( $tid = (int) get_term_meta( $term->term_id, 'thumbnail_id', true ) ) ) {
 			$media = wp_get_attachment_image( $tid, 'thumbnail', false, [ 'alt' => '', 'loading' => 'lazy', 'decoding' => 'async' ] );
 		}
-		$icon   = $media ?: stlh_cat_icon( $icon_key ?: stlh_cat_icon_key( $term->slug ) );
+		$icon   = $media ?: stlh_cat_icon( $icon_key ?: stlh_cat_icon_key( rawurldecode( $term->slug ), $term->name ) );
 		$cards .= sprintf(
 			'<a class="st-category-card" href="%s"><span class="st-icon-box%s">%s</span><span class="st-cat-name">%s</span></a>',
 			esc_url( $link ), $media ? ' has-img' : '', $icon, esc_html( $term->name )
@@ -144,17 +184,59 @@ function stlh_card( WC_Product $p ): string {
 	foreach ( stlh_badges( $p ) as $b ) {
 		$badges .= '<span class="st-chip">' . esc_html( $b ) . '</span>';
 	}
-	$off  = $p->is_in_stock() ? stlh_sale_percent( $p ) : 0;
-	$sale = $off ? '<span class="st-sale">' . esc_html( stlh_fa( $off ) ) . '٪</span>' : '';
+	$sale = $p->is_in_stock() ? stlh_sale_label( $p ) : '';
+	$sale = $sale ? '<span class="st-sale">' . esc_html( $sale ) . '</span>' : '';
 	return sprintf(
-		'<a class="st-pr-card" href="%s"><span class="st-pr-img">%s%s</span><span class="st-pr-name">%s</span><span class="st-pr-foot"><span class="st-pr-price">%s</span>%s</span></a>',
+		'<a class="st-pr-card" href="%s"><span class="st-pr-img">%s%s%s</span><span class="st-pr-name">%s</span><span class="st-pr-foot"><span class="st-pr-price">%s</span></span></a>',
 		esc_url( $p->get_permalink() ),
 		$badges ? '<span class="st-pr-badges">' . $badges . '</span>' : '',
-		$p->get_image( 'woocommerce_thumbnail', [ 'loading' => 'lazy', 'decoding' => 'async' ] ),
+		stlh_card_image( $p ),
+		$sale,
 		esc_html( $p->get_name() ),
-		stlh_price( $p ),
-		$sale
+		stlh_price( $p )
 	);
+}
+
+/**
+ * عکس کارت. محصولِ بی‌عکس به‌جای «صورتکِ غمگینِ» پیش‌فرضِ قالب یک
+ * آیکنِ آرامِ همان دسته می‌گیرد — گوشیِ استوکِ تازه‌رسیده اغلب هنوز عکس ندارد.
+ */
+function stlh_card_image( WC_Product $p ): string {
+	if ( $p->get_image_id() ) {
+		return $p->get_image( 'woocommerce_thumbnail', [ 'loading' => 'lazy', 'decoding' => 'async' ] );
+	}
+	$terms = get_the_terms( $p->get_id(), 'product_cat' );
+	$key   = ( $terms && ! is_wp_error( $terms ) ) ? stlh_cat_icon_key( rawurldecode( $terms[0]->slug ), $terms[0]->name ) : 'phone-new';
+	return '<span class="st-pr-noimg">' . stlh_cat_icon( $key ) . '</span>';
+}
+
+/**
+ * نشانِ تخفیف. «۱٪» روی گوشیِ دویست میلیونی بی‌معناست ولی «۳ میلیون»
+ * معنا دارد؛ پس مبلغ، کوتاه. برای محصول متغیر همان درصد می‌ماند.
+ */
+function stlh_sale_label( WC_Product $p ): string {
+	if ( ! $p->is_on_sale() ) {
+		return '';
+	}
+	if ( $p->is_type( 'variable' ) ) {
+		$off = stlh_sale_percent( $p );
+		return $off ? stlh_fa( $off ) . '٪' : '';
+	}
+	$diff = (float) $p->get_regular_price() - (float) $p->get_sale_price();
+	if ( $diff <= 0 ) {
+		return '';
+	}
+	if ( 'IRR' === get_woocommerce_currency() ) {
+		$diff /= 10; // همه‌جا به تومان خوانده شود
+	}
+	if ( $diff >= 1000000 ) {
+		$n = round( $diff / 1000000, 1 );
+		return stlh_fa( rtrim( rtrim( number_format( $n, 1, '.', '' ), '0' ), '.' ) ) . ' میلیون تخفیف';
+	}
+	if ( $diff >= 1000 ) {
+		return stlh_fa( (int) round( $diff / 1000 ) ) . ' هزار تخفیف';
+	}
+	return stlh_fa( (int) $diff ) . ' تومان تخفیف';
 }
 
 /** $slugs: یک یا چند نامک دسته (OR) */

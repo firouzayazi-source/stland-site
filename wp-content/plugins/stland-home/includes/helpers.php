@@ -35,8 +35,11 @@ function stlh_defaults(): array {
 		'font_sitewide'  => '',
 		'trust'          => "shield|گارانتی اصالت|تضمین اصالت و سلامت کالا\nclock|مهلت تست|تست با خیال راحت پس از خرید\ncard|خرید اقساطی|شرایط ویژه پرداخت قسطی\nstore|خرید حضوری|قم، بازار سلام، واحد F11",
 		'card_badges'    => "battery|باتری|٪\nregistry|ریجستری|",
-		// نوار اعتماد و پیشنهاد ویژه بالا: بیشتر بازدیدکننده‌های گوشی به پایین صفحه نمی‌رسند.
-		'order'          => "banner\ntrust\ncategories\nflash_deal\nrows\ngroup\nsocial\nfaq\nposts",
+		// صاحب فروشگاه: نوار اعتماد زیر بنر نه، درست پیش از سوالات متداول.
+		'order'          => "banner\ncategories\nflash_deal\nrows\ngroup\nsocial\ntrust\nfaq\nposts",
+		// auto: همه‌ی دسته‌های اصلیِ ووکامرس (که با «یکی کردن با سایت» همان درختِ حسابداری است)
+		'cat_source'     => 'auto',
+		'rows_source'    => 'auto',
 		'city'           => 'قم',
 	];
 }
@@ -45,6 +48,10 @@ function stlh_opt( string $key ): mixed {
 	static $opts = null;
 	if ( null === $opts ) {
 		$opts = wp_parse_args( (array) get_option( STLH_OPT, [] ), stlh_defaults() );
+		// ترتیبِ پیش‌فرضِ نسخه‌ی ۱.۵.۰ که ذخیره شده بود، یعنی کسی دستش نزده؛ پیش‌فرضِ تازه جایش.
+		if ( "banner\ntrust\ncategories\nflash_deal\nrows\ngroup\nsocial\nfaq\nposts" === $opts['order'] ) {
+			$opts['order'] = stlh_defaults()['order'];
+		}
 	}
 	return $opts[ $key ] ?? null;
 }
@@ -101,8 +108,8 @@ function stlh_cat_icons(): array {
 	];
 }
 
-/** نامک دسته ← کلید آیکن پیش‌فرض */
-function stlh_cat_icon_key( string $slug ): string {
+/** نامک (و نام) دسته ← کلید آیکن پیش‌فرض */
+function stlh_cat_icon_key( string $slug, string $name = '' ): string {
 	$map = [
 		'iphone'             => 'phone-new',
 		'iphone-second-hand' => 'phone-used',
@@ -113,6 +120,12 @@ function stlh_cat_icon_key( string $slug ): string {
 	];
 	if ( isset( $map[ $slug ] ) ) {
 		return $map[ $slug ];
+	}
+	// نامک دسته‌هایی که حسابداری می‌سازد ممکن است فارسی باشد؛ پس از روی نام هم.
+	foreach ( [ 'کارکرده' => 'phone-used', 'استوک' => 'phone-used', 'ایرپاد' => 'earbuds', 'ایربادز' => 'earbuds', 'هندزفری' => 'earbuds', 'شارژر' => 'charger', 'آداپتور' => 'charger', 'کابل' => 'cable', 'قاب' => 'case', 'کاور' => 'case', 'ساعت' => 'watch', 'واچ' => 'watch', 'هدفون' => 'headphones', 'پاوربانک' => 'powerbank', 'اسپیکر' => 'speaker', 'آیپد' => 'tablet', 'تبلت' => 'tablet', 'مک‌بوک' => 'laptop', 'مکبوک' => 'laptop', 'لنز' => 'camera', 'آیفون' => 'phone-new', 'گوشی' => 'phone-new' ] as $needle => $key ) {
+		if ( '' !== $name && str_contains( $name, $needle ) ) {
+			return $key;
+		}
 	}
 	foreach ( [ 'watch' => 'watch', 'head' => 'headphones', 'power' => 'powerbank', 'speak' => 'speaker', 'case' => 'case', 'cover' => 'case', 'ipad' => 'tablet', 'mac' => 'laptop', 'cable' => 'cable', 'lens' => 'camera', 'airpod' => 'earbuds', 'charg' => 'charger' ] as $needle => $key ) {
 		if ( str_contains( $slug, $needle ) ) {
