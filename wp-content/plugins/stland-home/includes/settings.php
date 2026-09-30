@@ -84,6 +84,7 @@ function stlh_sanitize( mixed $in ): array {
 			'order' === $k                                                                               => implode( "\n", array_values( array_intersect( array_unique( stlh_lines( sanitize_textarea_field( (string) $v ) ) ), array_keys( stlh_sections() ) ) ) ),
 			in_array( $k, [ 'font_enable', 'font_sitewide', 'takeover' ], true )                                     => empty( $in[ $k ] ) ? '' : '1',
 			'cat_style' === $k                                                                           => 'photo' === $v ? 'photo' : 'icon',
+			in_array( $k, [ 'cat_source', 'rows_source' ], true )                                        => 'manual' === $v ? 'manual' : 'auto',
 			'accent' === $k                                                                              => sanitize_hex_color( (string) $v ) ?: '#007bff',
 			'flash_mode' === $k                                                                          => in_array( $v, [ 'featured', 'manual', 'off' ], true ) ? $v : 'featured',
 			default                                                                                      => sanitize_text_field( (string) $v ),
@@ -106,6 +107,14 @@ function stlh_row_text( string $label, string $key, string $val, string $help = 
 		'<tr><th scope="row">%s</th><td><input type="%s" class="regular-text" name="%s" value="%s" dir="auto">%s</td></tr>',
 		esc_html( $label ), esc_attr( $type ), esc_attr( STLH_OPT . '[' . $key . ']' ), esc_attr( $val ), stlh_help( $help )
 	);
+}
+
+function stlh_row_radio( string $label, string $key, string $val, array $choices, string $help = '' ): void {
+	$html = '';
+	foreach ( $choices as $v => $text ) {
+		$html .= sprintf( '<label style="display:block;margin-bottom:4px"><input type="radio" name="%s" value="%s" %s> %s</label>', esc_attr( STLH_OPT . '[' . $key . ']' ), esc_attr( $v ), checked( $val, $v, false ), esc_html( $text ) );
+	}
+	printf( '<tr><th scope="row">%s</th><td>%s%s</td></tr>', esc_html( $label ), $html, stlh_help( $help ) );
 }
 
 function stlh_row_textarea( string $label, string $key, string $val, string $help = '', int $rows = 6 ): void {
@@ -201,7 +210,8 @@ function stlh_settings_page(): void {
 				<?php
 				stlh_row_text( 'عنوان', 'cat_title', (string) $o['cat_title'] );
 				stlh_row_text( 'زیرعنوان', 'cat_subtitle', (string) $o['cat_subtitle'] );
-				stlh_row_textarea( 'نامک دسته‌ها (به ترتیب)', 'categories', (string) $o['categories'], 'هر خط: نامک دسته یا نامک|آیکن. آیکن‌ها: ' . implode( ', ', array_keys( stlh_cat_icons() ) ) . ' — اگر آیکن ننویسید، خودکار انتخاب می‌شود.' );
+				stlh_row_radio( 'کدام دسته‌ها', 'cat_source', (string) $o['cat_source'], [ 'auto' => 'همه‌ی دسته‌های اصلی فروشگاه، خودکار (پیشنهادی)', 'manual' => 'فقط فهرستِ زیر' ], 'خودکار: هر دسته‌ی اصلیِ ووکامرس که محصول دارد، به ترتیبی که در «محصولات ← دسته‌ها» چیده شده. با «یکی کردن با سایت» در حسابداری، این همان درختِ دسته‌های حسابداری است.' );
+				stlh_row_textarea( 'نامک دسته‌ها (حالت فهرست)', 'categories', (string) $o['categories'], 'هر خط: نامک دسته یا نامک|آیکن. آیکن‌ها: ' . implode( ', ', array_keys( stlh_cat_icons() ) ) . ' — اگر آیکن ننویسید، خودکار انتخاب می‌شود.' );
 				?>
 				<tr><th scope="row">نمایش</th><td>
 					<label><input type="radio" name="<?php echo esc_attr( STLH_OPT ); ?>[cat_style]" value="icon" <?php checked( $o['cat_style'], 'icon' ); ?>> آیکن</label>&nbsp;&nbsp;
@@ -212,7 +222,8 @@ function stlh_settings_page(): void {
 			<h2>ردیف‌های محصول</h2>
 			<table class="form-table" role="presentation">
 				<?php
-				stlh_row_textarea( 'ردیف‌ها', 'product_rows', (string) $o['product_rows'], 'هر خط: دسته|تعداد|عنوان|زیرعنوان|بازه مدل — دسته = نامک، نام یا ID (چند دسته با ویرگول انگلیسی). بازه مدل اختیاری است و از روی نام محصول (iPhone 12 Pro → 12) فیلتر می‌کند: 13-18 ، -12 ، 13- . مثال: کارکرده|10|آیفون کارکرده ۱۳ تا ۱۸|تست‌شده|13-18', 5 );
+				stlh_row_radio( 'کدام ردیف‌ها', 'rows_source', (string) $o['rows_source'], [ 'auto' => 'برای هر دسته‌ی اصلی یک ردیف، خودکار (پیشنهادی)', 'manual' => 'فقط ردیف‌های زیر' ], 'خودکار: هر دسته‌ی اصلی یک ردیفِ ۸تایی با نامِ خودش. دسته‌ی «لوازم جانبی» اگر زیردسته دارد، در بخشِ خودش می‌آید و تکرار نمی‌شود.' );
+				stlh_row_textarea( 'ردیف‌ها (حالت فهرست)', 'product_rows', (string) $o['product_rows'], 'هر خط: دسته|تعداد|عنوان|زیرعنوان|بازه مدل — دسته = نامک، نام یا ID (چند دسته با ویرگول انگلیسی). بازه مدل اختیاری است و از روی نام محصول (iPhone 12 Pro → 12) فیلتر می‌کند: 13-18 ، -12 ، 13- . مثال: کارکرده|10|آیفون کارکرده ۱۳ تا ۱۸|تست‌شده|13-18', 5 );
 				echo '<tr><th scope="row">وضعیت ردیف‌ها</th><td>' . stlh_rows_report( (string) $o['product_rows'] ) . '</td></tr>';
 				stlh_row_textarea( 'نشان‌های کارت', 'card_badges', (string) $o['card_badges'], 'هر خط: کلید ویژگی یا متای محصول|برچسب|پسوند — مثال: battery|باتری|٪ . حداکثر ۲ نشان روی هر کارت؛ اگر محصول آن مقدار را نداشته باشد نمایش داده نمی‌شود.', 3 );
 				?>

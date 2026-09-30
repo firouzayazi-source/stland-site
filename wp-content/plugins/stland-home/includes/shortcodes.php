@@ -17,6 +17,21 @@ function stlh_sections(): array {
 }
 
 function stlh_render_rows(): string {
+	if ( 'manual' !== stlh_opt( 'rows_source' ) ) {
+		// هر دسته‌ی اصلی یک ردیف؛ دسته‌ای که بخشِ «لوازم جانبی» خودش جدا نشانش می‌دهد تکرار نمی‌شود.
+		$group = in_array( 'group', stlh_lines( (string) stlh_opt( 'order' ) ), true ) ? stlh_resolve_cat( (string) stlh_opt( 'group_parent' ) ) : false;
+		if ( $group && ! get_term_children( $group->term_id, 'product_cat' ) ) {
+			$group = false; // بی‌زیردسته بخشِ لوازم جانبی چیزی نشان نمی‌دهد؛ پس ردیفِ خودش را بگیرد
+		}
+		$out   = '';
+		foreach ( stlh_top_categories() as $t ) {
+			if ( $group && $group->term_id === $t->term_id ) {
+				continue;
+			}
+			$out .= stlh_products( [ 'category' => (string) $t->term_id, 'limit' => 8, 'title' => $t->name ] );
+		}
+		return $out;
+	}
 	$out = '';
 	foreach ( stlh_lines( (string) stlh_opt( 'product_rows' ) ) as $row ) {
 		[ $cat, $limit, $title, $sub, $models ] = array_pad( array_map( 'trim', explode( '|', $row ) ), 5, '' );
