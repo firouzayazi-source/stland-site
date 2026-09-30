@@ -35,6 +35,9 @@ function stlh_defaults(): array {
 		'font_sitewide'  => '',
 		'trust'          => "shield|گارانتی اصالت|تضمین اصالت و سلامت کالا\nclock|مهلت تست|تست با خیال راحت پس از خرید\ncard|خرید اقساطی|شرایط ویژه پرداخت قسطی\nstore|خرید حضوری|قم، بازار سلام، واحد F11",
 		'card_badges'    => "battery|باتری|٪\nregistry|ریجستری|",
+		// نوار اعتماد و پیشنهاد ویژه بالا: بیشتر بازدیدکننده‌های گوشی به پایین صفحه نمی‌رسند.
+		'order'          => "banner\ntrust\ncategories\nflash_deal\nrows\ngroup\nsocial\nfaq\nposts",
+		'city'           => 'قم',
 	];
 }
 
