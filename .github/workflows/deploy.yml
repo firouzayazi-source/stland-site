@@ -29,8 +29,8 @@ jobs:
       - run: bash scripts/zip.sh
       - uses: actions/upload-artifact@v4
         with:
-          name: stland-home
-          path: dist/stland-home.zip
+          name: plugins
+          path: dist/
 
   deploy:
     needs: check
@@ -49,27 +49,50 @@ jobs:
       SITE_URL: ${{ vars.SITE_URL || 'https://stland.ir' }}
     steps:
       - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.1"
+          tools: none
 
-      # Release first: it needs no secrets, so the zip fallback always exists.
-      - name: Publish plugin zip (release "latest")
+      # Release first: it needs no secrets, and it is how the site updates
+      # itself (stland-updater reads manifest.json from release "latest").
+      - name: Build plugin zips + manifest
+        run: bash scripts/zip.sh
+
+      - name: Every changed plugin has a higher version
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          bash scripts/zip.sh
+          if gh release download latest -p manifest.json -O old-manifest.json 2>/dev/null; then
+            php scripts/verify-bump.php old-manifest.json dist/manifest.json
+          else
+            echo "No previous manifest; first release."
+          fi
+
+      - name: Publish release "latest"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
           gh release delete latest --cleanup-tag -y 2>/dev/null || true
-          gh release create latest dist/stland-home.zip --target "$GITHUB_SHA" \
-            --title "stland-home (latest main)" \
-            --notes "Commit $GITHUB_SHA. If FTP deploy is not set up, upload this zip in WordPress: Plugins > Add New > Upload Plugin > Replace current." \
+          gh release create latest dist/* --target "$GITHUB_SHA" \
+            --title "StockLand plugins (latest main)" \
+            --notes "Commit $GITHUB_SHA. The site picks this up via the StockLand Updater plugin (Settings > StockLand Updater). Manual fallback: upload a zip in Plugins > Add New > Upload Plugin > Replace current." \
             --latest
 
-      # No secrets yet → skip with a clear message (green, not red).
-      # A workflow that is always red hides the day it really breaks.
-      - name: FTP secrets present?
+      # FTP is off unless repo variable FTP_DEPLOY = on. The host answered
+      # "531 not authorized" to GitHub's (foreign) IPs, so pushing over FTP
+      # would make every run red; the site pulls updates instead.
+      - name: FTP deploy enabled?
         id: gate
+        env:
+          FTP_DEPLOY: ${{ vars.FTP_DEPLOY }}
         run: |
-          if [ -z "$FTP_SERVER" ] || [ -z "$FTP_USERNAME" ] || [ -z "$FTP_PASSWORD" ]; then
-            echo "::notice title=Deploy skipped::FTP_SERVER / FTP_USERNAME / FTP_PASSWORD secrets are not set. Upload the zip from release 'latest' manually. See README."
+          if [ "$FTP_DEPLOY" != "on" ]; then
+            echo "::notice title=FTP skipped::Site updates itself from release 'latest' (stland-updater). Set repo variable FTP_DEPLOY=on to push over FTP instead."
             echo "ok=false" >> "$GITHUB_OUTPUT"
+          elif [ -z "$FTP_SERVER" ] || [ -z "$FTP_USERNAME" ] || [ -z "$FTP_PASSWORD" ]; then
+            echo "::error title=FTP secrets missing::FTP_DEPLOY=on but FTP_SERVER / FTP_USERNAME / FTP_PASSWORD are not all set."
+            exit 1
           else
             echo "ok=true" >> "$GITHUB_OUTPUT"
           fi
