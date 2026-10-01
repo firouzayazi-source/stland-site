@@ -381,12 +381,13 @@ function stlh_row_items( array $slugs, int $limit, string $models = '' ): array 
 }
 
 /* ---------- ردیف محصولات ---------- */
-function stlh_row_html( array $items, string $title, string $subtitle = '', string $url = '' ): string {
+function stlh_row_html( array $items, string $title, string $subtitle = '', string $url = '', string $extra = '' ): string {
 	if ( ! $items ) {
 		return '';
 	}
 	return '<section class="st-pr-wrapper"><div class="st-pr-container">'
 		. stlh_section_head( $title, $subtitle, $url )
+		. $extra
 		. '<div class="st-pr-row">' . implode( '', array_map( 'stlh_card', $items ) ) . '</div></div></section>';
 }
 
@@ -413,10 +414,10 @@ function stlh_products( array $atts ): string {
  */
 function stlh_line_modes(): array {
 	return [
-		'all'      => 'همه‌ی محصولاتِ دسته',
+		'all'      => 'همه در یک ردیف (با زیرمجموعه‌ها)',
 		'recent'   => 'فقط نسل‌های تازه (کارکرده ۱)',
 		'older'    => 'فقط مدل‌های قدیمی‌تر (کارکرده ۲)',
-		'children' => 'هر زیردسته یک ردیف (مثل لوازم جانبی)',
+		'children' => 'هر زیردسته یک ردیفِ جدا',
 	];
 }
 
@@ -474,7 +475,7 @@ function stlh_auto_lines(): array {
 	$group = stlh_resolve_cat( (string) stlh_opt( 'group_parent' ) );
 	$under = $group ? array_map( 'intval', (array) get_term_children( $group->term_id, 'product_cat' ) ) : [];
 	$best  = stlh_resolve_cat( (string) stlh_opt( 'best_cat' ) );
-	$line  = static fn( int $cat, string $mode ) => [ 'cat' => $cat, 'mode' => $mode, 'title' => '', 'limit' => 8 ];
+	$line  = static fn( int $cat, string $mode, int $limit = 8 ) => [ 'cat' => $cat, 'mode' => $mode, 'title' => '', 'sub' => '', 'limit' => $limit ];
 	$out   = [];
 	$added = false;
 	foreach ( stlh_leaf_categories() as $t ) {
@@ -483,7 +484,8 @@ function stlh_auto_lines(): array {
 		}
 		if ( $group && ( $t->term_id === $group->term_id || in_array( $t->term_id, $under, true ) ) ) {
 			if ( ! $added && $under ) {
-				$out[] = $line( $group->term_id, 'children' );
+				// صاحب فروشگاه: لوازم جانبی همه زیرِ هم، در یک کراسول — نه هر زیردسته یک ردیف
+				$out[] = $line( $group->term_id, 'all', 16 );
 				$added = true;
 			} elseif ( ! $under ) {
 				$out[] = $line( $t->term_id, 'all' );
@@ -518,6 +520,7 @@ function stlh_line_blocks( array $line ): array {
 	}
 	$limit = max( 1, min( 24, (int) ( $line['limit'] ?? 8 ) ?: 8 ) );
 	$title = trim( (string) ( $line['title'] ?? '' ) );
+	$sub   = trim( (string) ( $line['sub'] ?? '' ) );
 	$url   = get_term_link( $t );
 	$url   = is_wp_error( $url ) ? '' : $url;
 	$mode  = (string) ( $line['mode'] ?? 'all' );
@@ -541,11 +544,31 @@ function stlh_line_blocks( array $line ): array {
 			return [ $t, 'recent' === $mode && $g['items'] ? [ [ 'title' => $title ?: $t->name, 'sub' => '', 'items' => array_slice( $g['items'], 0, $limit ), 'url' => $url ] ] : [] ];
 		}
 		return 'recent' === $mode
-			? [ $t, [ [ 'title' => $title ?: $t->name, 'sub' => 'آیفون ' . stlh_fa( $g['from'] ) . ' تا ' . stlh_fa( $g['max'] ), 'items' => array_slice( $g['recent'], 0, $limit ), 'url' => $url ] ] ]
-			: [ $t, [ [ 'title' => $title ?: $t->name . ' — مدل‌های قدیمی‌تر', 'sub' => 'آیفون ' . stlh_fa( $g['from'] - 1 ) . ' و قبل‌تر', 'items' => array_slice( $g['older'], 0, $limit ), 'url' => $url ] ] ];
+			? [ $t, [ [ 'title' => $title ?: $t->name, 'sub' => $sub ?: 'آیفون ' . stlh_fa( $g['from'] ) . ' تا ' . stlh_fa( $g['max'] ), 'items' => array_slice( $g['recent'], 0, $limit ), 'url' => $url ] ] ]
+			: [ $t, [ [ 'title' => $title ?: $t->name . ' — مدل‌های قدیمی‌تر', 'sub' => $sub ?: 'آیفون ' . stlh_fa( $g['from'] - 1 ) . ' و قبل‌تر', 'items' => array_slice( $g['older'], 0, $limit ), 'url' => $url ] ] ];
 	}
+	// محصولاتِ خودِ دسته و همه‌ی زیرمجموعه‌هایش، تازه‌ترها اول
 	$items = stlh_query_products( [ (string) $t->term_id ], $limit );
-	return [ $t, $items ? [ [ 'title' => $title ?: $t->name, 'sub' => '', 'items' => $items, 'url' => $url ] ] : [] ];
+	return [ $t, $items ? [ [ 'title' => $title ?: $t->name, 'sub' => $sub, 'items' => $items, 'url' => $url ] ] : [] ];
+}
+
+/**
+ * دکمه‌های کوچکِ زیردسته‌ها بالای ردیف (ایرپاد، شارژر…) — همه‌ی لوازم جانبی
+ * در یک کراسول می‌آیند و مشتری با یک لمس به همان زیردسته می‌رود.
+ */
+function stlh_subcat_chips( WP_Term $t ): string {
+	$kids = get_terms( [ 'taxonomy' => 'product_cat', 'parent' => $t->term_id, 'hide_empty' => true, 'menu_order' => 'ASC' ] );
+	if ( is_wp_error( $kids ) || count( $kids ) < 2 ) {
+		return '';
+	}
+	$html = '';
+	foreach ( $kids as $k ) {
+		$url = get_term_link( $k );
+		if ( ! is_wp_error( $url ) ) {
+			$html .= '<a class="st-subcat" href="' . esc_url( $url ) . '">' . esc_html( $k->name ) . '</a>';
+		}
+	}
+	return $html ? '<nav class="st-subcats" aria-label="' . esc_attr( $t->name ) . '">' . $html . '</nav>' : '';
 }
 
 function stlh_line_html( array $line ): string {
@@ -555,7 +578,7 @@ function stlh_line_html( array $line ): string {
 	}
 	if ( 'children' !== ( $line['mode'] ?? '' ) ) {
 		$b = $blocks[0];
-		return stlh_row_html( $b['items'], $b['title'], $b['sub'], $b['url'] );
+		return stlh_row_html( $b['items'], $b['title'], $b['sub'], $b['url'], 'all' === ( $line['mode'] ?? 'all' ) ? stlh_subcat_chips( $t ) : '' );
 	}
 	$html = '';
 	foreach ( $blocks as $b ) {
@@ -591,7 +614,7 @@ function stlh_group(): string {
 	// همین دسته در «ردیف‌ها» هست؟ دو بار نیاید
 	if ( 'manual' !== stlh_opt( 'rows_source' ) ) {
 		foreach ( stlh_lines_effective() as $l ) {
-			if ( 'children' === ( $l['mode'] ?? '' ) && (int) $l['cat'] === $parent->term_id ) {
+			if ( (int) ( $l['cat'] ?? 0 ) === $parent->term_id ) {
 				return '';
 			}
 		}

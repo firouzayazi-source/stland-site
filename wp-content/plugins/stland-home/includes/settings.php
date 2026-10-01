@@ -126,6 +126,7 @@ function stlh_sanitize_lines( array $in ): array {
 			'cat'   => $cat,
 			'mode'  => isset( stlh_line_modes()[ $mode ] ) ? $mode : 'all',
 			'title' => sanitize_text_field( (string) ( $l['title'] ?? '' ) ),
+			'sub'   => sanitize_text_field( (string) ( $l['sub'] ?? '' ) ),
 			'limit' => max( 1, min( 24, absint( $l['limit'] ?? 8 ) ?: 8 ) ),
 		];
 	}
@@ -285,12 +286,14 @@ function stlh_line_item( array $line, int $i, string $cat_opts ): string {
 		. '<div class="stlh-line-body"><div class="stlh-line-fields">'
 		. '<select data-f="cat" name="%1$s" aria-label="دسته">%2$s</select>'
 		. '<select data-f="mode" name="%3$s" aria-label="چه چیزی">%4$s</select>'
-		. '<input data-f="title" name="%5$s" value="%6$s" placeholder="عنوان: خودکار، نامِ دسته" aria-label="عنوان">'
+		. '<input data-f="title" name="%5$s" value="%6$s" placeholder="عنوانِ ردیف — خالی: خودکار" aria-label="عنوانِ ردیف">'
+		. '<input data-f="sub" name="%10$s" value="%11$s" placeholder="زیرعنوان — خالی: خودکار" aria-label="زیرعنوان">'
 		. '<label class="stlh-line-limit">تعداد <input data-f="limit" type="number" min="1" max="24" name="%7$s" value="%8$d"></label>'
 		. '</div><div class="stlh-line-info">%9$s</div></div>'
 		. '<button type="button" class="button-link-delete stlh-line-del" aria-label="حذفِ این ردیف" title="حذف">✕</button></li>',
 		$name( 'cat' ), $opts, $name( 'mode' ), $modes, $name( 'title' ), esc_attr( (string) ( $line['title'] ?? '' ) ),
-		$name( 'limit' ), (int) ( $line['limit'] ?? 8 ) ?: 8, $i >= 0 ? stlh_line_summary( $line ) : ''
+		$name( 'limit' ), (int) ( $line['limit'] ?? 8 ) ?: 8, $i >= 0 ? stlh_line_summary( $line ) : '',
+		$name( 'sub' ), esc_attr( (string) ( $line['sub'] ?? '' ) )
 	);
 }
 
@@ -320,7 +323,7 @@ function stlh_row_lines( array $stored ): void {
 		. '<input type="hidden" class="stlh-lines-touched" name="%4$s" value="">'
 		. '<p><button type="button" class="button stlh-line-add">+ افزودنِ ردیف</button> '
 		. '%5$s</p>'
-		. '<p class="description">هر ردیف: یک دسته + اینکه چه چیزی از آن بیاید. «کارکرده ۱» نسل‌های تازه است و «کارکرده ۲» بقیه (چند نسل «تازه» حساب شود، پایین‌تر). عنوان را خالی بگذارید تا نامِ دسته بیاید.</p>'
+		. '<p class="description">هر ردیف: یک دسته + اینکه چه چیزی از آن بیاید. «همه در یک ردیف» محصولاتِ زیرمجموعه‌ها را هم در همان کراسول می‌آورد (مثلِ لوازم جانبی، با دکمه‌ی هر زیردسته بالایش). «کارکرده ۱» نسل‌های تازه است و «کارکرده ۲» بقیه. عنوان و زیرعنوانِ هر ردیف را همین‌جا عوض کنید؛ خالی یعنی خودکار. نامِ خودِ دسته‌ها در حسابداری عوض می‌شود.</p>'
 		. '</td></tr>',
 		esc_html( $note ), $items, stlh_line_item( [], -1, $cat_opts ), esc_attr( STLH_OPT . '[lines_touched]' ),
 		$stored ? sprintf( '<button type="submit" class="button-link stlh-line-reset" name="%s" value="1">برگرداندن به خودکار</button>', esc_attr( STLH_OPT . '[lines_reset]' ) ) : ''
@@ -364,7 +367,7 @@ function stlh_settings_page(): void {
 			.stlh-line.ui-sortable-helper{box-shadow:0 6px 18px rgba(0,0,0,.12)}
 			.stlh-line-body{flex:1;min-width:0}
 			.stlh-line-fields{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-			.stlh-line-fields select,.stlh-line-fields input[data-f=title]{flex:1 1 180px;min-width:0;max-width:100%}
+			.stlh-line-fields select,.stlh-line-fields input[data-f=title],.stlh-line-fields input[data-f=sub]{flex:1 1 180px;min-width:0;max-width:100%}
 			.stlh-line-limit input{width:64px}
 			.stlh-line-info{font-size:12px;margin-top:4px}
 			.stlh-line-del{font-size:16px;padding:4px 6px;text-decoration:none}

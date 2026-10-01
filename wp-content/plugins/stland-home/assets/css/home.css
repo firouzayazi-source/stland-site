@@ -950,3 +950,23 @@ body.home { overflow-x: clip; }
 
     .st-sale { bottom: 6px; left: 6px; font-size: 9.5px; padding: 4px 7px; }
 }
+
+/* ۱.۱۰: زیردسته‌های یک ردیف (ایرپاد، شارژر…) — همه در یک کراسول، این‌ها فقط میان‌بر */
+.st-subcats {
+    display: flex; gap: 8px;
+    overflow-x: auto; scrollbar-width: none;
+    margin: -4px 0 12px; padding-bottom: 2px;
+}
+.st-subcats::-webkit-scrollbar { display: none; }
+.st-subcat {
+    flex: 0 0 auto;
+    padding: 6px 14px;
+    border: 1px solid #e4e7ec; border-radius: 999px;
+    background: #fff; color: #333;
+    font-size: 12.5px; font-weight: 600; text-decoration: none; white-space: nowrap;
+    transition: border-color .2s ease, color .2s ease;
+}
+.st-subcat:hover { border-color: var(--st-accent); color: var(--st-accent); }
+@media (max-width: 768px) {
+    .st-subcat { padding: 5px 12px; font-size: 12px; }
+}
