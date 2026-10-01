@@ -36,7 +36,10 @@ function stlh_defaults(): array {
 		'trust'          => "shield|گارانتی اصالت|تضمین اصالت و سلامت کالا\nclock|مهلت تست|تست با خیال راحت پس از خرید\ncard|خرید اقساطی|شرایط ویژه پرداخت قسطی\nstore|خرید حضوری|قم، بازار سلام، واحد F11",
 		'card_badges'    => "battery|باتری|٪\nregistry|ریجستری|",
 		// صاحب فروشگاه: نوار اعتماد زیر بنر نه، درست پیش از سوالات متداول.
-		'order'          => "banner\ncategories\nflash_deal\nrows\ngroup\nsocial\ntrust\nfaq\nposts",
+		// صاحب فروشگاه: دسته‌ها ← پیشنهاد ویژه ← آیفون نو ← کارکرده‌ها ← لوازم جانبی ← پرفروش‌ها
+		'order'          => "banner\ncategories\nflash_deal\nrows\ngroup\nbest\nsocial\ntrust\nfaq\nposts",
+		'best_cat'       => 'best-sellers',
+		'recent_span'    => 5,
 		// auto: همه‌ی دسته‌های اصلیِ ووکامرس (که با «یکی کردن با سایت» همان درختِ حسابداری است)
 		'cat_source'     => 'auto',
 		'rows_source'    => 'auto',
@@ -49,7 +52,8 @@ function stlh_opt( string $key ): mixed {
 	if ( null === $opts ) {
 		$opts = wp_parse_args( (array) get_option( STLH_OPT, [] ), stlh_defaults() );
 		// ترتیبِ پیش‌فرضِ نسخه‌ی ۱.۵.۰ که ذخیره شده بود، یعنی کسی دستش نزده؛ پیش‌فرضِ تازه جایش.
-		if ( "banner\ntrust\ncategories\nflash_deal\nrows\ngroup\nsocial\nfaq\nposts" === $opts['order'] ) {
+		// ترتیب‌های پیش‌فرضِ نسخه‌های قبل که ذخیره شده‌اند یعنی کسی دستشان نزده؛ پیش‌فرضِ تازه جایشان.
+		if ( in_array( $opts['order'], [ "banner\ntrust\ncategories\nflash_deal\nrows\ngroup\nsocial\nfaq\nposts", "banner\ncategories\nflash_deal\nrows\ngroup\nsocial\ntrust\nfaq\nposts" ], true ) ) {
 			$opts['order'] = stlh_defaults()['order'];
 		}
 	}

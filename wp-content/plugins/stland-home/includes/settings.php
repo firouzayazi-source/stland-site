@@ -78,7 +78,7 @@ function stlh_sanitize( mixed $in ): array {
 	foreach ( stlh_defaults() as $k => $def ) {
 		$v         = $in[ $k ] ?? $def;
 		$out[ $k ] = match ( true ) {
-			in_array( $k, [ 'banner_desktop', 'banner_mobile', 'flash_product', 'posts_count', 'group_limit' ], true ) => absint( $v ),
+			in_array( $k, [ 'banner_desktop', 'banner_mobile', 'flash_product', 'posts_count', 'group_limit', 'recent_span' ], true ) => absint( $v ),
 			'banner_link' === $k                                                                         => esc_url_raw( (string) $v ),
 			in_array( $k, [ 'categories', 'product_rows', 'faq', 'address', 'trust', 'card_badges' ], true ) => sanitize_textarea_field( (string) $v ),
 			'order' === $k                                                                               => implode( "\n", array_values( array_intersect( array_unique( stlh_lines( sanitize_textarea_field( (string) $v ) ) ), array_keys( stlh_sections() ) ) ) ),
@@ -95,6 +95,7 @@ function stlh_sanitize( mixed $in ): array {
 	}
 	$out['posts_count'] = min( 12, $out['posts_count'] );
 	$out['group_limit'] = max( 1, min( 24, $out['group_limit'] ) );
+	$out['recent_span'] = max( 1, min( 20, $out['recent_span'] ?: 5 ) );
 	return $out;
 }
 
@@ -223,6 +224,8 @@ function stlh_settings_page(): void {
 			<table class="form-table" role="presentation">
 				<?php
 				stlh_row_radio( 'کدام ردیف‌ها', 'rows_source', (string) $o['rows_source'], [ 'auto' => 'برای هر دسته‌ی اصلی یک ردیف، خودکار (پیشنهادی)', 'manual' => 'فقط ردیف‌های زیر' ], 'خودکار: هر دسته‌ی اصلی یک ردیفِ ۸تایی با نامِ خودش. دسته‌ی «لوازم جانبی» اگر زیردسته دارد، در بخشِ خودش می‌آید و تکرار نمی‌شود.' );
+				stlh_row_text( 'نسل‌های تازه در ردیفِ اول', 'recent_span', (string) $o['recent_span'], 'وقتی گوشی‌های یک دسته از چند نسل‌اند، ردیفِ اول فقط این تعداد نسلِ آخر را نشان می‌دهد (نسبت به جدیدترین گوشیِ موجود) و بقیه در ردیفِ «مدل‌های قدیمی‌تر» می‌آیند.', 'number' );
+				stlh_row_text( 'نامک دسته‌ی پرفروش‌ها', 'best_cat', (string) $o['best_cat'], 'بخشِ «پرفروش‌ها» محصولاتِ همین دسته را نشان می‌دهد. در حسابداری، از پنلِ انتشارِ هر کالا این دسته را کنارِ دسته‌ی اصلی‌اش بزنید.' );
 				stlh_row_textarea( 'ردیف‌ها (حالت فهرست)', 'product_rows', (string) $o['product_rows'], 'هر خط: دسته|تعداد|عنوان|زیرعنوان|بازه مدل — دسته = نامک، نام یا ID (چند دسته با ویرگول انگلیسی). بازه مدل اختیاری است و از روی نام محصول (iPhone 12 Pro → 12) فیلتر می‌کند: 13-18 ، -12 ، 13- . مثال: کارکرده|10|آیفون کارکرده ۱۳ تا ۱۸|تست‌شده|13-18', 5 );
 				echo '<tr><th scope="row">وضعیت ردیف‌ها</th><td>' . stlh_rows_report( (string) $o['product_rows'] ) . '</td></tr>';
 				stlh_row_textarea( 'نشان‌های کارت', 'card_badges', (string) $o['card_badges'], 'هر خط: کلید ویژگی یا متای محصول|برچسب|پسوند — مثال: battery|باتری|٪ . حداکثر ۲ نشان روی هر کارت؛ اگر محصول آن مقدار را نداشته باشد نمایش داده نمی‌شود.', 3 );

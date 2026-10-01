@@ -129,10 +129,59 @@ function stlh_top_categories(): array {
 	return array_values( array_filter( $children[0] ?? [], static fn( WP_Term $t ) => $t->term_id !== $skip && $total( $t ) > 0 ) );
 }
 
+/**
+ * دسته‌های «برگ» برای کارت‌ها و ردیف‌ها، به ترتیبِ درخت.
+ *
+ * صاحب فروشگاه نمی‌خواهد سه کارتِ «تلفن همراه / لوازم جانبی / پرفروش‌ها»
+ * ببیند؛ می‌خواهد «آیفون نو، آیفون کارکرده، ایرپاد، شارژر…». پس از هر
+ * دسته‌ی اصلی پایین می‌رویم تا جایی که فرزندِ دارای محصول تمام شود:
+ * تلفن همراه › آیفون › [آیفون نو، آیفون کارکرده]، لوازم جانبی › [ایرپاد، …].
+ *
+ * @return WP_Term[]
+ */
+function stlh_leaf_categories(): array {
+	$all = get_terms( [ 'taxonomy' => 'product_cat', 'hide_empty' => false, 'menu_order' => 'ASC' ] );
+	if ( is_wp_error( $all ) || ! $all ) {
+		return [];
+	}
+	$children = [];
+	foreach ( $all as $t ) {
+		$children[ $t->parent ][] = $t;
+	}
+	$memo  = [];
+	$total = static function ( WP_Term $t ) use ( &$total, &$memo, $children ): int {
+		if ( ! isset( $memo[ $t->term_id ] ) ) {
+			$n = (int) $t->count;
+			foreach ( $children[ $t->term_id ] ?? [] as $c ) {
+				$n += $total( $c );
+			}
+			$memo[ $t->term_id ] = $n;
+		}
+		return $memo[ $t->term_id ];
+	};
+	$skip = (int) get_option( 'default_product_cat' );
+	$out  = [];
+	$walk = static function ( array $terms ) use ( &$walk, &$out, $children, $total, $skip ): void {
+		foreach ( $terms as $t ) {
+			if ( $t->term_id === $skip || $total( $t ) < 1 ) {
+				continue;
+			}
+			$full = array_filter( $children[ $t->term_id ] ?? [], static fn( WP_Term $c ) => $total( $c ) > 0 );
+			if ( $full ) {
+				$walk( $full );
+			} else {
+				$out[] = $t;
+			}
+		}
+	};
+	$walk( $children[0] ?? [] );
+	return $out;
+}
+
 /** [دسته, کلیدِ آیکن] برای بخشِ دسته‌بندی‌ها */
 function stlh_category_items(): array {
 	if ( 'manual' !== stlh_opt( 'cat_source' ) ) {
-		return array_map( static fn( WP_Term $t ) => [ $t, '' ], stlh_top_categories() );
+		return array_map( static fn( WP_Term $t ) => [ $t, '' ], stlh_leaf_categories() );
 	}
 	$items = [];
 	foreach ( stlh_lines( (string) stlh_opt( 'categories' ) ) as $line ) {
@@ -316,6 +365,15 @@ function stlh_row_items( array $slugs, int $limit, string $models = '' ): array 
 }
 
 /* ---------- ردیف محصولات ---------- */
+function stlh_row_html( array $items, string $title, string $subtitle = '', string $url = '' ): string {
+	if ( ! $items ) {
+		return '';
+	}
+	return '<section class="st-pr-wrapper"><div class="st-pr-container">'
+		. stlh_section_head( $title, $subtitle, $url )
+		. '<div class="st-pr-row">' . implode( '', array_map( 'stlh_card', $items ) ) . '</div></div></section>';
+}
+
 function stlh_products( array $atts ): string {
 	if ( ! stlh_woo() ) {
 		return '';
@@ -323,17 +381,59 @@ function stlh_products( array $atts ): string {
 	$a     = shortcode_atts( [ 'category' => '', 'limit' => 8, 'title' => '', 'subtitle' => '', 'models' => '' ], $atts, 'stl_products' );
 	$slugs = array_map( 'trim', explode( ',', (string) $a['category'] ) );
 	$items = stlh_row_items( $slugs, (int) $a['limit'], (string) $a['models'] );
-	if ( ! $items ) {
-		return '';
-	}
-	$cards = implode( '', array_map( 'stlh_card', $items ) );
 	$title = (string) $a['title'];
 	if ( '' === $title && ( $t = stlh_resolve_cat( $slugs[0] ) ) ) {
 		$title = $t->name;
 	}
-	return '<section class="st-pr-wrapper"><div class="st-pr-container">'
-		. stlh_section_head( $title, (string) $a['subtitle'], stlh_term_url( $slugs[0] ) )
-		. '<div class="st-pr-row">' . $cards . '</div></div></section>';
+	return stlh_row_html( $items, $title, (string) $a['subtitle'], stlh_term_url( $slugs[0] ) );
+}
+
+/**
+ * ردیفِ یک دسته، و اگر مدل‌هایش از چند نسل‌اند، دو ردیف.
+ *
+ * صاحب فروشگاه: «آیفون کارکرده مثلاً ۵ نسل آخر اینجا بیاد که شلوغ نشه،
+ * مابقی نسل‌ها زیرش.» «آخر» نسبت به **جدیدترین گوشیِ موجود** است، نه عددی
+ * ثابت؛ آیفون ۱۸ که آمد، بازه خودش جابه‌جا می‌شود. نسل از نامِ محصول
+ * خوانده می‌شود (`stlh_model_number`) — دسته‌ی «نسل ۱۴» دیگر لازم نیست.
+ * محصولی که نسلش خوانده نشد به ردیفِ دوم می‌رود، نه اینکه گم شود.
+ */
+function stlh_generation_rows( WP_Term $t, int $limit = 8 ): string {
+	$items = stlh_query_products( [ (string) $t->term_id ], 100 );
+	if ( ! $items ) {
+		return '';
+	}
+	$url  = get_term_link( $t );
+	$url  = is_wp_error( $url ) ? '' : $url;
+	$gens = array_map( static fn( WC_Product $p ) => stlh_model_number( $p->get_name() ), $items );
+	$max  = max( $gens );
+	$span = max( 1, (int) stlh_opt( 'recent_span' ) ?: 5 );
+	$from = $max - $span + 1;
+
+	$recent = [];
+	$older  = [];
+	foreach ( $items as $i => $p ) {
+		if ( $gens[ $i ] >= $from && $gens[ $i ] > 0 ) {
+			$recent[] = $p;
+		} else {
+			$older[] = $p;
+		}
+	}
+	if ( ! $max || ! $recent || ! $older ) {
+		return stlh_row_html( array_slice( $items, 0, $limit ), $t->name, '', $url );
+	}
+	// تازه‌ترها اول
+	usort( $recent, static fn( $a, $b ) => stlh_model_number( $b->get_name() ) <=> stlh_model_number( $a->get_name() ) );
+	return stlh_row_html( array_slice( $recent, 0, $limit ), $t->name, 'آیفون ' . stlh_fa( $from ) . ' تا ' . stlh_fa( $max ), $url )
+		. stlh_row_html( array_slice( $older, 0, $limit ), $t->name . ' — مدل‌های قدیمی‌تر', 'آیفون ' . stlh_fa( $from - 1 ) . ' و قبل‌تر', $url );
+}
+
+/* ---------- پرفروش‌ها ---------- */
+function stlh_best(): string {
+	if ( ! stlh_woo() || ! ( $t = stlh_resolve_cat( (string) stlh_opt( 'best_cat' ) ) ) ) {
+		return '';
+	}
+	$url = get_term_link( $t );
+	return stlh_row_html( stlh_query_products( [ (string) $t->term_id ], 12 ), $t->name, '', is_wp_error( $url ) ? '' : $url );
 }
 
 /* ---------- گروه لوازم جانبی (هر زیردسته یک ردیف) ---------- */
