@@ -101,6 +101,23 @@ function stlh_term_url( string $slug ): string {
 /* ---------- دسته‌بندی‌ها ---------- */
 
 /**
+ * «دسته‌بندی نشده»ِ ووکامرس که نباید کارت یا ردیف شود؟
+ *
+ * دسته‌ی پیش‌فرضِ ووکامرس را نمی‌شود پاک کرد؛ صاحب فروشگاه برای پاک کردنِ
+ * «نسل ۶» «تلفن همراه» را پیش‌فرض کرد — و کلِ شاخه‌ی گوشی‌ها (آیفون نو،
+ * کارکرده…) از صفحه‌ی اصلی رفت، چون اینجا پیش‌فرض یعنی «بی‌دسته». پس فقط
+ * پیش‌فرضی کنار می‌رود که واقعاً سطلِ بی‌دسته است: زیردسته ندارد یا نامش
+ * همان «دسته‌بندی نشده» است.
+ */
+function stlh_is_bucket( WP_Term $t, array $children ): bool {
+	if ( in_array( rawurldecode( $t->slug ), [ 'uncategorized', 'دسته-بندی-نشده', 'بدون-دسته-بندی' ], true )
+		|| in_array( $t->name, [ 'Uncategorized', 'دسته‌بندی نشده', 'بدون دسته‌بندی' ], true ) ) {
+		return true;
+	}
+	return $t->term_id === (int) get_option( 'default_product_cat' ) && empty( $children[ $t->term_id ] );
+}
+
+/**
  * دسته‌های اصلیِ فروشگاه، به ترتیبِ خودِ ووکامرس.
  *
  * «یکی کردن با سایت» در حسابداری درختِ دسته‌ها را دوطرفه یکی می‌کند؛ پس
@@ -125,8 +142,7 @@ function stlh_top_categories(): array {
 		}
 		return $n;
 	};
-	$skip = (int) get_option( 'default_product_cat' );
-	return array_values( array_filter( $children[0] ?? [], static fn( WP_Term $t ) => $t->term_id !== $skip && $total( $t ) > 0 ) );
+	return array_values( array_filter( $children[0] ?? [], static fn( WP_Term $t ) => ! stlh_is_bucket( $t, $children ) && $total( $t ) > 0 ) );
 }
 
 /**
@@ -159,12 +175,11 @@ function stlh_leaf_categories( bool $respect_hidden = true ): array {
 		}
 		return $memo[ $t->term_id ];
 	};
-	$skip   = (int) get_option( 'default_product_cat' );
 	$hidden = $respect_hidden ? array_map( 'intval', (array) stlh_opt( 'hide_cats' ) ) : [];
 	$out    = [];
-	$walk   = static function ( array $terms ) use ( &$walk, &$out, $children, $total, $skip, $hidden ): void {
+	$walk   = static function ( array $terms ) use ( &$walk, &$out, $children, $total, $hidden ): void {
 		foreach ( $terms as $t ) {
-			if ( $t->term_id === $skip || $total( $t ) < 1 || in_array( $t->term_id, $hidden, true ) ) {
+			if ( stlh_is_bucket( $t, $children ) || $total( $t ) < 1 || in_array( $t->term_id, $hidden, true ) ) {
 				continue;
 			}
 			$full = array_filter( $children[ $t->term_id ] ?? [], static fn( WP_Term $c ) => $total( $c ) > 0 );
@@ -389,27 +404,42 @@ function stlh_products( array $atts ): string {
 	return stlh_row_html( $items, $title, (string) $a['subtitle'], stlh_term_url( $slugs[0] ) );
 }
 
+/* ---------- ردیف‌ها («خط»ها) ---------- */
+
 /**
- * ردیفِ یک دسته، و اگر مدل‌هایش از چند نسل‌اند، دو ردیف.
+ * گونه‌های ردیف. صاحب فروشگاه ردیف‌ها را این‌طور می‌بیند: «آیفون آک، کارکرده
+ * یک، کارکرده دو، لوازم جانبی». پس هر ردیف = یک دسته + یکی از این‌ها، و
+ * در تنظیماتِ افزونه با کشیدن مرتب و با فهرستِ کشویی ساخته می‌شود.
+ */
+function stlh_line_modes(): array {
+	return [
+		'all'      => 'همه‌ی محصولاتِ دسته',
+		'recent'   => 'فقط نسل‌های تازه (کارکرده ۱)',
+		'older'    => 'فقط مدل‌های قدیمی‌تر (کارکرده ۲)',
+		'children' => 'هر زیردسته یک ردیف (مثل لوازم جانبی)',
+	];
+}
+
+/**
+ * گوشی‌های یک دسته، دو دسته: نسل‌های تازه و قدیمی‌تر.
  *
  * صاحب فروشگاه: «آیفون کارکرده مثلاً ۵ نسل آخر اینجا بیاد که شلوغ نشه،
  * مابقی نسل‌ها زیرش.» «آخر» نسبت به **جدیدترین گوشیِ موجود** است، نه عددی
  * ثابت؛ آیفون ۱۸ که آمد، بازه خودش جابه‌جا می‌شود. نسل از نامِ محصول
- * خوانده می‌شود (`stlh_model_number`) — دسته‌ی «نسل ۱۴» دیگر لازم نیست.
- * محصولی که نسلش خوانده نشد به ردیفِ دوم می‌رود، نه اینکه گم شود.
+ * خوانده می‌شود (`stlh_model_number`) — دسته‌ی «نسل ۱۴» لازم نیست. محصولی
+ * که نسلش خوانده نشد به «قدیمی‌تر» می‌رود، نه اینکه گم شود.
+ *
+ * @return array{items: WC_Product[], recent: WC_Product[], older: WC_Product[], from: int, max: int, split: bool}
  */
-function stlh_generation_rows( WP_Term $t, int $limit = 8 ): string {
-	$items = stlh_query_products( [ (string) $t->term_id ], 100 );
-	if ( ! $items ) {
-		return '';
+function stlh_split_generations( WP_Term $t ): array {
+	static $memo = [];
+	if ( isset( $memo[ $t->term_id ] ) ) {
+		return $memo[ $t->term_id ];
 	}
-	$url  = get_term_link( $t );
-	$url  = is_wp_error( $url ) ? '' : $url;
-	$gens = array_map( static fn( WC_Product $p ) => stlh_model_number( $p->get_name() ), $items );
-	$max  = max( $gens );
-	$span = max( 1, (int) stlh_opt( 'recent_span' ) ?: 5 );
-	$from = $max - $span + 1;
-
+	$items = stlh_query_products( [ (string) $t->term_id ], 100 );
+	$gens  = array_map( static fn( WC_Product $p ) => stlh_model_number( $p->get_name() ), $items );
+	$max   = $gens ? max( $gens ) : 0;
+	$from  = $max - max( 1, (int) stlh_opt( 'recent_span' ) ?: 5 ) + 1;
 	$recent = [];
 	$older  = [];
 	foreach ( $items as $i => $p ) {
@@ -419,13 +449,125 @@ function stlh_generation_rows( WP_Term $t, int $limit = 8 ): string {
 			$older[] = $p;
 		}
 	}
-	if ( ! $max || ! $recent || ! $older ) {
-		return stlh_row_html( array_slice( $items, 0, $limit ), $t->name, '', $url );
-	}
 	// تازه‌ترها اول
 	usort( $recent, static fn( $a, $b ) => stlh_model_number( $b->get_name() ) <=> stlh_model_number( $a->get_name() ) );
-	return stlh_row_html( array_slice( $recent, 0, $limit ), $t->name, 'آیفون ' . stlh_fa( $from ) . ' تا ' . stlh_fa( $max ), $url )
-		. stlh_row_html( array_slice( $older, 0, $limit ), $t->name . ' — مدل‌های قدیمی‌تر', 'آیفون ' . stlh_fa( $from - 1 ) . ' و قبل‌تر', $url );
+	return $memo[ $t->term_id ] = [
+		'items'  => $items,
+		'recent' => $recent,
+		'older'  => $older,
+		'from'   => $from,
+		'max'    => $max,
+		'split'  => $max > 0 && $recent && $older,
+	];
+}
+
+/**
+ * ردیف‌هایی که صاحب فروشگاه نچیده — خودکار از درخت.
+ *
+ * هر برگِ دارای محصول یک ردیف، به ترتیبِ درخت؛ برگی که گوشی‌هایش از چند
+ * نسل‌اند دو ردیف (تازه، قدیمی‌تر)؛ دسته‌ی «لوازم جانبی» یک ردیفِ
+ * «هر زیردسته»؛ پرفروش‌ها بخشِ خودش را دارد و اینجا نمی‌آید.
+ *
+ * @return array<int, array{cat: int, mode: string, title: string, limit: int}>
+ */
+function stlh_auto_lines(): array {
+	$group = stlh_resolve_cat( (string) stlh_opt( 'group_parent' ) );
+	$under = $group ? array_map( 'intval', (array) get_term_children( $group->term_id, 'product_cat' ) ) : [];
+	$best  = stlh_resolve_cat( (string) stlh_opt( 'best_cat' ) );
+	$line  = static fn( int $cat, string $mode ) => [ 'cat' => $cat, 'mode' => $mode, 'title' => '', 'limit' => 8 ];
+	$out   = [];
+	$added = false;
+	foreach ( stlh_leaf_categories() as $t ) {
+		if ( $best && $t->term_id === $best->term_id ) {
+			continue;
+		}
+		if ( $group && ( $t->term_id === $group->term_id || in_array( $t->term_id, $under, true ) ) ) {
+			if ( ! $added && $under ) {
+				$out[] = $line( $group->term_id, 'children' );
+				$added = true;
+			} elseif ( ! $under ) {
+				$out[] = $line( $t->term_id, 'all' );
+			}
+			continue;
+		}
+		if ( stlh_split_generations( $t )['split'] ) {
+			$out[] = $line( $t->term_id, 'recent' );
+			$out[] = $line( $t->term_id, 'older' );
+		} else {
+			$out[] = $line( $t->term_id, 'all' );
+		}
+	}
+	return $out;
+}
+
+/** ردیف‌هایی که الان روی صفحه می‌آیند: چیده‌شده در تنظیمات، وگرنه خودکار */
+function stlh_lines_effective(): array {
+	$lines = array_values( array_filter( (array) stlh_opt( 'lines' ), 'is_array' ) );
+	return $lines ?: stlh_auto_lines();
+}
+
+/**
+ * یک ردیف — [عنوان، زیرعنوان، محصولات] یا برای «هر زیردسته» چند ردیف.
+ *
+ * @return array{0: WP_Term|null, 1: array<int, array{title: string, sub: string, items: WC_Product[], url: string}>}
+ */
+function stlh_line_blocks( array $line ): array {
+	$t = get_term( (int) ( $line['cat'] ?? 0 ), 'product_cat' );
+	if ( ! $t instanceof WP_Term ) {
+		return [ null, [] ];
+	}
+	$limit = max( 1, min( 24, (int) ( $line['limit'] ?? 8 ) ?: 8 ) );
+	$title = trim( (string) ( $line['title'] ?? '' ) );
+	$url   = get_term_link( $t );
+	$url   = is_wp_error( $url ) ? '' : $url;
+	$mode  = (string) ( $line['mode'] ?? 'all' );
+
+	if ( 'children' === $mode ) {
+		$kids   = get_terms( [ 'taxonomy' => 'product_cat', 'parent' => $t->term_id, 'hide_empty' => true, 'menu_order' => 'ASC' ] );
+		$blocks = [];
+		foreach ( is_wp_error( $kids ) ? [] : $kids as $k ) {
+			$items = stlh_query_products( [ (string) $k->term_id ], $limit );
+			if ( $items ) {
+				$kurl     = get_term_link( $k );
+				$blocks[] = [ 'title' => $k->name, 'sub' => '', 'items' => $items, 'url' => is_wp_error( $kurl ) ? '' : $kurl ];
+			}
+		}
+		return [ $t, $blocks ];
+	}
+	if ( 'recent' === $mode || 'older' === $mode ) {
+		$g = stlh_split_generations( $t );
+		if ( ! $g['split'] ) {
+			// همه از یک نسل‌اند: «تازه» همه را نشان می‌دهد و «قدیمی‌تر» چیزی ندارد
+			return [ $t, 'recent' === $mode && $g['items'] ? [ [ 'title' => $title ?: $t->name, 'sub' => '', 'items' => array_slice( $g['items'], 0, $limit ), 'url' => $url ] ] : [] ];
+		}
+		return 'recent' === $mode
+			? [ $t, [ [ 'title' => $title ?: $t->name, 'sub' => 'آیفون ' . stlh_fa( $g['from'] ) . ' تا ' . stlh_fa( $g['max'] ), 'items' => array_slice( $g['recent'], 0, $limit ), 'url' => $url ] ] ]
+			: [ $t, [ [ 'title' => $title ?: $t->name . ' — مدل‌های قدیمی‌تر', 'sub' => 'آیفون ' . stlh_fa( $g['from'] - 1 ) . ' و قبل‌تر', 'items' => array_slice( $g['older'], 0, $limit ), 'url' => $url ] ] ];
+	}
+	$items = stlh_query_products( [ (string) $t->term_id ], $limit );
+	return [ $t, $items ? [ [ 'title' => $title ?: $t->name, 'sub' => '', 'items' => $items, 'url' => $url ] ] : [] ];
+}
+
+function stlh_line_html( array $line ): string {
+	[ $t, $blocks ] = stlh_line_blocks( $line );
+	if ( ! $t || ! $blocks ) {
+		return '';
+	}
+	if ( 'children' !== ( $line['mode'] ?? '' ) ) {
+		$b = $blocks[0];
+		return stlh_row_html( $b['items'], $b['title'], $b['sub'], $b['url'] );
+	}
+	$html = '';
+	foreach ( $blocks as $b ) {
+		$html .= '<div class="st-grp-block">'
+			. stlh_section_head( $b['title'], '', $b['url'], 'مشاهده لیست', 'h3' )
+			. '<div class="st-pr-row st-grp-row">' . implode( '', array_map( 'stlh_card', $b['items'] ) ) . '</div></div>';
+	}
+	$url   = get_term_link( $t );
+	$title = trim( (string) ( $line['title'] ?? '' ) ) ?: $t->name;
+	return '<section class="st-pr-wrapper st-grp-wrapper"><div class="st-pr-container">'
+		. stlh_section_head( $title, '', is_wp_error( $url ) ? '' : $url )
+		. $html . '</div></section>';
 }
 
 /* ---------- پرفروش‌ها ---------- */
@@ -445,6 +587,14 @@ function stlh_group(): string {
 	$parent = stlh_resolve_cat( (string) stlh_opt( 'group_parent' ) );
 	if ( ! $parent ) {
 		return '';
+	}
+	// همین دسته در «ردیف‌ها» هست؟ دو بار نیاید
+	if ( 'manual' !== stlh_opt( 'rows_source' ) ) {
+		foreach ( stlh_lines_effective() as $l ) {
+			if ( 'children' === ( $l['mode'] ?? '' ) && (int) $l['cat'] === $parent->term_id ) {
+				return '';
+			}
+		}
 	}
 	$children = get_terms( [ 'taxonomy' => 'product_cat', 'parent' => $parent->term_id, 'hide_empty' => true, 'menu_order' => 'ASC' ] );
 	if ( is_wp_error( $children ) || ! $children ) {
