@@ -40,6 +40,8 @@ function stlh_defaults(): array {
 		'order'          => "banner\ncategories\nflash_deal\nrows\ngroup\nbest\nsocial\ntrust\nfaq\nposts",
 		'best_cat'       => 'best-sellers',
 		'recent_span'    => 5,
+		// دسته‌هایی که صاحب فروشگاه با تیک از صفحه‌ی اصلی پنهان کرده (شناسه‌ی ترم)
+		'hide_cats'      => [],
 		// auto: همه‌ی دسته‌های اصلیِ ووکامرس (که با «یکی کردن با سایت» همان درختِ حسابداری است)
 		'cat_source'     => 'auto',
 		'rows_source'    => 'auto',

@@ -21,3 +21,18 @@ jQuery(function ($) {
         });
     });
 });
+
+// ترتیبِ بخش‌ها: کشیدن و رها کردن + تیک → فیلدِ مخفیِ order (یک کلید در هر خط)
+jQuery(function ($) {
+    $('.stlh-sections').each(function () {
+        var list = $(this), input = list.siblings('input[type=hidden]');
+        function sync() {
+            input.val(list.children('li').filter(function () {
+                return $(this).find('input[type=checkbox]').is(':checked');
+            }).map(function () { return $(this).data('key'); }).get().join('\n'));
+        }
+        list.sortable({ handle: '.stlh-grip', axis: 'y', update: sync });
+        list.on('change', 'input[type=checkbox]', sync);
+        sync();
+    });
+});

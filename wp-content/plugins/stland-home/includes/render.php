@@ -139,7 +139,7 @@ function stlh_top_categories(): array {
  *
  * @return WP_Term[]
  */
-function stlh_leaf_categories(): array {
+function stlh_leaf_categories( bool $respect_hidden = true ): array {
 	$all = get_terms( [ 'taxonomy' => 'product_cat', 'hide_empty' => false, 'menu_order' => 'ASC' ] );
 	if ( is_wp_error( $all ) || ! $all ) {
 		return [];
@@ -159,11 +159,12 @@ function stlh_leaf_categories(): array {
 		}
 		return $memo[ $t->term_id ];
 	};
-	$skip = (int) get_option( 'default_product_cat' );
-	$out  = [];
-	$walk = static function ( array $terms ) use ( &$walk, &$out, $children, $total, $skip ): void {
+	$skip   = (int) get_option( 'default_product_cat' );
+	$hidden = $respect_hidden ? array_map( 'intval', (array) stlh_opt( 'hide_cats' ) ) : [];
+	$out    = [];
+	$walk   = static function ( array $terms ) use ( &$walk, &$out, $children, $total, $skip, $hidden ): void {
 		foreach ( $terms as $t ) {
-			if ( $t->term_id === $skip || $total( $t ) < 1 ) {
+			if ( $t->term_id === $skip || $total( $t ) < 1 || in_array( $t->term_id, $hidden, true ) ) {
 				continue;
 			}
 			$full = array_filter( $children[ $t->term_id ] ?? [], static fn( WP_Term $c ) => $total( $c ) > 0 );
