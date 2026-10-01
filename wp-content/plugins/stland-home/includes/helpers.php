@@ -47,6 +47,14 @@ function stlh_defaults(): array {
 		'rows_source'    => 'auto',
 		// ردیف‌هایی که صاحب فروشگاه در تنظیمات چیده: [{cat: شناسه‌ی ترم, mode, title, limit}]؛ خالی = خودکار از درخت
 		'lines'          => [],
+		// کراسول: page = ورق به ورق، smooth = نرم (نزدیکِ کارت می‌ایستد)، free = آزاد (با یک کشیدن تا آخر)
+		'carousel_mode'  => 'page',
+		// حرکتِ خودکار، هر چند ثانیه یک کارت؛ ۰ = خاموش
+		'carousel_auto'  => 0,
+		// متن‌هایی که صفحه خودش می‌سازد — هر کدام از تنظیمات عوض می‌شود (stlh_label)
+		'labels'         => [],
+		// نامِ نمایشیِ هر دسته در صفحه‌ی اصلی: [شناسه‌ی ترم => نام]؛ نامِ اصلی در حسابداری
+		'cat_names'      => [],
 		'city'           => 'قم',
 	];
 }
@@ -62,6 +70,41 @@ function stlh_opt( string $key ): mixed {
 		}
 	}
 	return $opts[ $key ] ?? null;
+}
+
+/**
+ * متن‌هایی که صفحه خودش می‌سازد، با پیش‌فرض و راهنما.
+ *
+ * صاحب فروشگاه: «عوض کردنِ نامِ آیفون کارکرده قدیمی‌تر را پیدا نکردم؛ یک
+ * استانداردِ کلی بساز برای گزینه‌هایی که لازم است.» پس هر متنی که روی صفحه
+ * می‌آید و از کد است، اینجا یک کلید دارد و در بخشِ «نام‌ها و متن‌ها» عوض
+ * می‌شود. {دسته}، {از} و {تا} جایشان پر می‌شود.
+ *
+ * @return array<string, array{0: string, 1: string}> کلید => [پیش‌فرض, کجا دیده می‌شود]
+ */
+function stlh_label_defaults(): array {
+	return [
+		'older_title' => [ '{دسته} — مدل‌های قدیمی‌تر', 'عنوانِ ردیفِ «کارکرده ۲» وقتی عنوانِ خودش را خالی گذاشته‌اید' ],
+		'recent_sub'  => [ 'آیفون {از} تا {تا}', 'زیرعنوانِ ردیفِ «کارکرده ۱» (نسل‌های تازه)' ],
+		'older_sub'   => [ 'آیفون {تا} و قبل‌تر', 'زیرعنوانِ ردیفِ «کارکرده ۲»' ],
+		'more'        => [ 'مشاهده همه', 'دکمه‌ی کنارِ عنوانِ هر ردیف' ],
+		'more_list'   => [ 'مشاهده لیست', 'دکمه‌ی کنارِ هر زیردسته در ردیفِ «هر زیردسته یک ردیف»' ],
+		'out'         => [ 'ناموجود', 'جای قیمت، وقتی کالا موجود نیست' ],
+		'call'        => [ 'تماس بگیرید', 'جای قیمت، وقتی کالا قیمت ندارد' ],
+		'posts_more'  => [ 'مشاهده همه مقالات', 'دکمه‌ی پایینِ بخشِ مقالات' ],
+	];
+}
+
+function stlh_label( string $key, array $vars = [] ): string {
+	$custom = (array) stlh_opt( 'labels' );
+	$text   = trim( (string) ( $custom[ $key ] ?? '' ) ) ?: ( stlh_label_defaults()[ $key ][0] ?? '' );
+	return strtr( $text, $vars );
+}
+
+/** نامِ دسته روی صفحه‌ی اصلی — نامِ نمایشیِ تنظیمات، وگرنه نامِ خودِ دسته */
+function stlh_cat_name( WP_Term $t ): string {
+	$names = (array) stlh_opt( 'cat_names' );
+	return trim( (string) ( $names[ $t->term_id ] ?? '' ) ) ?: $t->name;
 }
 
 function stlh_assets(): void {
@@ -265,6 +308,12 @@ function stlh_download_font(): bool {
 function stlh_inline_css(): string {
 	$accent = sanitize_hex_color( (string) stlh_opt( 'accent' ) ) ?: '#007bff';
 	$css    = ':root{--st-accent:' . $accent . ';}';
+	// نوعِ کراسول — `body` تا بر home.css (که بعد از این می‌آید) غالب شود
+	$css .= match ( stlh_opt( 'carousel_mode' ) ) {
+		'free'   => 'body .st-pr-row{scroll-snap-type:none}',
+		'smooth' => 'body .st-pr-row{scroll-snap-type:x proximity}',
+		default  => '',
+	};
 	if ( stlh_font_active() ) {
 		$css .= "@font-face{font-family:'Vazirmatn';src:url('" . esc_url_raw( stlh_font_url() ) . "') format('woff2');font-weight:100 900;font-style:normal;font-display:swap}";
 		$css .= ":root{--st-font:'Vazirmatn',Tahoma,sans-serif;}";

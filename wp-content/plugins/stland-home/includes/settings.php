@@ -87,6 +87,10 @@ function stlh_sanitize( mixed $in ): array {
 			in_array( $k, [ 'cat_source', 'rows_source' ], true )                                        => 'manual' === $v ? 'manual' : 'auto',
 			'hide_cats' === $k                                                                           => array_values( array_filter( array_map( 'absint', (array) $v ) ) ),
 			'lines' === $k                                                                               => stlh_sanitize_lines( $in ),
+			'labels' === $k                                                                              => array_filter( array_map( 'sanitize_text_field', array_intersect_key( (array) $v, stlh_label_defaults() ) ) ),
+			'cat_names' === $k                                                                           => array_filter( array_map( 'sanitize_text_field', array_combine( array_map( 'absint', array_keys( (array) $v ) ), array_values( (array) $v ) ) ?: [] ) ),
+			'carousel_mode' === $k                                                                       => in_array( $v, [ 'page', 'smooth', 'free' ], true ) ? $v : 'page',
+			'carousel_auto' === $k                                                                       => min( 30, absint( $v ) ),
 			'accent' === $k                                                                              => sanitize_hex_color( (string) $v ) ?: '#007bff',
 			'flash_mode' === $k                                                                          => in_array( $v, [ 'featured', 'manual', 'off' ], true ) ? $v : 'featured',
 			default                                                                                      => sanitize_text_field( (string) $v ),
@@ -220,7 +224,7 @@ function stlh_row_cat_select( string $label, string $key, string $val, string $h
  * ترتیب و نام از حسابداری می‌آید («دسته‌بندی‌ها» ← کشیدن)؛ اینجا فقط دیده و
  * اگر لازم شد پنهان می‌شود.
  */
-function stlh_row_tree( array $hidden ): void {
+function stlh_row_tree( array $hidden, array $names = [] ): void {
 	$default = (int) get_option( 'default_product_cat' );
 	$leaves  = array_map( static fn( WP_Term $t ) => $t->term_id, stlh_leaf_categories( false ) );
 	$kids_of = [];
@@ -241,15 +245,17 @@ function stlh_row_tree( array $hidden ): void {
 			);
 		}
 		$rows .= sprintf(
-			'<li style="padding-inline-start:%.1frem;margin:2px 0">%s <b%s>%s</b> <span style="color:#777">%s محصول</span>%s%s</li>',
+			'<li style="padding-inline-start:%.1frem;margin:4px 0">%s <b%s>%s</b> <span style="color:#777">%s محصول</span>%s%s'
+			. ' <input class="stlh-catname" name="%s" value="%s" placeholder="نام در صفحه‌ی اصلی: %s" aria-label="نامِ %s در صفحه‌ی اصلی"></li>',
 			$depth * 1.4, $has_kids ? '📂' : '🏷️', $is_leaf ? '' : ' style="font-weight:800"', esc_html( $t->name ),
-			esc_html( stlh_fa( (int) $t->count ) ), $mark, $box
+			esc_html( stlh_fa( (int) $t->count ) ), $mark, $box,
+			esc_attr( STLH_OPT . '[cat_names][' . $t->term_id . ']' ), esc_attr( (string) ( $names[ $t->term_id ] ?? '' ) ), esc_attr( $t->name ), esc_attr( $t->name )
 		);
 	}
 	printf(
 		'<tr><th scope="row">درختِ دسته‌ها</th><td><ul style="margin:0">%s</ul>%s</td></tr>',
 		$rows,
-		stlh_help( 'کارت‌ها و ردیف‌های صفحه‌ی اصلی خودکار از «برگ»های این درخت ساخته می‌شوند، به همین ترتیب. نام، جایگاه و ترتیب را در حسابداری (کالاها ← دسته‌بندی‌ها) عوض کنید؛ همان لحظه اینجا هم عوض می‌شود.' )
+		stlh_help( 'کارت‌ها و ردیف‌های صفحه‌ی اصلی خودکار از «برگ»های این درخت ساخته می‌شوند، به همین ترتیب. کادرِ جلوی هر دسته نامی است که فقط در صفحه‌ی اصلی دیده می‌شود (خالی = همان نامِ دسته). نامِ اصلی، جایگاه و ترتیب را در حسابداری (کالاها ← دسته‌بندی‌ها) عوض کنید.' )
 	);
 }
 
@@ -276,6 +282,14 @@ function stlh_line_summary( array $line ): string {
 function stlh_line_item( array $line, int $i, string $cat_opts ): string {
 	$name  = static fn( string $f ) => esc_attr( STLH_OPT . '[lines][' . max( 0, $i ) . '][' . $f . ']' );
 	$cat   = (int) ( $line['cat'] ?? 0 );
+	// جای خالیِ عنوان همان عنوانی را نشان می‌دهد که الان روی سایت است — تا معلوم باشد چه را عوض می‌کنید
+	$auto  = [ 'title' => 'عنوانِ ردیف — خالی: نامِ دسته', 'sub' => 'زیرعنوان — خالی: خودکار' ];
+	if ( $i >= 0 && stlh_woo() ) {
+		[ , $blocks ] = stlh_line_blocks( array_merge( $line, [ 'title' => '', 'sub' => '' ] ) );
+		if ( $blocks && 'children' !== ( $line['mode'] ?? '' ) ) {
+			$auto = [ 'title' => $blocks[0]['title'], 'sub' => $blocks[0]['sub'] ?: $auto['sub'] ];
+		}
+	}
 	$opts  = preg_replace( '/value="' . $cat . '"/', 'value="' . $cat . '" selected', $cat_opts, 1 );
 	$modes = '';
 	foreach ( stlh_line_modes() as $k => $label ) {
@@ -286,14 +300,14 @@ function stlh_line_item( array $line, int $i, string $cat_opts ): string {
 		. '<div class="stlh-line-body"><div class="stlh-line-fields">'
 		. '<select data-f="cat" name="%1$s" aria-label="دسته">%2$s</select>'
 		. '<select data-f="mode" name="%3$s" aria-label="چه چیزی">%4$s</select>'
-		. '<input data-f="title" name="%5$s" value="%6$s" placeholder="عنوانِ ردیف — خالی: خودکار" aria-label="عنوانِ ردیف">'
-		. '<input data-f="sub" name="%10$s" value="%11$s" placeholder="زیرعنوان — خالی: خودکار" aria-label="زیرعنوان">'
+		. '<input data-f="title" name="%5$s" value="%6$s" placeholder="%12$s" aria-label="عنوانِ ردیف">'
+		. '<input data-f="sub" name="%10$s" value="%11$s" placeholder="%13$s" aria-label="زیرعنوان">'
 		. '<label class="stlh-line-limit">تعداد <input data-f="limit" type="number" min="1" max="24" name="%7$s" value="%8$d"></label>'
 		. '</div><div class="stlh-line-info">%9$s</div></div>'
 		. '<button type="button" class="button-link-delete stlh-line-del" aria-label="حذفِ این ردیف" title="حذف">✕</button></li>',
 		$name( 'cat' ), $opts, $name( 'mode' ), $modes, $name( 'title' ), esc_attr( (string) ( $line['title'] ?? '' ) ),
 		$name( 'limit' ), (int) ( $line['limit'] ?? 8 ) ?: 8, $i >= 0 ? stlh_line_summary( $line ) : '',
-		$name( 'sub' ), esc_attr( (string) ( $line['sub'] ?? '' ) )
+		$name( 'sub' ), esc_attr( (string) ( $line['sub'] ?? '' ) ), esc_attr( $auto['title'] ), esc_attr( $auto['sub'] )
 	);
 }
 
@@ -370,6 +384,7 @@ function stlh_settings_page(): void {
 			.stlh-line-fields select,.stlh-line-fields input[data-f=title],.stlh-line-fields input[data-f=sub]{flex:1 1 180px;min-width:0;max-width:100%}
 			.stlh-line-limit input{width:64px}
 			.stlh-line-info{font-size:12px;margin-top:4px}
+			.stlh-catname{margin-inline-start:8px;width:220px;max-width:100%;font-size:12px}
 			.stlh-line-del{font-size:16px;padding:4px 6px;text-decoration:none}
 		</style>
 		<h1>صفحه اصلی استوک لند</h1>
@@ -440,7 +455,7 @@ function stlh_settings_page(): void {
 				<?php
 				stlh_row_text( 'عنوان', 'cat_title', (string) $o['cat_title'] );
 				stlh_row_text( 'زیرعنوان', 'cat_subtitle', (string) $o['cat_subtitle'] );
-				stlh_row_tree( array_map( 'intval', (array) $o['hide_cats'] ) );
+				stlh_row_tree( array_map( 'intval', (array) $o['hide_cats'] ), (array) $o['cat_names'] );
 				?>
 				<tr><th scope="row">نمایش</th><td>
 					<label><input type="radio" name="<?php echo esc_attr( STLH_OPT ); ?>[cat_style]" value="icon" <?php checked( $o['cat_style'], 'icon' ); ?>> آیکن</label>&nbsp;&nbsp;
@@ -455,6 +470,31 @@ function stlh_settings_page(): void {
 				stlh_row_text( 'نسل‌های تازه در «کارکرده ۱»', 'recent_span', (string) $o['recent_span'], '«کارکرده ۱» این تعداد نسلِ آخر را نشان می‌دهد (نسبت به جدیدترین گوشیِ موجود) و «کارکرده ۲» بقیه را. مثلاً ۵ و جدیدترین گوشی آیفون ۱۶: کارکرده ۱ = ۱۲ تا ۱۶.', 'number' );
 				stlh_row_cat_select( 'دسته‌ی پرفروش‌ها', 'best_cat', (string) $o['best_cat'], 'بخشِ «پرفروش‌ها» محصولاتِ همین دسته را نشان می‌دهد. در حسابداری، از پنلِ انتشارِ هر کالا این دسته را کنارِ دسته‌ی اصلی‌اش بزنید.' );
 				stlh_row_textarea( 'نشان‌های کارت', 'card_badges', (string) $o['card_badges'], 'هر خط: کلید ویژگی یا متای محصول|برچسب|پسوند — مثال: battery|باتری|٪ . حداکثر ۲ نشان روی هر کارت؛ اگر محصول آن مقدار را نداشته باشد نمایش داده نمی‌شود.', 3 );
+				?>
+			</table>
+
+			<h2>کراسول (ردیف‌های اسلایدی)</h2>
+			<table class="form-table" role="presentation">
+				<?php
+				stlh_row_radio( 'نوعِ حرکت', 'carousel_mode', (string) $o['carousel_mode'], [
+					'page'   => 'ورق به ورق — هر کشیدن روی یک کارت می‌ایستد',
+					'smooth' => 'نرم — آزاد می‌رود و نزدیکِ کارت می‌ایستد',
+					'free'   => 'آزاد — با یک کشیدنِ تند تا آخرِ ردیف می‌رود',
+				], 'روی گوشی و با کشیدنِ انگشت دیده می‌شود.' );
+				stlh_row_text( 'حرکتِ خودکار (ثانیه)', 'carousel_auto', (string) $o['carousel_auto'], 'هر چند ثانیه یک کارت جلو برود. ۰ = خاموش. وقتی مشتری دست می‌زند یا موس رویش است، می‌ایستد؛ به آخر که رسید از اول.', 'number' );
+				?>
+			</table>
+
+			<h2>نام‌ها و متن‌ها</h2>
+			<p class="description">هر متنی که صفحه خودش می‌سازد اینجاست. خالی = همان متنِ کم‌رنگ. <code>{دسته}</code>، <code>{از}</code> و <code>{تا}</code> خودشان پر می‌شوند. عنوانِ هر ردیف را در «ردیف‌های محصول» و نامِ هر دسته را در «درختِ دسته‌ها» هم می‌شود عوض کرد.</p>
+			<table class="form-table" role="presentation">
+				<?php
+				foreach ( stlh_label_defaults() as $key => [ $def, $where ] ) {
+					printf(
+						'<tr><th scope="row">%s</th><td><input class="regular-text" name="%s" value="%s" placeholder="%s" dir="auto"></td></tr>',
+						esc_html( $where ), esc_attr( STLH_OPT . '[labels][' . $key . ']' ), esc_attr( (string) ( $o['labels'][ $key ] ?? '' ) ), esc_attr( $def )
+					);
+				}
 				?>
 			</table>
 

@@ -59,10 +59,11 @@ function stlh_trust(): string {
 }
 
 /* ---------- هدر مشترک بخش‌ها ---------- */
-function stlh_section_head( string $title, string $sub = '', string $url = '', string $btn = 'مشاهده همه', string $tag = 'h2' ): string {
+function stlh_section_head( string $title, string $sub = '', string $url = '', string $btn = '', string $tag = 'h2' ): string {
 	if ( '' === $title && '' === $url ) {
 		return '';
 	}
+	$btn = $btn ?: stlh_label( 'more' );
 	$html  = '<div class="st-sec-head"><div class="st-sec-title">';
 	$html .= $title ? '<' . $tag . '>' . esc_html( $title ) . '</' . $tag . '>' : '';
 	$html .= $sub ? '<p>' . esc_html( $sub ) . '</p>' : '';
@@ -224,7 +225,7 @@ function stlh_categories(): string {
 		$icon   = $media ?: stlh_cat_icon( $icon_key ?: stlh_cat_icon_key( rawurldecode( $term->slug ), $term->name ) );
 		$cards .= sprintf(
 			'<a class="st-category-card" href="%s"><span class="st-icon-box%s">%s</span><span class="st-cat-name">%s</span></a>',
-			esc_url( $link ), $media ? ' has-img' : '', $icon, esc_html( $term->name )
+			esc_url( $link ), $media ? ' has-img' : '', $icon, esc_html( stlh_cat_name( $term ) )
 		);
 	}
 	if ( ! $cards ) {
@@ -238,10 +239,10 @@ function stlh_categories(): string {
 /* ---------- کارت محصول ---------- */
 function stlh_price( WC_Product $p ): string {
 	if ( ! $p->is_in_stock() ) {
-		return '<span class="st-out">ناموجود</span>';
+		return '<span class="st-out">' . esc_html( stlh_label( 'out' ) ) . '</span>';
 	}
 	$html = $p->get_price_html();
-	return $html ? wp_kses_post( $html ) : '<span class="st-call">تماس بگیرید</span>';
+	return $html ? wp_kses_post( $html ) : '<span class="st-call">' . esc_html( stlh_label( 'call' ) ) . '</span>';
 }
 
 function stlh_card( WC_Product $p ): string {
@@ -400,7 +401,7 @@ function stlh_products( array $atts ): string {
 	$items = stlh_row_items( $slugs, (int) $a['limit'], (string) $a['models'] );
 	$title = (string) $a['title'];
 	if ( '' === $title && ( $t = stlh_resolve_cat( $slugs[0] ) ) ) {
-		$title = $t->name;
+		$title = stlh_cat_name( $t );
 	}
 	return stlh_row_html( $items, $title, (string) $a['subtitle'], stlh_term_url( $slugs[0] ) );
 }
@@ -532,7 +533,7 @@ function stlh_line_blocks( array $line ): array {
 			$items = stlh_query_products( [ (string) $k->term_id ], $limit );
 			if ( $items ) {
 				$kurl     = get_term_link( $k );
-				$blocks[] = [ 'title' => $k->name, 'sub' => '', 'items' => $items, 'url' => is_wp_error( $kurl ) ? '' : $kurl ];
+				$blocks[] = [ 'title' => stlh_cat_name( $k ), 'sub' => '', 'items' => $items, 'url' => is_wp_error( $kurl ) ? '' : $kurl ];
 			}
 		}
 		return [ $t, $blocks ];
@@ -541,15 +542,15 @@ function stlh_line_blocks( array $line ): array {
 		$g = stlh_split_generations( $t );
 		if ( ! $g['split'] ) {
 			// همه از یک نسل‌اند: «تازه» همه را نشان می‌دهد و «قدیمی‌تر» چیزی ندارد
-			return [ $t, 'recent' === $mode && $g['items'] ? [ [ 'title' => $title ?: $t->name, 'sub' => '', 'items' => array_slice( $g['items'], 0, $limit ), 'url' => $url ] ] : [] ];
+			return [ $t, 'recent' === $mode && $g['items'] ? [ [ 'title' => $title ?: stlh_cat_name( $t ), 'sub' => '', 'items' => array_slice( $g['items'], 0, $limit ), 'url' => $url ] ] : [] ];
 		}
 		return 'recent' === $mode
-			? [ $t, [ [ 'title' => $title ?: $t->name, 'sub' => $sub ?: 'آیفون ' . stlh_fa( $g['from'] ) . ' تا ' . stlh_fa( $g['max'] ), 'items' => array_slice( $g['recent'], 0, $limit ), 'url' => $url ] ] ]
-			: [ $t, [ [ 'title' => $title ?: $t->name . ' — مدل‌های قدیمی‌تر', 'sub' => $sub ?: 'آیفون ' . stlh_fa( $g['from'] - 1 ) . ' و قبل‌تر', 'items' => array_slice( $g['older'], 0, $limit ), 'url' => $url ] ] ];
+			? [ $t, [ [ 'title' => $title ?: stlh_cat_name( $t ), 'sub' => $sub ?: stlh_label( 'recent_sub', [ '{از}' => stlh_fa( $g['from'] ), '{تا}' => stlh_fa( $g['max'] ) ] ), 'items' => array_slice( $g['recent'], 0, $limit ), 'url' => $url ] ] ]
+			: [ $t, [ [ 'title' => $title ?: stlh_label( 'older_title', [ '{دسته}' => stlh_cat_name( $t ) ] ), 'sub' => $sub ?: stlh_label( 'older_sub', [ '{تا}' => stlh_fa( $g['from'] - 1 ) ] ), 'items' => array_slice( $g['older'], 0, $limit ), 'url' => $url ] ] ];
 	}
 	// محصولاتِ خودِ دسته و همه‌ی زیرمجموعه‌هایش، تازه‌ترها اول
 	$items = stlh_query_products( [ (string) $t->term_id ], $limit );
-	return [ $t, $items ? [ [ 'title' => $title ?: $t->name, 'sub' => $sub, 'items' => $items, 'url' => $url ] ] : [] ];
+	return [ $t, $items ? [ [ 'title' => $title ?: stlh_cat_name( $t ), 'sub' => $sub, 'items' => $items, 'url' => $url ] ] : [] ];
 }
 
 /**
@@ -565,7 +566,7 @@ function stlh_subcat_chips( WP_Term $t ): string {
 	foreach ( $kids as $k ) {
 		$url = get_term_link( $k );
 		if ( ! is_wp_error( $url ) ) {
-			$html .= '<a class="st-subcat" href="' . esc_url( $url ) . '">' . esc_html( $k->name ) . '</a>';
+			$html .= '<a class="st-subcat" href="' . esc_url( $url ) . '">' . esc_html( stlh_cat_name( $k ) ) . '</a>';
 		}
 	}
 	return $html ? '<nav class="st-subcats" aria-label="' . esc_attr( $t->name ) . '">' . $html . '</nav>' : '';
@@ -583,11 +584,11 @@ function stlh_line_html( array $line ): string {
 	$html = '';
 	foreach ( $blocks as $b ) {
 		$html .= '<div class="st-grp-block">'
-			. stlh_section_head( $b['title'], '', $b['url'], 'مشاهده لیست', 'h3' )
+			. stlh_section_head( $b['title'], '', $b['url'], stlh_label( 'more_list' ), 'h3' )
 			. '<div class="st-pr-row st-grp-row">' . implode( '', array_map( 'stlh_card', $b['items'] ) ) . '</div></div>';
 	}
 	$url   = get_term_link( $t );
-	$title = trim( (string) ( $line['title'] ?? '' ) ) ?: $t->name;
+	$title = trim( (string) ( $line['title'] ?? '' ) ) ?: stlh_cat_name( $t );
 	return '<section class="st-pr-wrapper st-grp-wrapper"><div class="st-pr-container">'
 		. stlh_section_head( $title, '', is_wp_error( $url ) ? '' : $url )
 		. $html . '</div></section>';
@@ -599,7 +600,7 @@ function stlh_best(): string {
 		return '';
 	}
 	$url = get_term_link( $t );
-	return stlh_row_html( stlh_query_products( [ (string) $t->term_id ], 12 ), $t->name, '', is_wp_error( $url ) ? '' : $url );
+	return stlh_row_html( stlh_query_products( [ (string) $t->term_id ], 12 ), stlh_cat_name( $t ), '', is_wp_error( $url ) ? '' : $url );
 }
 
 /* ---------- گروه لوازم جانبی (هر زیردسته یک ردیف) ---------- */
@@ -634,7 +635,7 @@ function stlh_group(): string {
 		}
 		$url     = get_term_link( $term );
 		$blocks .= '<div class="st-grp-block">'
-			. stlh_section_head( $term->name, '', is_wp_error( $url ) ? '' : $url, 'مشاهده لیست', 'h3' )
+			. stlh_section_head( stlh_cat_name( $term ), '', is_wp_error( $url ) ? '' : $url, stlh_label( 'more_list' ), 'h3' )
 			. '<div class="st-pr-row st-grp-row">' . implode( '', array_map( 'stlh_card', $items ) ) . '</div></div>';
 	}
 	if ( ! $blocks ) {
@@ -826,6 +827,6 @@ function stlh_posts(): string {
 
 	return '<section class="st-articles-wrapper"><div class="st-articles-container">'
 		. '<div class="st-articles-header"><div class="st-articles-title-box"><h2>مجله و مقالات استوک لند</h2><p>راهنمای خرید آیفون، بررسی اصالت و مقایسه مدل‌های مختلف اپل</p></div>'
-		. '<a class="st-articles-more-btn" href="' . esc_url( $blog ) . '">مشاهده همه مقالات' . stlh_arrow() . '</a></div>'
+		. '<a class="st-articles-more-btn" href="' . esc_url( $blog ) . '">' . esc_html( stlh_label( 'posts_more' ) ) . stlh_arrow() . '</a></div>'
 		. '<div class="st-articles-grid">' . $cards . '</div></div></section>';
 }
