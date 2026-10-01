@@ -18,7 +18,7 @@ add_action( 'admin_enqueue_scripts', function ( string $hook ): void {
 		return;
 	}
 	wp_enqueue_media();
-	wp_enqueue_script( 'stlh-admin', STLH_URL . 'assets/js/admin.js', [ 'jquery' ], STLH_VER, true );
+	wp_enqueue_script( 'stlh-admin', STLH_URL . 'assets/js/admin.js', [ 'jquery', 'jquery-ui-sortable', 'jquery-touch-punch' ], STLH_VER, true );
 } );
 
 add_action( 'admin_post_stlh_font', function (): void {
@@ -85,6 +85,7 @@ function stlh_sanitize( mixed $in ): array {
 			in_array( $k, [ 'font_enable', 'font_sitewide', 'takeover' ], true )                                     => empty( $in[ $k ] ) ? '' : '1',
 			'cat_style' === $k                                                                           => 'photo' === $v ? 'photo' : 'icon',
 			in_array( $k, [ 'cat_source', 'rows_source' ], true )                                        => 'manual' === $v ? 'manual' : 'auto',
+			'hide_cats' === $k                                                                           => array_values( array_filter( array_map( 'absint', (array) $v ) ) ),
 			'accent' === $k                                                                              => sanitize_hex_color( (string) $v ) ?: '#007bff',
 			'flash_mode' === $k                                                                          => in_array( $v, [ 'featured', 'manual', 'off' ], true ) ? $v : 'featured',
 			default                                                                                      => sanitize_text_field( (string) $v ),
@@ -118,6 +119,101 @@ function stlh_row_radio( string $label, string $key, string $val, array $choices
 	printf( '<tr><th scope="row">%s</th><td>%s%s</td></tr>', esc_html( $label ), $html, stlh_help( $help ) );
 }
 
+/**
+ * ترتیبِ بخش‌ها با کشیدن و رها کردن، و روشن/خاموشِ هر بخش با تیک.
+ * صاحب فروشگاه: «نامک‌ها نوشتاری نباشند… بتوانم دراگ‌اند‌دراپ کنم… که خطای
+ * املایی نداشته باشم.» مقدارِ واقعی همان `order` است (یک کلید در هر خط) که
+ * اسکریپت از روی فهرست می‌سازد.
+ */
+function stlh_row_sections( string $order ): void {
+	$on    = stlh_lines( $order );
+	$all   = stlh_sections();
+	$keys  = array_merge( array_values( array_intersect( $on, array_keys( $all ) ) ), array_values( array_diff( array_keys( $all ), $on ) ) );
+	$items = '';
+	foreach ( $keys as $k ) {
+		$items .= sprintf(
+			'<li class="stlh-sec" data-key="%1$s"><span class="stlh-grip" aria-hidden="true">☰</span><label><input type="checkbox" %2$s> %3$s</label></li>',
+			esc_attr( $k ), checked( in_array( $k, $on, true ), true, false ), esc_html( $all[ $k ] )
+		);
+	}
+	printf(
+		'<tr><th scope="row">ترتیب بخش‌ها</th><td><ul class="stlh-sections" data-target="%s">%s</ul><input type="hidden" name="%s" value="%s">%s</td></tr>',
+		esc_attr( STLH_OPT . '-order' ), $items, esc_attr( STLH_OPT . '[order]' ), esc_attr( $order ),
+		stlh_help( 'بخش‌ها را با کشیدن جابه‌جا کنید؛ تیک را بردارید تا آن بخش در صفحه نیاید. بعد «ذخیره تغییرات».' )
+	);
+}
+
+/** همه‌ی دسته‌های ووکامرس به ترتیبِ درخت (menu_order)، با عمق */
+function stlh_term_rows(): array {
+	$all = get_terms( [ 'taxonomy' => 'product_cat', 'hide_empty' => false, 'menu_order' => 'ASC' ] );
+	if ( is_wp_error( $all ) ) {
+		return [];
+	}
+	$kids = [];
+	foreach ( $all as $t ) {
+		$kids[ $t->parent ][] = $t;
+	}
+	$out  = [];
+	$walk = static function ( int $parent, int $depth ) use ( &$walk, &$out, $kids ): void {
+		foreach ( $kids[ $parent ] ?? [] as $t ) {
+			$out[] = [ $t, $depth, ! empty( $kids[ $t->term_id ] ) ];
+			$walk( $t->term_id, $depth + 1 );
+		}
+	};
+	$walk( 0, 0 );
+	return $out;
+}
+
+/** انتخابِ دسته از فهرست، به‌جای تایپِ نامک */
+function stlh_row_cat_select( string $label, string $key, string $val, string $help = '' ): void {
+	$cur  = stlh_resolve_cat( $val );
+	$opts = '<option value="">— هیچ (بخش پنهان) —</option>';
+	foreach ( stlh_term_rows() as [ $t, $depth ] ) {
+		$slug  = rawurldecode( $t->slug );
+		$opts .= sprintf(
+			'<option value="%s" %s>%s%s (%s)</option>',
+			esc_attr( $slug ), selected( $cur && $cur->term_id === $t->term_id, true, false ),
+			str_repeat( '— ', $depth ), esc_html( $t->name ), esc_html( stlh_fa( (int) $t->count ) )
+		);
+	}
+	printf(
+		'<tr><th scope="row">%s</th><td><select name="%s">%s</select>%s</td></tr>',
+		esc_html( $label ), esc_attr( STLH_OPT . '[' . $key . ']' ), $opts, stlh_help( $help )
+	);
+}
+
+/**
+ * درختِ دسته‌ها همان‌طور که صفحه‌ی اصلی می‌بیند — با تیکِ «پنهان».
+ * ترتیب و نام از حسابداری می‌آید («دسته‌بندی‌ها» ← کشیدن)؛ اینجا فقط دیده و
+ * اگر لازم شد پنهان می‌شود.
+ */
+function stlh_row_tree( array $hidden ): void {
+	$default = (int) get_option( 'default_product_cat' );
+	$leaves  = array_map( static fn( WP_Term $t ) => $t->term_id, stlh_leaf_categories( false ) );
+	$rows    = '';
+	foreach ( stlh_term_rows() as [ $t, $depth, $has_kids ] ) {
+		$is_leaf = in_array( $t->term_id, $leaves, true );
+		$mark    = $t->term_id === $default ? ' <em style="color:#777">(پیش‌فرضِ ووکامرس — نمایش داده نمی‌شود)</em>' : '';
+		$box     = '';
+		if ( $is_leaf || in_array( $t->term_id, $hidden, true ) ) {
+			$box = sprintf(
+				' <label style="margin-inline-start:8px;color:#b32d2e"><input type="checkbox" name="%s[]" value="%d" %s> پنهان در صفحه اصلی</label>',
+				esc_attr( STLH_OPT . '[hide_cats]' ), $t->term_id, checked( in_array( $t->term_id, $hidden, true ), true, false )
+			);
+		}
+		$rows .= sprintf(
+			'<li style="padding-inline-start:%.1frem;margin:2px 0">%s <b%s>%s</b> <span style="color:#777">%s محصول</span>%s%s</li>',
+			$depth * 1.4, $has_kids ? '📂' : '🏷️', $is_leaf ? '' : ' style="font-weight:800"', esc_html( $t->name ),
+			esc_html( stlh_fa( (int) $t->count ) ), $mark, $box
+		);
+	}
+	printf(
+		'<tr><th scope="row">درختِ دسته‌ها</th><td><ul style="margin:0">%s</ul>%s</td></tr>',
+		$rows,
+		stlh_help( 'کارت‌ها و ردیف‌های صفحه‌ی اصلی خودکار از «برگ»های این درخت ساخته می‌شوند، به همین ترتیب. نام، جایگاه و ترتیب را در حسابداری (کالاها ← دسته‌بندی‌ها) عوض کنید؛ همان لحظه اینجا هم عوض می‌شود.' )
+	);
+}
+
 function stlh_row_textarea( string $label, string $key, string $val, string $help = '', int $rows = 6 ): void {
 	printf(
 		'<tr><th scope="row">%s</th><td><textarea class="large-text" rows="%d" name="%s" dir="auto">%s</textarea>%s</td></tr>',
@@ -143,6 +239,13 @@ function stlh_settings_page(): void {
 		: [];
 	?>
 	<div class="wrap">
+		<style>
+			.stlh-sections{margin:0;max-width:420px}
+			.stlh-sec{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:10px 12px;margin:0 0 6px;}
+			.stlh-sec .stlh-grip{cursor:grab;font-size:18px;color:#787c82;touch-action:none;padding:0 4px}
+			.stlh-sec.ui-sortable-helper{box-shadow:0 6px 18px rgba(0,0,0,.12)}
+			.stlh-sec label{flex:1}
+		</style>
 		<h1>صفحه اصلی استوک لند</h1>
 		<p>کل صفحه با شورت‌کد <code>[stl_home]</code> نمایش داده می‌شود (در ویجت «کد کوتاه» المنتور). هر بخش جدا هم شورت‌کد دارد:
 			<code>[stl_banner]</code> <code>[stl_categories]</code> <code>[stl_products category="iphone" limit="6" title="آیفون‌ها"]</code>
@@ -185,7 +288,7 @@ function stlh_settings_page(): void {
 				<?php
 				stlh_row_check( 'نمایش خودکار در صفحه اصلی', 'takeover', (string) $o['takeover'], 'صفحه اصلی سایت را این افزونه می‌سازد', 'روشن: هدر و فوتر از قالب، محتوای وسط از این افزونه؛ نیازی به المنتور نیست. خاموش: فقط جایی که شورت‌کد [stl_home] گذاشته شود.' );
 				stlh_row_check( 'استفاده از وزیرمتن', 'font_enable', (string) $o['font_enable'], 'در بخش‌های صفحه اصلی' );
-				stlh_row_textarea( 'ترتیب بخش‌ها', 'order', (string) $o['order'], 'هر خط یک بخش، از بالا به پایین. برای پنهان کردن یک بخش، خطش را پاک کنید. بخش‌ها: ' . implode( '، ', array_map( fn( $k, $l ) => "$k ($l)", array_keys( stlh_sections() ), stlh_sections() ) ), 9 );
+				stlh_row_sections( (string) $o['order'] );
 				stlh_row_check( 'وزیرمتن در کل سایت', 'font_sitewide', (string) $o['font_sitewide'], 'فونت همه صفحات سایت هم وزیرمتن شود', 'پیش‌فرض خاموش؛ قبل از روشن کردن، صفحات محصول و سبد خرید را چک کنید.' );
 				?>
 			</table>
@@ -211,8 +314,7 @@ function stlh_settings_page(): void {
 				<?php
 				stlh_row_text( 'عنوان', 'cat_title', (string) $o['cat_title'] );
 				stlh_row_text( 'زیرعنوان', 'cat_subtitle', (string) $o['cat_subtitle'] );
-				stlh_row_radio( 'کدام دسته‌ها', 'cat_source', (string) $o['cat_source'], [ 'auto' => 'همه‌ی دسته‌های اصلی فروشگاه، خودکار (پیشنهادی)', 'manual' => 'فقط فهرستِ زیر' ], 'خودکار: هر دسته‌ی اصلیِ ووکامرس که محصول دارد، به ترتیبی که در «محصولات ← دسته‌ها» چیده شده. با «یکی کردن با سایت» در حسابداری، این همان درختِ دسته‌های حسابداری است.' );
-				stlh_row_textarea( 'نامک دسته‌ها (حالت فهرست)', 'categories', (string) $o['categories'], 'هر خط: نامک دسته یا نامک|آیکن. آیکن‌ها: ' . implode( ', ', array_keys( stlh_cat_icons() ) ) . ' — اگر آیکن ننویسید، خودکار انتخاب می‌شود.' );
+				stlh_row_tree( array_map( 'intval', (array) $o['hide_cats'] ) );
 				?>
 				<tr><th scope="row">نمایش</th><td>
 					<label><input type="radio" name="<?php echo esc_attr( STLH_OPT ); ?>[cat_style]" value="icon" <?php checked( $o['cat_style'], 'icon' ); ?>> آیکن</label>&nbsp;&nbsp;
@@ -223,11 +325,8 @@ function stlh_settings_page(): void {
 			<h2>ردیف‌های محصول</h2>
 			<table class="form-table" role="presentation">
 				<?php
-				stlh_row_radio( 'کدام ردیف‌ها', 'rows_source', (string) $o['rows_source'], [ 'auto' => 'برای هر دسته‌ی اصلی یک ردیف، خودکار (پیشنهادی)', 'manual' => 'فقط ردیف‌های زیر' ], 'خودکار: هر دسته‌ی اصلی یک ردیفِ ۸تایی با نامِ خودش. دسته‌ی «لوازم جانبی» اگر زیردسته دارد، در بخشِ خودش می‌آید و تکرار نمی‌شود.' );
 				stlh_row_text( 'نسل‌های تازه در ردیفِ اول', 'recent_span', (string) $o['recent_span'], 'وقتی گوشی‌های یک دسته از چند نسل‌اند، ردیفِ اول فقط این تعداد نسلِ آخر را نشان می‌دهد (نسبت به جدیدترین گوشیِ موجود) و بقیه در ردیفِ «مدل‌های قدیمی‌تر» می‌آیند.', 'number' );
-				stlh_row_text( 'نامک دسته‌ی پرفروش‌ها', 'best_cat', (string) $o['best_cat'], 'بخشِ «پرفروش‌ها» محصولاتِ همین دسته را نشان می‌دهد. در حسابداری، از پنلِ انتشارِ هر کالا این دسته را کنارِ دسته‌ی اصلی‌اش بزنید.' );
-				stlh_row_textarea( 'ردیف‌ها (حالت فهرست)', 'product_rows', (string) $o['product_rows'], 'هر خط: دسته|تعداد|عنوان|زیرعنوان|بازه مدل — دسته = نامک، نام یا ID (چند دسته با ویرگول انگلیسی). بازه مدل اختیاری است و از روی نام محصول (iPhone 12 Pro → 12) فیلتر می‌کند: 13-18 ، -12 ، 13- . مثال: کارکرده|10|آیفون کارکرده ۱۳ تا ۱۸|تست‌شده|13-18', 5 );
-				echo '<tr><th scope="row">وضعیت ردیف‌ها</th><td>' . stlh_rows_report( (string) $o['product_rows'] ) . '</td></tr>';
+				stlh_row_cat_select( 'دسته‌ی پرفروش‌ها', 'best_cat', (string) $o['best_cat'], 'بخشِ «پرفروش‌ها» محصولاتِ همین دسته را نشان می‌دهد. در حسابداری، از پنلِ انتشارِ هر کالا این دسته را کنارِ دسته‌ی اصلی‌اش بزنید.' );
 				stlh_row_textarea( 'نشان‌های کارت', 'card_badges', (string) $o['card_badges'], 'هر خط: کلید ویژگی یا متای محصول|برچسب|پسوند — مثال: battery|باتری|٪ . حداکثر ۲ نشان روی هر کارت؛ اگر محصول آن مقدار را نداشته باشد نمایش داده نمی‌شود.', 3 );
 				?>
 			</table>
@@ -235,7 +334,7 @@ function stlh_settings_page(): void {
 			<h2>بخش لوازم جانبی (هر زیردسته یک ردیف)</h2>
 			<table class="form-table" role="presentation">
 				<?php
-				stlh_row_text( 'نامک دسته مادر', 'group_parent', (string) $o['group_parent'], 'زیردسته‌های این دسته (دارای محصول) هر کدام یک ردیف می‌شوند؛ ترتیب همان ترتیب دسته‌ها در ووکامرس است. خالی = مخفی' );
+				stlh_row_cat_select( 'دسته‌ی مادر', 'group_parent', (string) $o['group_parent'], 'زیردسته‌های این دسته (دارای محصول) هر کدام یک ردیف می‌شوند، به همان ترتیبِ درخت.' );
 				stlh_row_text( 'تعداد محصول هر ردیف', 'group_limit', (string) $o['group_limit'], '', 'number' );
 				stlh_row_text( 'عنوان', 'group_title', (string) $o['group_title'] );
 				stlh_row_text( 'زیرعنوان', 'group_subtitle', (string) $o['group_subtitle'] );
@@ -280,6 +379,20 @@ function stlh_settings_page(): void {
 			<table class="form-table" role="presentation">
 				<?php stlh_row_text( 'تعداد مقالات', 'posts_count', (string) $o['posts_count'], '۰ یعنی مخفی', 'number' ); ?>
 			</table>
+
+			<details style="margin:18px 0">
+				<summary style="cursor:pointer;font-weight:600">پیشرفته: فهرستِ دستیِ دسته‌ها و ردیف‌ها (معمولاً لازم نیست)</summary>
+				<p class="description">پیش‌فرض «خودکار» است: همه‌چیز از درختِ دسته‌ها و ترتیبِ حسابداری می‌آید. فقط اگر صفحه‌ای با ترکیبِ خاص می‌خواهید، این‌ها را روی «فهرست» بگذارید.</p>
+				<table class="form-table" role="presentation">
+					<?php
+					stlh_row_radio( 'کارت‌های دسته', 'cat_source', (string) $o['cat_source'], [ 'auto' => 'خودکار از درخت (پیشنهادی)', 'manual' => 'فقط فهرستِ زیر' ] );
+					stlh_row_textarea( 'نامک دسته‌ها', 'categories', (string) $o['categories'], 'هر خط: نامک یا نامک|آیکن.', 4 );
+					stlh_row_radio( 'ردیف‌های محصول', 'rows_source', (string) $o['rows_source'], [ 'auto' => 'خودکار از درخت (پیشنهادی)', 'manual' => 'فقط ردیف‌های زیر' ] );
+					stlh_row_textarea( 'ردیف‌ها', 'product_rows', (string) $o['product_rows'], 'هر خط: دسته|تعداد|عنوان|زیرعنوان|بازه مدل', 4 );
+					echo '<tr><th scope="row">وضعیت ردیف‌ها</th><td>' . stlh_rows_report( (string) $o['product_rows'] ) . '</td></tr>';
+					?>
+				</table>
+			</details>
 
 			<?php submit_button( 'ذخیره تغییرات' ); ?>
 		</form>
