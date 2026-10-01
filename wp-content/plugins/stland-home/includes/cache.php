@@ -58,8 +58,18 @@ foreach ( [
 	'delete_product_cat',
 	'update_option_' . STLH_OPT,
 	'update_option_woocommerce_hide_out_of_stock_items',
+	'update_option_default_product_cat',
 ] as $hook ) {
 	add_action( $hook, 'stlh_cache_flush', 10, 0 );
+}
+
+// ترتیبِ دسته‌ها (`order`) — کشیدن در وردپرس یا `menu_order` از حسابداری — فقط متای ترم است
+foreach ( [ 'added_term_meta', 'updated_term_meta', 'deleted_term_meta' ] as $hook ) {
+	add_action( $hook, static function ( $mid, $term_id, string $key ): void {
+		if ( 'order' === $key ) {
+			stlh_cache_flush();
+		}
+	}, 10, 3 );
 }
 
 // مقاله یا محصولی منتشر، پیش‌نویس یا حذف شد

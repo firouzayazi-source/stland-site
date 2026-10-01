@@ -8,8 +8,8 @@ function stlh_sections(): array {
 		'trust'      => 'نوار اعتماد',
 		'categories' => 'دسته‌بندی‌ها',
 		'flash_deal' => 'پیشنهاد ویژه',
-		'rows'       => 'ردیف‌های محصول',
-		'group'      => 'لوازم جانبی',
+		'rows'       => 'ردیف‌های محصول (آیفون نو، کارکرده، لوازم جانبی…)',
+		'group'      => 'لوازم جانبی — اگر در ردیف‌ها نیست',
 		'best'       => 'پرفروش‌ها',
 		'social'     => 'شبکه‌های اجتماعی',
 		'faq'        => 'سوالات متداول',
@@ -19,25 +19,8 @@ function stlh_sections(): array {
 
 function stlh_render_rows(): string {
 	if ( 'manual' !== stlh_opt( 'rows_source' ) ) {
-		/*
-		 * هر دسته‌ی «برگ» یک ردیف (آیفون نو، آیفون کارکرده…)، با شکستنِ نسل‌ها.
-		 * زیردسته‌های لوازم جانبی بخشِ خودشان را دارند و پرفروش‌ها هم؛ تکرار نمی‌شوند.
-		 */
-		$skip  = [];
-		$group = in_array( 'group', stlh_lines( (string) stlh_opt( 'order' ) ), true ) ? stlh_resolve_cat( (string) stlh_opt( 'group_parent' ) ) : false;
-		if ( $group && get_term_children( $group->term_id, 'product_cat' ) ) {
-			$skip = array_merge( [ $group->term_id ], array_map( 'intval', get_term_children( $group->term_id, 'product_cat' ) ) );
-		}
-		if ( $best = stlh_resolve_cat( (string) stlh_opt( 'best_cat' ) ) ) {
-			$skip[] = $best->term_id;
-		}
-		$out = '';
-		foreach ( stlh_leaf_categories() as $t ) {
-			if ( ! in_array( $t->term_id, $skip, true ) ) {
-				$out .= stlh_generation_rows( $t );
-			}
-		}
-		return $out;
+		// ردیف‌هایی که صاحب فروشگاه در تنظیمات چیده، به همان ترتیب؛ وگرنه خودکار از درخت
+		return implode( '', array_map( 'stlh_line_html', stlh_lines_effective() ) );
 	}
 	$out = '';
 	foreach ( stlh_lines( (string) stlh_opt( 'product_rows' ) ) as $row ) {

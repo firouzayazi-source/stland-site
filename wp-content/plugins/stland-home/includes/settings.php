@@ -86,6 +86,7 @@ function stlh_sanitize( mixed $in ): array {
 			'cat_style' === $k                                                                           => 'photo' === $v ? 'photo' : 'icon',
 			in_array( $k, [ 'cat_source', 'rows_source' ], true )                                        => 'manual' === $v ? 'manual' : 'auto',
 			'hide_cats' === $k                                                                           => array_values( array_filter( array_map( 'absint', (array) $v ) ) ),
+			'lines' === $k                                                                               => stlh_sanitize_lines( $in ),
 			'accent' === $k                                                                              => sanitize_hex_color( (string) $v ) ?: '#007bff',
 			'flash_mode' === $k                                                                          => in_array( $v, [ 'featured', 'manual', 'off' ], true ) ? $v : 'featured',
 			default                                                                                      => sanitize_text_field( (string) $v ),
@@ -97,6 +98,37 @@ function stlh_sanitize( mixed $in ): array {
 	$out['posts_count'] = min( 12, $out['posts_count'] );
 	$out['group_limit'] = max( 1, min( 24, $out['group_limit'] ) );
 	$out['recent_span'] = max( 1, min( 20, $out['recent_span'] ?: 5 ) );
+	return $out;
+}
+
+/**
+ * ردیف‌ها فقط وقتی ذخیره می‌شوند که صاحب فروشگاه دستشان زده باشد
+ * (`lines_touched` را اسکریپت می‌گذارد). وگرنه ذخیره‌ی یک تنظیمِ دیگر،
+ * فهرستِ خودکار را برای همیشه ثابت می‌کرد و دسته‌ی تازه دیگر خودش نمی‌آمد.
+ * «برگرداندن به خودکار» فهرست را خالی می‌کند.
+ */
+function stlh_sanitize_lines( array $in ): array {
+	if ( ! empty( $in['lines_reset'] ) ) {
+		return [];
+	}
+	if ( empty( $in['lines_touched'] ) ) {
+		$prev = get_option( STLH_OPT, [] );
+		return is_array( $prev['lines'] ?? null ) ? $prev['lines'] : [];
+	}
+	$out = [];
+	foreach ( (array) ( $in['lines'] ?? [] ) as $l ) {
+		$cat = absint( $l['cat'] ?? 0 );
+		if ( ! $cat ) {
+			continue;
+		}
+		$mode  = (string) ( $l['mode'] ?? 'all' );
+		$out[] = [
+			'cat'   => $cat,
+			'mode'  => isset( stlh_line_modes()[ $mode ] ) ? $mode : 'all',
+			'title' => sanitize_text_field( (string) ( $l['title'] ?? '' ) ),
+			'limit' => max( 1, min( 24, absint( $l['limit'] ?? 8 ) ?: 8 ) ),
+		];
+	}
 	return $out;
 }
 
@@ -190,10 +222,16 @@ function stlh_row_cat_select( string $label, string $key, string $val, string $h
 function stlh_row_tree( array $hidden ): void {
 	$default = (int) get_option( 'default_product_cat' );
 	$leaves  = array_map( static fn( WP_Term $t ) => $t->term_id, stlh_leaf_categories( false ) );
+	$kids_of = [];
+	foreach ( stlh_term_rows() as [ $t ] ) {
+		$kids_of[ $t->parent ][] = $t->term_id;
+	}
 	$rows    = '';
 	foreach ( stlh_term_rows() as [ $t, $depth, $has_kids ] ) {
 		$is_leaf = in_array( $t->term_id, $leaves, true );
-		$mark    = $t->term_id === $default ? ' <em style="color:#777">(پیش‌فرضِ ووکامرس — نمایش داده نمی‌شود)</em>' : '';
+		$mark    = $t->term_id !== $default ? '' : ( empty( $kids_of[ $t->term_id ] )
+			? ' <em style="color:#777">(پیش‌فرضِ ووکامرس — نمایش داده نمی‌شود)</em>'
+			: ' <em style="color:#777">(پیش‌فرضِ ووکامرس — بهتر است «دسته‌بندی نشده» پیش‌فرض باشد تا محصولِ بی‌دسته اینجا نیفتد)</em>' );
 		$box     = '';
 		if ( $is_leaf || in_array( $t->term_id, $hidden, true ) ) {
 			$box = sprintf(
@@ -211,6 +249,81 @@ function stlh_row_tree( array $hidden ): void {
 		'<tr><th scope="row">درختِ دسته‌ها</th><td><ul style="margin:0">%s</ul>%s</td></tr>',
 		$rows,
 		stlh_help( 'کارت‌ها و ردیف‌های صفحه‌ی اصلی خودکار از «برگ»های این درخت ساخته می‌شوند، به همین ترتیب. نام، جایگاه و ترتیب را در حسابداری (کالاها ← دسته‌بندی‌ها) عوض کنید؛ همان لحظه اینجا هم عوض می‌شود.' )
+	);
+}
+
+/** «۸ محصول» یا «۳ ردیف» — آنچه این ردیف الان روی صفحه می‌آورد */
+function stlh_line_summary( array $line ): string {
+	if ( ! stlh_woo() ) {
+		return '';
+	}
+	[ $t, $blocks ] = stlh_line_blocks( $line );
+	if ( ! $t ) {
+		return '<span style="color:#b32d2e">دسته پیدا نشد</span>';
+	}
+	if ( ! $blocks ) {
+		return '<span style="color:#b32d2e">الان محصولی ندارد — دیده نمی‌شود</span>';
+	}
+	if ( 'children' === ( $line['mode'] ?? '' ) ) {
+		return '<span style="color:#008a20">' . esc_html( stlh_fa( count( $blocks ) ) ) . ' ردیف: ' . esc_html( implode( '، ', array_column( $blocks, 'title' ) ) ) . '</span>';
+	}
+	$b = $blocks[0];
+	return '<span style="color:#008a20">«' . esc_html( $b['title'] ) . '» — ' . esc_html( stlh_fa( count( $b['items'] ) ) ) . ' محصول' . ( $b['sub'] ? ' (' . esc_html( $b['sub'] ) . ')' : '' ) . '</span>';
+}
+
+/** یک ردیف در فهرستِ ردیف‌ها؛ $i = -1 یعنی الگوی خالی برای «افزودن» */
+function stlh_line_item( array $line, int $i, string $cat_opts ): string {
+	$name  = static fn( string $f ) => esc_attr( STLH_OPT . '[lines][' . max( 0, $i ) . '][' . $f . ']' );
+	$cat   = (int) ( $line['cat'] ?? 0 );
+	$opts  = preg_replace( '/value="' . $cat . '"/', 'value="' . $cat . '" selected', $cat_opts, 1 );
+	$modes = '';
+	foreach ( stlh_line_modes() as $k => $label ) {
+		$modes .= sprintf( '<option value="%s" %s>%s</option>', esc_attr( $k ), selected( $line['mode'] ?? 'all', $k, false ), esc_html( $label ) );
+	}
+	return sprintf(
+		'<li class="stlh-line"><span class="stlh-grip" aria-hidden="true" title="بکشید">☰</span>'
+		. '<div class="stlh-line-body"><div class="stlh-line-fields">'
+		. '<select data-f="cat" name="%1$s" aria-label="دسته">%2$s</select>'
+		. '<select data-f="mode" name="%3$s" aria-label="چه چیزی">%4$s</select>'
+		. '<input data-f="title" name="%5$s" value="%6$s" placeholder="عنوان: خودکار، نامِ دسته" aria-label="عنوان">'
+		. '<label class="stlh-line-limit">تعداد <input data-f="limit" type="number" min="1" max="24" name="%7$s" value="%8$d"></label>'
+		. '</div><div class="stlh-line-info">%9$s</div></div>'
+		. '<button type="button" class="button-link-delete stlh-line-del" aria-label="حذفِ این ردیف" title="حذف">✕</button></li>',
+		$name( 'cat' ), $opts, $name( 'mode' ), $modes, $name( 'title' ), esc_attr( (string) ( $line['title'] ?? '' ) ),
+		$name( 'limit' ), (int) ( $line['limit'] ?? 8 ) ?: 8, $i >= 0 ? stlh_line_summary( $line ) : ''
+	);
+}
+
+/**
+ * ردیف‌های محصول: ساختن، کشیدن، حذف — بی‌تایپِ نامک.
+ * صاحب فروشگاه: «لاین‌بندی‌ها مثلِ آیفون آک، کارکرده یک، کارکرده دو،
+ * لوازم جانبی به صورتِ درست روی سایت بیاد.»
+ */
+function stlh_row_lines( array $stored ): void {
+	$cat_opts = '<option value="0">— دسته را انتخاب کنید —</option>';
+	foreach ( stlh_term_rows() as [ $t, $depth ] ) {
+		$cat_opts .= sprintf( '<option value="%d">%s%s (%s)</option>', $t->term_id, str_repeat( '— ', $depth ), esc_html( $t->name ), esc_html( stlh_fa( (int) $t->count ) ) );
+	}
+	$lines = $stored ?: stlh_auto_lines();
+	$items = '';
+	foreach ( array_values( $lines ) as $i => $l ) {
+		$items .= stlh_line_item( $l, $i, $cat_opts );
+	}
+	$note = $stored
+		? 'این ردیف‌ها را خودتان چیده‌اید. دسته‌ی تازه خودش اضافه نمی‌شود — با «افزودنِ ردیف» بیاوریدش، یا «برگرداندن به خودکار».'
+		: 'الان خودکار از درختِ دسته‌ها ساخته می‌شود (همین فهرست). هر چیزی را جابه‌جا، اضافه یا حذف کنید و «ذخیره» بزنید تا همین چیدمان ثابت شود.';
+	printf(
+		'<tr><th scope="row">ردیف‌ها، به همین ترتیب</th><td>'
+		. '<p class="description" style="margin-top:0">%1$s</p>'
+		. '<ul class="stlh-lines">%2$s</ul>'
+		. '<template class="stlh-line-tpl">%3$s</template>'
+		. '<input type="hidden" class="stlh-lines-touched" name="%4$s" value="">'
+		. '<p><button type="button" class="button stlh-line-add">+ افزودنِ ردیف</button> '
+		. '%5$s</p>'
+		. '<p class="description">هر ردیف: یک دسته + اینکه چه چیزی از آن بیاید. «کارکرده ۱» نسل‌های تازه است و «کارکرده ۲» بقیه (چند نسل «تازه» حساب شود، پایین‌تر). عنوان را خالی بگذارید تا نامِ دسته بیاید.</p>'
+		. '</td></tr>',
+		esc_html( $note ), $items, stlh_line_item( [], -1, $cat_opts ), esc_attr( STLH_OPT . '[lines_touched]' ),
+		$stored ? sprintf( '<button type="submit" class="button-link stlh-line-reset" name="%s" value="1">برگرداندن به خودکار</button>', esc_attr( STLH_OPT . '[lines_reset]' ) ) : ''
 	);
 }
 
@@ -245,6 +358,16 @@ function stlh_settings_page(): void {
 			.stlh-sec .stlh-grip{cursor:grab;font-size:18px;color:#787c82;touch-action:none;padding:0 4px}
 			.stlh-sec.ui-sortable-helper{box-shadow:0 6px 18px rgba(0,0,0,.12)}
 			.stlh-sec label{flex:1}
+			.stlh-lines{margin:0;max-width:760px}
+			.stlh-line{display:flex;align-items:flex-start;gap:10px;background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:10px 12px;margin:0 0 6px}
+			.stlh-line .stlh-grip{cursor:grab;font-size:18px;color:#787c82;touch-action:none;padding:4px}
+			.stlh-line.ui-sortable-helper{box-shadow:0 6px 18px rgba(0,0,0,.12)}
+			.stlh-line-body{flex:1;min-width:0}
+			.stlh-line-fields{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+			.stlh-line-fields select,.stlh-line-fields input[data-f=title]{flex:1 1 180px;min-width:0;max-width:100%}
+			.stlh-line-limit input{width:64px}
+			.stlh-line-info{font-size:12px;margin-top:4px}
+			.stlh-line-del{font-size:16px;padding:4px 6px;text-decoration:none}
 		</style>
 		<h1>صفحه اصلی استوک لند</h1>
 		<p>کل صفحه با شورت‌کد <code>[stl_home]</code> نمایش داده می‌شود (در ویجت «کد کوتاه» المنتور). هر بخش جدا هم شورت‌کد دارد:
@@ -325,13 +448,15 @@ function stlh_settings_page(): void {
 			<h2>ردیف‌های محصول</h2>
 			<table class="form-table" role="presentation">
 				<?php
-				stlh_row_text( 'نسل‌های تازه در ردیفِ اول', 'recent_span', (string) $o['recent_span'], 'وقتی گوشی‌های یک دسته از چند نسل‌اند، ردیفِ اول فقط این تعداد نسلِ آخر را نشان می‌دهد (نسبت به جدیدترین گوشیِ موجود) و بقیه در ردیفِ «مدل‌های قدیمی‌تر» می‌آیند.', 'number' );
+				stlh_row_lines( array_values( array_filter( (array) $o['lines'], 'is_array' ) ) );
+				stlh_row_text( 'نسل‌های تازه در «کارکرده ۱»', 'recent_span', (string) $o['recent_span'], '«کارکرده ۱» این تعداد نسلِ آخر را نشان می‌دهد (نسبت به جدیدترین گوشیِ موجود) و «کارکرده ۲» بقیه را. مثلاً ۵ و جدیدترین گوشی آیفون ۱۶: کارکرده ۱ = ۱۲ تا ۱۶.', 'number' );
 				stlh_row_cat_select( 'دسته‌ی پرفروش‌ها', 'best_cat', (string) $o['best_cat'], 'بخشِ «پرفروش‌ها» محصولاتِ همین دسته را نشان می‌دهد. در حسابداری، از پنلِ انتشارِ هر کالا این دسته را کنارِ دسته‌ی اصلی‌اش بزنید.' );
 				stlh_row_textarea( 'نشان‌های کارت', 'card_badges', (string) $o['card_badges'], 'هر خط: کلید ویژگی یا متای محصول|برچسب|پسوند — مثال: battery|باتری|٪ . حداکثر ۲ نشان روی هر کارت؛ اگر محصول آن مقدار را نداشته باشد نمایش داده نمی‌شود.', 3 );
 				?>
 			</table>
 
 			<h2>بخش لوازم جانبی (هر زیردسته یک ردیف)</h2>
+			<p class="description">ردیفِ «هر زیردسته» در فهرستِ «ردیف‌ها» همین کار را می‌کند؛ این بخشِ جدا فقط وقتی دیده می‌شود که آن دسته در ردیف‌ها نباشد.</p>
 			<table class="form-table" role="presentation">
 				<?php
 				stlh_row_cat_select( 'دسته‌ی مادر', 'group_parent', (string) $o['group_parent'], 'زیردسته‌های این دسته (دارای محصول) هر کدام یک ردیف می‌شوند، به همان ترتیبِ درخت.' );
