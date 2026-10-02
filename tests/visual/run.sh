@@ -17,8 +17,9 @@ if [ -n "${WP_SRC:-}" ]; then
   mkdir -p "$WP_DIR"
   (cd "$WP_SRC" && tar cf - --exclude=./wp-content/database --exclude=./wp-content/mu-plugins --exclude=./wp-content/plugins/stland-home --exclude=./wp-config.php --exclude=./wp-content/db.php . ) | (cd "$WP_DIR" && tar xf -)
 else
-  curl -sSL https://wordpress.org/latest.tar.gz | tar xz -C "$work"
-  curl -sSL -o "$work/sqlite.zip" https://downloads.wordpress.org/plugin/sqlite-database-integration.latest-stable.zip
+  curl -sSfL https://wordpress.org/latest.tar.gz | tar xz -C "$work"
+  mv "$work/wordpress" "$WP_DIR"
+  curl -sSfL -o "$work/sqlite.zip" https://downloads.wordpress.org/plugin/sqlite-database-integration.latest-stable.zip
   unzip -q "$work/sqlite.zip" -d "$WP_DIR/wp-content/plugins"
 fi
 
