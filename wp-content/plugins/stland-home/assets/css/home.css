@@ -1087,3 +1087,30 @@ body.home { overflow-x: clip; }
     content-visibility: auto;
     contain-intrinsic-size: auto 420px;
 }
+
+/* ==============================
+   1.15 — دسکتاپ: ردیف‌ها تا نزدیکِ لبه‌ی صفحه، کارت‌ها بزرگ‌تر
+   صاحب فروشگاه: «محصولات از کناره‌ها خیلی فاصله دارد، باید به کناره‌ها
+   خیلی نزدیک شود؛ اندازه‌ها هم کمی بزرگ‌تر.» سقفِ ۱۲۰۰ پیکسل روی مانیتورِ
+   بزرگ دو حاشیه‌ی خالیِ پهن می‌ساخت. گوشی دست نمی‌خورد.
+============================== */
+@media (min-width: 993px) {
+    .st-pr-wrapper { padding-inline: 24px; }
+    .st-pr-container { max-width: none; padding-block: 24px 22px; padding-inline-start: 24px; }
+    .st-pr-container .st-sec-head { padding-inline-end: 24px; margin-bottom: 18px; }
+    .st-pr-container .st-subcats { padding-inline-end: 24px; }
+    .st-pr-container .st-sec-title h2 { font-size: 21px; }
+    .st-pr-container .st-sec-title p { font-size: 13.5px; }
+    .st-pr-container .st-sec-more { font-size: 13px; padding: 9px 16px; }
+    .st-pr-row, .st-grp-row { gap: 10px; padding-inline-end: 24px; grid-auto-columns: calc((100% - 3 * 10px) / 3.6); }
+    .st-pr-row .st-pr-card, .st-grp-row .st-pr-card { padding: 14px 14px 16px; border-radius: 12px; }
+    .st-pr-row .st-pr-img { margin-bottom: 12px; }
+    .st-pr-row .st-pr-name { font-size: 14px; min-height: 48px; }
+    .st-pr-row .st-pr-spec { font-size: 12px; }
+    .st-pr-row .st-pr-price { font-size: 16px; }
+    .st-pr-nav { width: 44px; height: 44px; }
+}
+/* هر کارت حدودِ ۲۶۰ تا ۲۹۰ پیکسل؛ آخری همیشه نیمه دیده شود که معلوم باشد ادامه دارد */
+@media (min-width: 1200px) { .st-pr-row, .st-grp-row { grid-auto-columns: calc((100% - 4 * 10px) / 4.4); } }
+@media (min-width: 1440px) { .st-pr-row, .st-grp-row { grid-auto-columns: calc((100% - 5 * 10px) / 5.3); } }
+@media (min-width: 1760px) { .st-pr-row, .st-grp-row { grid-auto-columns: calc((100% - 6 * 10px) / 6.3); } }
