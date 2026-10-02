@@ -245,7 +245,29 @@ function stlh_price( WC_Product $p ): string {
 	return $html ? wp_kses_post( $html ) : '<span class="st-call">' . esc_html( stlh_label( 'call' ) ) . '</span>';
 }
 
+/**
+ * یک خطِ کوتاه زیرِ نام: «کارکرده · آبی» — همان که مشتری در هر فروشگاهِ
+ * بزرگی کنارِ نام می‌خواند. داده از حسابداری می‌آید (قرارداد ۲،
+ * contract/card-meta.json → spec). حافظه فقط وقتی می‌آید که در خودِ نام نباشد
+ * — نامِ گوشی‌های حسابداری معمولاً «… ۲۵۶ گیگ» دارد و تکرار جا را می‌گیرد.
+ */
+function stlh_spec_line( WC_Product $p ): string {
+	$get  = static function ( string $key ) use ( $p ): string {
+		$v = $p->get_meta( $key );
+		return is_scalar( $v ) ? trim( wp_strip_all_tags( (string) $v ) ) : '';
+	};
+	$name    = strtr( $p->get_name(), [ '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4', '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9' ] );
+	$storage = $get( 'storage' );
+	$digits  = preg_replace( '/\D+/', '', strtr( $storage, [ '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4', '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9' ] ) );
+	if ( $digits && preg_match( '/(?<!\d)' . $digits . '(?!\d)/', $name ) ) {
+		$storage = '';
+	}
+	$bits = array_filter( [ $get( 'condition' ), $storage, $get( 'color' ) ], 'strlen' );
+	return $bits ? stlh_fa( implode( ' · ', $bits ) ) : '';
+}
+
 function stlh_card( WC_Product $p ): string {
+	$spec   = stlh_spec_line( $p );
 	$badges = '';
 	foreach ( stlh_badges( $p ) as $b ) {
 		$badges .= '<span class="st-chip">' . esc_html( $b ) . '</span>';
@@ -253,12 +275,13 @@ function stlh_card( WC_Product $p ): string {
 	$sale = $p->is_in_stock() ? stlh_sale_label( $p ) : '';
 	$sale = $sale ? '<span class="st-sale">' . esc_html( $sale ) . '</span>' : '';
 	return sprintf(
-		'<a class="st-pr-card" href="%s"><span class="st-pr-img">%s%s%s</span><span class="st-pr-name">%s</span><span class="st-pr-foot"><span class="st-pr-price">%s</span></span></a>',
+		'<a class="st-pr-card" href="%s"><span class="st-pr-img">%s%s%s</span><span class="st-pr-name">%s</span>%s<span class="st-pr-foot"><span class="st-pr-price">%s</span></span></a>',
 		esc_url( $p->get_permalink() ),
 		$badges ? '<span class="st-pr-badges">' . $badges . '</span>' : '',
 		stlh_card_image( $p ),
 		$sale,
 		esc_html( $p->get_name() ),
+		$spec ? '<span class="st-pr-spec">' . esc_html( $spec ) . '</span>' : '',
 		stlh_price( $p )
 	);
 }
