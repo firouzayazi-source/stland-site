@@ -389,7 +389,7 @@ function stlh_row_html( array $items, string $title, string $subtitle = '', stri
 	return '<section class="st-pr-wrapper"><div class="st-pr-container">'
 		. stlh_section_head( $title, $subtitle, $url )
 		. $extra
-		. '<div class="st-pr-row">' . implode( '', array_map( 'stlh_card', $items ) ) . '</div></div></section>';
+		. '<div class="st-pr-track"><div class="st-pr-row">' . implode( '', array_map( 'stlh_card', $items ) ) . '</div></div></div></section>';
 }
 
 function stlh_products( array $atts ): string {
@@ -585,7 +585,7 @@ function stlh_line_html( array $line ): string {
 	foreach ( $blocks as $b ) {
 		$html .= '<div class="st-grp-block">'
 			. stlh_section_head( $b['title'], '', $b['url'], stlh_label( 'more_list' ), 'h3' )
-			. '<div class="st-pr-row st-grp-row">' . implode( '', array_map( 'stlh_card', $b['items'] ) ) . '</div></div>';
+			. '<div class="st-pr-track"><div class="st-pr-row st-grp-row">' . implode( '', array_map( 'stlh_card', $b['items'] ) ) . '</div></div></div>';
 	}
 	$url   = get_term_link( $t );
 	$title = trim( (string) ( $line['title'] ?? '' ) ) ?: stlh_cat_name( $t );
@@ -636,7 +636,7 @@ function stlh_group(): string {
 		$url     = get_term_link( $term );
 		$blocks .= '<div class="st-grp-block">'
 			. stlh_section_head( stlh_cat_name( $term ), '', is_wp_error( $url ) ? '' : $url, stlh_label( 'more_list' ), 'h3' )
-			. '<div class="st-pr-row st-grp-row">' . implode( '', array_map( 'stlh_card', $items ) ) . '</div></div>';
+			. '<div class="st-pr-track"><div class="st-pr-row st-grp-row">' . implode( '', array_map( 'stlh_card', $items ) ) . '</div></div></div>';
 	}
 	if ( ! $blocks ) {
 		return '';
