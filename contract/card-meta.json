@@ -1,4 +1,6 @@
 {
-  "_": "Meta keys the accounting app (sthesabland: src/lib/woo/describe.ts cardMeta) writes on every phone product, and stland-home reads for card badges (stlh_defaults card_badges). Rename on both sides together.",
-  "keys": ["battery", "registry"]
+  "_": "Meta keys the accounting app (sthesabland: src/lib/woo/describe.ts cardMeta, CARD_CONTRACT_VERSION) writes on every phone product, and stland-home reads: 'keys' for card badges (stlh_defaults card_badges), 'spec' for the one-line spec under the name (stlh_spec_line). Bump 'version' and STLH_CONTRACT together; the accounting health panel compares it with the site's /wp-json/stland/v1/status.",
+  "version": 2,
+  "keys": ["battery", "registry"],
+  "spec": ["condition", "storage", "color"]
 }
