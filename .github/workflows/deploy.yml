@@ -32,8 +32,39 @@ jobs:
           name: plugins
           path: dist/
 
+  # Homepage rendered in a tiny WordPress (SQLite + stub WooCommerce) and checked
+  # in a real browser at phone and desktop width: no horizontal scroll, the
+  # iPhone cards are there even when "تلفن همراه" is the default category, rows
+  # in settings order, accessories as one carousel, no JS/PHP errors. Red here
+  # means the change never reaches the site. Screenshots are kept as artifacts.
+  visual:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.1"
+          extensions: pdo_sqlite, sqlite3, mbstring
+          tools: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install Playwright
+        working-directory: tests/visual
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+      - name: Render and check the homepage
+        run: bash tests/visual/run.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: homepage-screenshots
+          path: tests/visual/out/
+          if-no-files-found: ignore
+
   deploy:
-    needs: check
+    needs: [check, visual]
     if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     permissions:

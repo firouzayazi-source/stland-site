@@ -1075,3 +1075,15 @@ body.home { overflow-x: clip; }
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 @media (max-width: 576px) { .st-pr-spec { font-size: 10.5px; margin-bottom: 6px; } }
+
+/* ۱.۱۴ — سرعت: بخش‌های پایینِ صفحه تا نزدیکشان نرسیده‌ایم رسم نمی‌شوند.
+   صفحه‌ی اصلی بلند است (ده‌ها کارت)؛ گوشی فقط بالای صفحه را رسم می‌کند و
+   باز شدن سریع‌تر است. اندازه‌ی تقریبی، تا نوارِ اسکرول هنگام رسیدن نپرد. */
+.st-pr-wrapper,
+.st-social-bot-wrapper,
+.st-trust-wrapper,
+.st-faq-light-wrapper,
+.st-articles-wrapper {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 420px;
+}

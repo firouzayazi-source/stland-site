@@ -1,0 +1,9 @@
+{
+  "name": "stland-visual-test",
+  "private": true,
+  "type": "module",
+  "description": "آزمونِ دیداریِ صفحه‌ی اصلی — tests/visual/run.sh",
+  "dependencies": {
+    "playwright": "1.56.1"
+  }
+}
