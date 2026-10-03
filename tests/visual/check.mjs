@@ -6,6 +6,7 @@
  *    دسته‌ی پیش‌فرضِ ووکامرس است (مهر ۱۴۰۵ همین آن‌ها را برد).
  *  • ردیف‌ها به همان ترتیبِ تنظیمات‌اند؛ لوازم جانبی یک کراسول با دکمه‌ی زیردسته‌ها.
  *  • خطِ وضعیت («کارکرده · آبی») زیرِ نامِ گوشی هست؛ هیچ ردیفی خالی نیست.
+ *  • کالای ناموجود در ردیف‌ها نیست (صفحه‌اش در سایت می‌ماند، ولی صفحه‌ی اصلی فقط خریدنی‌ها).
  *  • خطای جاوااسکریپت نیست.
  */
 import { chromium } from 'playwright'
@@ -53,6 +54,9 @@ for (const [name, width, height] of [['mobile', 390, 844], ['desktop', 1280, 900
 
   const specs = await page.$$eval('.st-pr-spec', (els) => els.map((e) => e.textContent.trim()))
   check(specs.some((s) => s.includes('کارکرده') && s.includes('آبی')), `${name}: خطِ «کارکرده · آبی» زیرِ نام نیست`)
+
+  const names = await page.$$eval('.st-pr-name', (els) => els.map((e) => e.textContent))
+  check(!names.some((n) => n.includes('فروخته‌شده')), `${name}: کالای ناموجود در ردیف‌ها آمد`)
 
   check(errors.length === 0, `${name}: خطای جاوااسکریپت: ${errors.join(' / ')}`)
   if (outDir) await page.screenshot({ path: `${outDir}/home-${name}.png`, fullPage: true })

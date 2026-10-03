@@ -349,10 +349,12 @@ function stlh_query_products( array $slugs, int $limit ): array {
 	if ( $resolved ) {
 		$args['category'] = $resolved;
 	}
-	// از تنظیم خود ووکامرس پیروی می‌کند (تنظیمات ← محصولات ← موجودی)
-	if ( 'yes' === get_option( 'woocommerce_hide_out_of_stock_items' ) ) {
-		$args['stock_status'] = 'instock';
-	}
+	/*
+	 * صفحه‌ی اصلی فقط کالای خریدنی نشان می‌دهد. کالای فروخته‌شده در سایت
+	 * «ناموجود» می‌ماند (صفحه‌اش در گوگل هست) ولی در ردیف‌ها و کارت‌ها نه —
+	 * صاحب فروشگاه (مهر ۱۴۰۵) این را خواست، مستقل از تنظیمِ ووکامرس.
+	 */
+	$args['stock_status'] = 'instock';
 	return wc_get_products( $args );
 }
 

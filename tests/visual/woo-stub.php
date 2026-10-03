@@ -47,6 +47,9 @@ function wc_get_products( $args ) {
 	if ( ! empty( $args['featured'] ) ) {
 		return [];
 	}
+	if ( 'instock' === ( $args['stock_status'] ?? '' ) ) {
+		$q['meta_query'] = [ [ 'key' => 'stock', 'compare' => 'NOT EXISTS' ] ];
+	}
 	return array_map( static fn( $p ) => new WC_Product( $p ), get_posts( $q ) );
 }
 function wc_get_product( $id ) {

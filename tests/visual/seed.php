@@ -48,6 +48,11 @@ foreach ( range( 1, 6 ) as $i ) {
 	$prod( "گلس محافظ صفحه مدل $i", [ $glass ], 350000 + $i * 10000 );
 }
 $prod( 'سیم شارژر اورجینال USB-C', [ $ch, $best ], 2500000 );
+// فروخته‌شده: در سایت «ناموجود» می‌ماند ولی نباید در ردیف‌ها بیاید
+$sold = $prod( 'آیفون 15 پرو فروخته‌شده 256 گیگ', [ $used ], 90000000, [ 'stock' => 'out' ] );
+// سئو از حسابداری → Yoast
+update_post_meta( $sold, 'stl_seo_title', 'خرید آیفون ۱۵ پرو | استوک لند' );
+echo 'seo bridged: ', stlh_seo_bridge_apply( $sold ), ' / ', get_post_meta( $sold, '_yoast_wpseo_title', true ), "\n";
 $prod( 'ایرپاد پرو 2', [ $air ], 9000000 );
 
 // همان چیدمانی که صاحب فروشگاه در تنظیمات ساخت؛ ردیف‌ها خالی = خودکار از درخت
