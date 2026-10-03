@@ -103,3 +103,84 @@
         update();
     });
 })();
+
+/*
+ * کشیدنِ ردیف با موس — روی گوشی انگشت خودش ورق می‌زند، ولی موس روی
+ * کامپیوتر فقط متن را انتخاب یا لینک را می‌کشید. صاحب فروشگاه: «با گرفتنِ
+ * موس جابه‌جا نمی‌شود». فقط برای موس؛ لمس و قلم دست نمی‌خورند.
+ *
+ * کلیک همچنان کالا را باز می‌کند؛ ولی اگر موس بیش از چند پیکسل کشیده
+ * شده، آن کلیک خورده می‌شود — وگرنه رها کردنِ موس روی یک کارت، کارت را باز
+ * می‌کرد. هنگامِ کشیدن «ورق به ورق» خاموش است و بعد از رها کردن، ردیف خودش
+ * روی نزدیک‌ترین کارت می‌نشیند.
+ */
+(function () {
+    'use strict';
+    document.querySelectorAll('.st-pr-row, .st-subcats').forEach(function (row) {
+        var down = false, moved = false, startX = 0, startLeft = 0, snap = '', lastX = 0, lastT = 0, speed = 0;
+        row.addEventListener('pointerdown', function (e) {
+            if (e.pointerType !== 'mouse' || e.button !== 0 || row.scrollWidth <= row.clientWidth + 2) {
+                return;
+            }
+            down = true;
+            moved = false;
+            startX = lastX = e.clientX;
+            lastT = e.timeStamp;
+            startLeft = row.scrollLeft;
+            speed = 0;
+        });
+        window.addEventListener('pointermove', function (e) {
+            if (!down) {
+                return;
+            }
+            var dx = e.clientX - startX;
+            if (!moved && Math.abs(dx) < 6) {
+                return;
+            }
+            if (!moved) {
+                moved = true;
+                snap = row.style.scrollSnapType;
+                row.style.scrollSnapType = 'none';
+                row.style.scrollBehavior = 'auto';
+                row.classList.add('is-dragging');
+            }
+            row.scrollLeft = startLeft - dx;
+            var dt = e.timeStamp - lastT;
+            if (dt > 0) {
+                speed = (e.clientX - lastX) / dt;
+            }
+            lastX = e.clientX;
+            lastT = e.timeStamp;
+            e.preventDefault();
+        });
+        function release() {
+            if (!down) {
+                return;
+            }
+            down = false;
+            if (!moved) {
+                return;
+            }
+            row.classList.remove('is-dragging');
+            row.style.scrollBehavior = '';
+            // کمی شتاب، مثلِ ورق زدن با انگشت؛ بعد «ورق به ورق» برمی‌گردد و روی کارت می‌نشیند
+            var fling = Math.max(-1.6, Math.min(1.6, speed)) * 260;
+            if (Math.abs(fling) > 20) {
+                row.scrollBy({ left: -fling, behavior: 'smooth' });
+            }
+            setTimeout(function () { row.style.scrollSnapType = snap; }, Math.abs(fling) > 20 ? 380 : 0);
+        }
+        window.addEventListener('pointerup', release);
+        window.addEventListener('pointercancel', release);
+        // کلیکِ پایانِ کشیدن کارت را باز نکند
+        row.addEventListener('click', function (e) {
+            if (moved) {
+                e.preventDefault();
+                e.stopPropagation();
+                moved = false;
+            }
+        }, true);
+        // موس عکس یا لینک را «بکشد و رها کند» نه ردیف را
+        row.addEventListener('dragstart', function (e) { e.preventDefault(); });
+    });
+})();
