@@ -1,6 +1,18 @@
 {
-  "_": "Meta keys the accounting app (sthesabland: src/lib/woo/describe.ts cardMeta, CARD_CONTRACT_VERSION) writes on every phone product, and stland-home reads: 'keys' for card badges (stlh_defaults card_badges), 'spec' for the one-line spec under the name (stlh_spec_line). Bump 'version' and STLH_CONTRACT together; the accounting health panel compares it with the site's /wp-json/stland/v1/status.",
-  "version": 2,
-  "keys": ["battery", "registry"],
-  "spec": ["condition", "storage", "color"]
+  "_": "Meta keys the accounting app (sthesabland: src/lib/woo/describe.ts cardMeta, CARD_CONTRACT_VERSION) writes on every phone product, and stland-home reads: 'keys' for card badges (stlh_defaults card_badges), 'spec' for the one-line spec under the name (stlh_spec_line). Bump 'version' and STLH_CONTRACT together; the accounting health panel compares it with the site's /wp-json/stland/v1/status. 'seo' (v3): SEO title/description/focus keyword that includes/seo-bridge.php copies into Yoast's _yoast_wpseo_* fields.",
+  "version": 3,
+  "keys": [
+    "battery",
+    "registry"
+  ],
+  "spec": [
+    "condition",
+    "storage",
+    "color"
+  ],
+  "seo": [
+    "stl_seo_title",
+    "stl_seo_desc",
+    "stl_seo_focus"
+  ]
 }
