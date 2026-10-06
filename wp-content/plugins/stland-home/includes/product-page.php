@@ -4,8 +4,8 @@
  *
  * ۱. **دفترچه‌ی سلامتِ گوشیِ کارکرده** زیرِ «باکس هشدار». حسابداری چک‌لیستِ هر
  *    دستگاه را در متای `stl_health` (قرارداد ۴) می‌فرستد و اینجا یک کارتِ جمع‌وجور
- *    به سبکِ «ویژگی‌ها»ی دیجی‌کالا می‌شود: سرتیترِ خلاصه، باتری، و بندها با ✓/✕ —
- *    ایرادها اول، بقیه پشتِ «مشاهده‌ی همه». صاحب فروشگاه (مهر ۱۴۰۵): «دقیقاً زیرِ
+ *    به سبکِ «ویژگی‌ها»ی دیجی‌کالا می‌شود: سرتیترِ خلاصه، باتری، و بندها با ✓/↻/✕ —
+ *    ایرادها اول، بعد تعویضی/تعمیری (کهربایی، از ۱.۲۲)، بقیه پشتِ «مشاهده‌ی همه». صاحب فروشگاه (مهر ۱۴۰۵): «دقیقاً زیرِ
  *    همین قسمت … صفحه‌ی سلامتِ گوشی بیاید، همین فضا را پر کند، حرفه‌ای‌تر.»
  *    این تنها استثنا بر «صفحه‌ی محصول فقط از کادرهای خودِ قالب» است، چون قالب
  *    کادری برای چک‌لیست ندارد.
@@ -28,7 +28,13 @@ function stlh_health_data( int $product_id ): ?array {
 	$items = [];
 	foreach ( $data['items'] as $it ) {
 		if ( is_array( $it ) && isset( $it['l'], $it['v'] ) ) {
-			$items[] = [ 'l' => (string) $it['l'], 'v' => (string) $it['v'], 'ok' => ! empty( $it['ok'] ) ];
+			$ok = ! empty( $it['ok'] );
+			/*
+			 * لحن (`t`، از حسابداریِ دفترچه‌ی ۲): ok سبز، info کهربایی (تعویض/تعمیر —
+			 * خراب نیست ولی مشتری باید بداند)، bad قرمز. دادهِ قدیمی‌تر فقط `ok` دارد.
+			 */
+			$tone    = in_array( $it['t'] ?? '', [ 'ok', 'info', 'bad' ], true ) ? $it['t'] : ( $ok ? 'ok' : 'bad' );
+			$items[] = [ 'l' => (string) $it['l'], 'v' => (string) $it['v'], 'ok' => 'ok' === $tone, 't' => $tone ];
 		}
 	}
 	if ( ! $items ) {
@@ -46,16 +52,19 @@ function stlh_health_data( int $product_id ): ?array {
 /** HTMLِ کارت — جدا از هوک تا آزمون و پیش‌نمایش بی‌وردپرس هم بسازندش */
 function stlh_health_card( array $h ): string {
 	$items  = $h['items'];
-	$issues = array_values( array_filter( $items, static fn( $i ) => ! $i['ok'] ) );
-	$oks    = array_values( array_filter( $items, static fn( $i ) => $i['ok'] ) );
-	$sorted = array_merge( $issues, $oks );
+	$issues = array_values( array_filter( $items, static fn( $i ) => 'bad' === $i['t'] ) );
+	$notes  = array_values( array_filter( $items, static fn( $i ) => 'info' === $i['t'] ) );
+	$oks    = array_values( array_filter( $items, static fn( $i ) => 'ok' === $i['t'] ) );
+	$sorted = array_merge( $issues, $notes, $oks );
 	$done   = count( $items );
 	$fa     = static fn( $n ) => function_exists( 'stlh_fa' ) ? stlh_fa( (string) $n ) : str_replace( range( 0, 9 ), [ '۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹' ], (string) $n );
 	$e      = static fn( $s ) => htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' );
 
 	$badge = $issues
 		? '<span class="stl-hc__badge is-warn">' . $fa( count( $issues ) ) . ' مورد نیازمندِ توجه</span>'
-		: '<span class="stl-hc__badge">همه سالم</span>';
+		: ( $notes
+			? '<span class="stl-hc__badge is-info">' . $fa( count( $notes ) ) . ' قطعه‌ی تعویضی/تعمیری</span>'
+			: '<span class="stl-hc__badge">همه سالم</span>' );
 	$sub = $fa( $done ) . ' بند از ' . $fa( $h['total'] ) . ' بند بررسی شد';
 	if ( '' !== $h['checked'] ) {
 		$sub .= ' · ' . $e( $h['checked'] );
@@ -79,10 +88,12 @@ function stlh_health_card( array $h ): string {
 	}
 
 	$li = static function ( array $i ) use ( $e ): string {
-		$mark = $i['ok']
-			? '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-			: '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>';
-		return '<li class="' . ( $i['ok'] ? 'is-ok' : 'is-bad' ) . '"><span>' . $e( $i['l'] ) . '</span><b>' . $mark . $e( $i['v'] ) . '</b></li>';
+		$mark = match ( $i['t'] ) {
+			'ok'    => '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+			'info'  => '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+			default => '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>',
+		};
+		return '<li class="is-' . $i['t'] . '"><span>' . $e( $i['l'] ) . '</span><b>' . $mark . $e( $i['v'] ) . '</b></li>';
 	};
 
 	$first = 6;
@@ -104,7 +115,7 @@ function stlh_health_css(): string {
 .stl-hc__title h3{margin:0;font-size:15px;font-weight:800;color:#23254e;line-height:1.5}
 .stl-hc__title p{margin:0;font-size:11.5px;color:#81858b}
 .stl-hc__badge{flex:0 0 auto;padding:4px 10px;border-radius:999px;font-size:11.5px;font-weight:700;color:var(--hc-ok);background:#e7f7f3;white-space:nowrap}
-.stl-hc__badge.is-warn{color:#b4233f;background:#fdecef}
+.stl-hc__badge.is-warn{color:#b4233f;background:#fdecef}.stl-hc__badge.is-info{color:#9a5b00;background:#fff4e0}
 .stl-hc__battery{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:8px}
 .stl-hc__tile{position:relative;padding:10px 12px;border-radius:12px;background:var(--hc-soft)}
 .stl-hc__tile span{display:block;font-size:11.5px;color:#81858b}
@@ -119,6 +130,7 @@ function stlh_health_css(): string {
 .stl-hc__grid li b{display:flex;align-items:center;gap:4px;font-weight:700;color:#23254e;font-size:13px}
 .stl-hc__grid li.is-ok svg{color:var(--hc-ok);flex:0 0 auto}
 .stl-hc__grid li.is-bad{background:#fdecef}.stl-hc__grid li.is-bad svg{color:var(--hc-bad);flex:0 0 auto}.stl-hc__grid li.is-bad b{color:#b4233f}
+.stl-hc__grid li.is-info{background:#fff4e0}.stl-hc__grid li.is-info svg{color:var(--hc-mid);flex:0 0 auto}.stl-hc__grid li.is-info b{color:#9a5b00;white-space:normal}
 .stl-hc__more summary{list-style:none;cursor:pointer;margin-top:10px;display:flex;justify-content:center;align-items:center;gap:6px;padding:8px;border-radius:10px;font-weight:700;color:#19a4c3;font-size:12.5px}
 .stl-hc__more summary::-webkit-details-marker{display:none}
 .stl-hc__more summary::after{content:"";width:7px;height:7px;border:solid currentColor;border-width:0 0 2px 2px;transform:rotate(-45deg) translateY(-2px)}
