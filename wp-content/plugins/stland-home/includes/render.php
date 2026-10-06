@@ -268,16 +268,13 @@ function stlh_spec_line( WC_Product $p ): string {
 
 function stlh_card( WC_Product $p ): string {
 	$spec   = stlh_spec_line( $p );
-	$badges = '';
-	foreach ( stlh_badges( $p ) as $b ) {
-		$badges .= '<span class="st-chip">' . esc_html( $b ) . '</span>';
-	}
+	$badges = stlh_card_badges_html( $p ); // قرص‌های ریزِ گوشه (`card-badges.php`)
 	$sale = $p->is_in_stock() ? stlh_sale_label( $p ) : '';
 	$sale = $sale ? '<span class="st-sale">' . esc_html( $sale ) . '</span>' : '';
 	return sprintf(
 		'<a class="st-pr-card" href="%s"><span class="st-pr-img">%s%s%s</span><span class="st-pr-name">%s</span>%s<span class="st-pr-foot"><span class="st-pr-price">%s</span></span></a>',
 		esc_url( $p->get_permalink() ),
-		$badges ? '<span class="st-pr-badges">' . $badges . '</span>' : '',
+		$badges,
 		stlh_card_image( $p ),
 		$sale,
 		esc_html( $p->get_name() ),
