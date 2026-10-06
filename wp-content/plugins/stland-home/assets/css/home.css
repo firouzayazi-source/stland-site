@@ -1122,3 +1122,29 @@ body.home { overflow-x: clip; }
     .st-pr-row.is-dragging .st-pr-card { pointer-events: none; }
 }
 .st-pr-row img { -webkit-user-drag: none; user-select: none; }
+
+/* ==============================
+   1.23 — نشان‌های کارت: قرص‌های ریزِ گوشه با آیکن (card-badges.php)
+============================== */
+.st-cbs { position: absolute; top: 6px; right: 6px; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; pointer-events: none; }
+.st-cb {
+    display: inline-flex; align-items: center; gap: 3px;
+    height: 18px; padding: 0 6px 0 5px;
+    border-radius: 6px;
+    background: rgba(255,255,255,.9);
+    box-shadow: 0 1px 2px rgba(15,23,42,.08), 0 0 0 1px rgba(15,23,42,.05);
+    color: #334155;
+    font-size: 9.5px; font-weight: 700; line-height: 1;
+    white-space: nowrap;
+    -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+}
+.st-cb svg { flex: 0 0 auto; }
+.st-cb.is-good svg { color: #0f9f6e; }
+.st-cb.is-mid svg { color: #d98b06; }
+.st-cb.is-low svg { color: #e0244d; }
+.st-cb.is-info svg { color: #2563eb; }
+.st-cb.is-mid span { color: #92590a; }
+@media (min-width: 768px) {
+    .st-cbs { top: 8px; right: 8px; gap: 4px; }
+    .st-cb { height: 20px; font-size: 10.5px; padding: 0 7px 0 6px; }
+}

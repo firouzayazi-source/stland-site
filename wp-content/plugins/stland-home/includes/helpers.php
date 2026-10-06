@@ -34,7 +34,7 @@ function stlh_defaults(): array {
 		'font_enable'    => '1',
 		'font_sitewide'  => '',
 		'trust'          => "shield|گارانتی اصالت|تضمین اصالت و سلامت کالا\nclock|مهلت تست|تست با خیال راحت پس از خرید\ncard|خرید اقساطی|شرایط ویژه پرداخت قسطی\nstore|خرید حضوری|قم، بازار سلام، واحد F11",
-		'card_badges'    => "battery|باتری|٪\nregistry|ریجستری|",
+		'card_badges'    => "battery|باتری|٪\nregistry|ریجستری|\nreal_photo|عکس واقعی|",
 		// صاحب فروشگاه: نوار اعتماد زیر بنر نه، درست پیش از سوالات متداول.
 		// صاحب فروشگاه: دسته‌ها ← پیشنهاد ویژه ← آیفون نو ← کارکرده‌ها ← لوازم جانبی ← پرفروش‌ها
 		'order'          => "banner\ncategories\nflash_deal\nrows\ngroup\nbest\nsocial\ntrust\nfaq\nposts",
@@ -90,6 +90,7 @@ function stlh_label_defaults(): array {
 		'more'        => [ 'مشاهده همه', 'دکمه‌ی کنارِ عنوانِ هر ردیف' ],
 		'more_list'   => [ 'مشاهده لیست', 'دکمه‌ی کنارِ هر زیردسته در ردیفِ «هر زیردسته یک ردیف»' ],
 		'out'         => [ 'ناموجود', 'جای قیمت، وقتی کالا موجود نیست' ],
+		'sold'        => [ 'فروش رفت', 'گوشیِ کارکرده‌ای که فروخته شده — صفحه برای گوگل می‌ماند' ],
 		'call'        => [ 'تماس بگیرید', 'جای قیمت، وقتی کالا قیمت ندارد' ],
 		'posts_more'  => [ 'مشاهده همه مقالات', 'دکمه‌ی پایینِ بخشِ مقالات' ],
 	];
@@ -248,6 +249,12 @@ function stlh_badges( WC_Product $p, int $max = 2 ): array {
 			$val  = is_scalar( $meta ) ? trim( wp_strip_all_tags( (string) $meta ) ) : '';
 		}
 		if ( '' === $val ) {
+			continue;
+		}
+		if ( 'real_photo' === $key ) { // پرچم است، نه عدد — «عکس واقعی ۱» نشود
+			if ( '1' === $val ) {
+				$out[] = $label ?: 'عکس واقعی';
+			}
 			continue;
 		}
 		$out[] = trim( $label . ' ' . stlh_fa( $val ) . $suffix );
