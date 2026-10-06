@@ -120,7 +120,13 @@
 
 * `path` هر مسیرِ همان سایت است (صفحه، `wp-json/...`)؛ `&ua=mobile` نسخه‌ی گوشی.
 * کدِ قالب: `path=/wp-json/stland/v1/theme-files` (فهرست) و
-  `…/theme-files?theme=<slug>&path=<file>` (متن) — `includes/theme-files.php`.
+  `…/theme-files?theme=<slug>&path=<file>` (متن) — `includes/theme-files.php`. فایلِ
+  بیش از ۱ مگ تکه‌تکه: `&offset=<next>` تا `next` تهی شود.
+* تنظیماتِ قالب (Redux، `bakala_options`): `path=/wp-json/stland/v1/site-options` — کلیدهای
+  رمز/توکن/درگاه/پیامک با `***` پوشیده‌اند.
+* بخشی از باکالا (تعریفِ کادرهای پیشخوان، `inc/integrations/woocommerce/metaboxs/*`،
+  `product-meta.php`) با SourceGuardian رمزگذاری شده؛ کلیدِ کادرها را از قالب‌هایی که چاپشان
+  می‌کنند پیدا کنید (`woocommerce/content-single-product.php`، `tabs/description.php`).
 * فقط GET و فقط با رمزِ برنامه‌ی مدیرِ کلِ وردپرس (کاربرِ `claude`)؛ رمز در متغیرهای
   محیطِ کار است، نه در چت یا مخزن. دامنه‌های `stland.ir` و `hesabdari.stland.ir`
   در Allowed domainsِ محیط باز شده‌اند.

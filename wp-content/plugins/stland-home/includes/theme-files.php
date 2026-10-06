@@ -9,6 +9,8 @@
  *
  *   GET /stland/v1/theme-files                     فهرستِ فایل‌های قالبِ فعال (و مادرش)
  *   GET /stland/v1/theme-files?theme=x&path=a.php  متنِ یک فایل
+ *   …&offset=N                                      تکه‌ی بعدیِ فایلِ بزرگ‌تر از ۱ مگ
+ *   GET /stland/v1/site-options                     تنظیماتِ قالب (Redux)، رمزها پوشیده
  *
  * ⛔ هیچ نوشتنی نیست. تغییر از افزونه‌ی ما یا تنظیماتِ قالب می‌آید، نه ویرایشِ
  *    فایلِ باکالا (به‌روزرسانیِ قالب پاکش می‌کند).
@@ -26,10 +28,45 @@ add_action( 'rest_api_init', function (): void {
 		'callback'            => 'stlh_theme_files',
 		'args'                => [
 			'theme' => [ 'type' => 'string', 'required' => false ],
-			'path'  => [ 'type' => 'string', 'required' => false ],
+			'path'   => [ 'type' => 'string', 'required' => false ],
+			'offset' => [ 'type' => 'integer', 'required' => false, 'minimum' => 0 ],
 		],
 	] );
+	register_rest_route( 'stland/v1', '/site-options', [
+		'methods'             => 'GET',
+		'permission_callback' => static fn() => current_user_can( 'manage_options' ),
+		'callback'            => 'stlh_site_options',
+	] );
 } );
+
+/**
+ * تنظیماتِ قالب (`bakala_options`، همان Redux) — تا بدونِ اسکرین‌شات معلوم
+ * باشد متنِ باکس‌ها، استایلِ ویژگی‌ها و… الان چیست. فایلِ تعریفِ این
+ * تنظیمات (`inc/setting.php`) بیش از ۱ مگ است و بخشی از قالب رمزگذاری شده.
+ *
+ * ⛔ فقط خواندن. و هر کلیدی که بوی رمز می‌دهد (توکن، کلید، رمز، API، درگاه،
+ *    پیامک…) با «***» پوشیده می‌شود — این پاسخ از پلِ حسابداری می‌گذرد و
+ *    رمزِ درگاه یا پیامک نباید از سایت بیرون برود.
+ */
+function stlh_site_options(): array {
+	$opts = get_option( 'bakala_options', [] );
+	return [
+		'name'    => 'bakala_options',
+		'options' => stlh_redact( is_array( $opts ) ? $opts : [] ),
+	];
+}
+
+function stlh_redact( array $data ): array {
+	$out = [];
+	foreach ( $data as $key => $value ) {
+		if ( is_string( $key ) && preg_match( '/pass|secret|token|api|key|merchant|terminal|sms|username|user_name|license|purchase_code|webhook/i', $key ) ) {
+			$out[ $key ] = ( '' === $value || null === $value || [] === $value ) ? $value : '***';
+			continue;
+		}
+		$out[ $key ] = is_array( $value ) ? stlh_redact( $value ) : $value;
+	}
+	return $out;
+}
 
 /** قالبِ فعال و مادرش: [نامک => پوشه] */
 function stlh_theme_dirs(): array {
@@ -61,12 +98,21 @@ function stlh_theme_files( WP_REST_Request $req ): array|WP_Error {
 		if ( ! $full ) {
 			return new WP_Error( 'stlh_not_found', 'فایل در قالبِ فعال نیست.', [ 'status' => 404 ] );
 		}
-		$size = (int) filesize( $full );
+		$size   = (int) filesize( $full );
+		$offset = max( 0, (int) $req->get_param( 'offset' ) );
+		/*
+		 * فایلِ بزرگ‌تر از سقف تکه‌تکه: `next` جای تکه‌ی بعدی است، `null` یعنی تمام.
+		 * پیش از این `content` فقط `null` بود و `inc/setting.php` (۱.۲ مگ) خواندنی نبود.
+		 */
+		$chunk = (string) file_get_contents( $full, false, null, min( $offset, $size ), STLH_THEME_FILE_MAX );
+		$end   = min( $offset, $size ) + strlen( $chunk );
 		return [
 			'theme'   => $theme,
 			'path'    => $path,
 			'size'    => $size,
-			'content' => $size > STLH_THEME_FILE_MAX ? null : (string) file_get_contents( $full ),
+			'offset'  => min( $offset, $size ),
+			'next'    => $end < $size ? $end : null,
+			'content' => $chunk,
 		];
 	}
 
