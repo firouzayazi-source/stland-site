@@ -1148,3 +1148,44 @@ body.home { overflow-x: clip; }
     .st-cbs { top: 8px; right: 8px; gap: 4px; }
     .st-cb { height: 20px; font-size: 10.5px; padding: 0 7px 0 6px; }
 }
+
+/* ==============================
+   1.21 — کارت‌های شبکه‌ها با رنگ و حالِ خودِ هر شبکه
+   صاحب فروشگاه: «کمی رنگ و لعابِ شبکه‌ی اجتماعیِ خودشان را بگیرند؛
+   اینستاگرام حالتِ اینستاگرام، تلگرام حالتِ تلگرام.» متن تیره می‌ماند تا
+   خوانا باشد؛ رنگِ برند در زمینه‌ی کم‌رنگ، آیکن، نشان، تراشه‌ها و دکمه است.
+   ============================== */
+.st-sb-card { isolation: isolate; }
+.st-sb-card::before {
+    content: ""; position: absolute; z-index: -1; pointer-events: none;
+    width: 340px; height: 340px; inset-inline-end: -120px; top: -150px;
+    border-radius: 50%; filter: blur(10px); opacity: .55;
+}
+/* اینستاگرام: گرادیانِ گرمِ زرد → نارنجی → صورتی → بنفش */
+.st-sb-instagram { background: linear-gradient(140deg, #fff8ef 0%, #fff0f6 48%, #f5f0ff 100%); border-color: #f7d5e6; }
+.st-sb-instagram::before { background: radial-gradient(circle, rgba(250,126,30,.28) 0%, rgba(214,41,118,.18) 45%, rgba(150,47,191,0) 72%); }
+.st-sb-instagram .st-sb-icon-box {
+    background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285aeb 90%);
+    box-shadow: 0 0 0 3px #fff, 0 0 0 5px #e1306c, 0 10px 24px rgba(214,41,118,.28);
+}
+.st-sb-instagram .st-sb-badge { color: #c13584; border-color: #f4c3dc; }
+.st-sb-instagram .st-sb-content h3 { color: #262626; }
+.st-sb-instagram .st-sb-action-link { background: linear-gradient(90deg, #f58529 0%, #dd2a7b 45%, #8134af 80%, #515bd4 100%); box-shadow: 0 8px 20px rgba(221,42,123,.25); }
+/* تلگرام: آبیِ آسمانیِ خودِ تلگرام */
+.st-sb-telegram { background: linear-gradient(140deg, #f2faff 0%, #e4f3fd 100%); border-color: #cbe6f7; }
+.st-sb-telegram::before { background: radial-gradient(circle, rgba(42,171,238,.30) 0%, rgba(42,171,238,0) 70%); }
+.st-sb-telegram .st-sb-icon-box { background: linear-gradient(180deg, #37bbfe 0%, #229ed9 100%); border-radius: 50%; box-shadow: 0 10px 24px rgba(34,158,217,.32); }
+.st-sb-telegram .st-sb-badge { color: #1b84c4; border-color: #bfe0f5; }
+.st-sb-telegram .st-sb-content h3 { color: #0f2d44; }
+.st-sb-telegram .st-sb-chip { color: #1b7fbe; border-color: #c6e3f6; background: rgba(255,255,255,.85); }
+.st-sb-telegram .st-sb-action-link { background: linear-gradient(180deg, #2aabee 0%, #229ed9 100%); box-shadow: 0 8px 20px rgba(34,158,217,.28); }
+@media (hover: hover) {
+    .st-sb-instagram:hover { border-color: #e1306c; box-shadow: 0 20px 40px rgba(214,41,118,.12); }
+    .st-sb-telegram:hover { border-color: #229ed9; box-shadow: 0 20px 40px rgba(34,158,217,.14); }
+    .st-sb-instagram:hover .st-sb-action-link { background: linear-gradient(90deg, #f58529 0%, #dd2a7b 45%, #8134af 80%, #515bd4 100%); filter: saturate(1.15) brightness(1.04); }
+    .st-sb-telegram:hover .st-sb-action-link { background: #1c8ad0; }
+}
+@media (max-width: 768px) {
+    .st-sb-card::before { width: 220px; height: 220px; top: -100px; inset-inline-end: -80px; }
+    .st-sb-instagram .st-sb-icon-box { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #e1306c, 0 8px 18px rgba(214,41,118,.25); }
+}
