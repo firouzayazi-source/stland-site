@@ -87,5 +87,59 @@ function stlh_perf_report(): array {
 		'products'        => (int) ( wp_count_posts( 'product' )->publish ?? 0 ),
 		'timeline_ms'     => $marks,
 		'peak_memory_mb'  => round( memory_get_peak_usage( true ) / 1048576, 1 ),
+		'litespeed'       => stlh_perf_litespeed_conf(),
+		'probe'           => ! empty( $_GET['probe'] ) ? stlh_perf_probe() : null,
 	];
+}
+
+/** تنظیماتِ کلیدیِ LiteSpeed Cache (هر کدام یک گزینه‌ی `litespeed.conf.*`) */
+function stlh_perf_litespeed_conf(): ?array {
+	if ( ! defined( 'LSCWP_V' ) ) {
+		return null;
+	}
+	$out = [ 'version' => LSCWP_V ];
+	foreach ( [ 'cache', 'cache-priv', 'cache-commenter', 'cache-rest', 'cache-page_login', 'cache-mobile', 'cache-ttl_pub', 'cache-browser',
+		'optm-css_min', 'optm-css_comb', 'optm-js_min', 'optm-js_comb', 'optm-js_defer', 'optm-ucss', 'optm-ccss_gen', 'media-lazy', 'object', 'guest' ] as $k ) {
+		$v = get_option( 'litespeed.conf.' . $k, null );
+		if ( null !== $v ) {
+			$out[ $k ] = $v;
+		}
+	}
+	return $out;
+}
+
+/**
+ * سرور صفحه‌ها را مثلِ یک بازدیدکننده‌ی ناشناس از خودش می‌گیرد — دو بار پشتِ سرِ هم —
+ * تا معلوم شود کشِ صفحه واقعاً جواب می‌دهد (`x-litespeed-cache: hit`). از بیرون دیده
+ * نمی‌شد: پل با رمز می‌آید و LiteSpeed درخواستِ رمزدار را درست از کش نمی‌دهد.
+ */
+function stlh_perf_probe(): array {
+	$urls = [ 'home' => home_url( '/' ) ];
+	if ( function_exists( 'wc_get_page_permalink' ) ) {
+		$urls['shop'] = wc_get_page_permalink( 'shop' );
+	}
+	$p = get_posts( [ 'post_type' => 'product', 'post_status' => 'publish', 'numberposts' => 1, 'fields' => 'ids' ] );
+	if ( $p ) {
+		$urls['product'] = get_permalink( $p[0] );
+	}
+	$out = [];
+	foreach ( $urls as $name => $url ) {
+		foreach ( [ 1, 2 ] as $n ) {
+			foreach ( [ 'desktop' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36', 'mobile' => 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1' ] as $dev => $ua ) {
+				$t0  = microtime( true );
+				$res = wp_remote_get( $url, [ 'timeout' => 20, 'redirection' => 2, 'sslverify' => false, 'user-agent' => $ua, 'cookies' => [] ] );
+				$out[] = [
+					'page'   => $name,
+					'try'    => $n,
+					'device' => $dev,
+					'ms'     => (int) round( ( microtime( true ) - $t0 ) * 1000 ),
+					'code'   => is_wp_error( $res ) ? $res->get_error_message() : wp_remote_retrieve_response_code( $res ),
+					'cache'  => is_wp_error( $res ) ? '' : (string) wp_remote_retrieve_header( $res, 'x-litespeed-cache' ),
+					'control' => is_wp_error( $res ) ? '' : (string) wp_remote_retrieve_header( $res, 'x-litespeed-cache-control' ),
+					'kb'     => is_wp_error( $res ) ? 0 : (int) round( strlen( wp_remote_retrieve_body( $res ) ) / 1024 ),
+				];
+			}
+		}
+	}
+	return $out;
 }
