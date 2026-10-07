@@ -22,6 +22,12 @@ function stlh_cache_gen(): int {
 
 function stlh_cache_flush(): void {
 	update_option( 'stlh_cache_gen', stlh_cache_gen() + 1, true );
+	/*
+	 * کشِ صفحه‌ی LiteSpeed (مهر ۱۴۰۵): کلِ HTMLِ صفحه‌ی اصلی را نگه می‌دارد و از نسلِ
+	 * ما خبر ندارد؛ بی این، گوشیِ فروخته‌شده یا تنظیمِ تازه تا انقضای کش روی صفحه‌ی
+	 * اصلی می‌ماند. بی‌افزونه این هوک کاری نمی‌کند؛ LiteSpeed تکرار در یک درخواست را یکی می‌کند.
+	 */
+	do_action( 'litespeed_purge_url', home_url( '/' ) );
 }
 
 function stlh_cache_off(): bool {
