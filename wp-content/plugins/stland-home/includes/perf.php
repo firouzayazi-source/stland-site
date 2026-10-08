@@ -110,6 +110,7 @@ function stlh_perf_report(): array {
 		'profile_last'    => get_transient( 'stlh_prof_last' ) ?: null,
 		'slow_http'       => array_values( array_filter( (array) get_transient( 'stlh_slow_http' ) ) ),
 		'warm_last'       => get_option( 'stlh_warm_last', null ),
+		'rewrite_flush'   => get_transient( 'stlh_rewrite_flush' ) ?: null,
 		'elementor'       => stlh_perf_elementor(),
 		'admin_times'     => stlh_perf_admin_times(),
 		'usage'           => stlh_perf_usage(),
@@ -283,3 +284,34 @@ function stlh_perf_elementor(): ?array {
 	}
 	return $out;
 }
+
+/*
+ * ─── چه کسی قواعدِ نشانی (rewrite_rules) را در هر درخواست پاک می‌کند؟ ───
+ * پروفایلِ زنده (مهر ۱۴۰۵): در **هر** بازدید، هسته در `wp_loaded` همه‌ی ۱٬۳۶۱ قاعده را
+ * از نو می‌سازد و در پایگاه داده می‌نویسد (`WP_Rewrite->flush_rules`، ۳۰ تا ۸۰ میلی‌ثانیه
+ * و یک UPDATEِ بزرگ). هسته فقط وقتی این کار را می‌کند که کسی پیش‌تر در همان درخواست
+ * گزینه را خالی کرده باشد (`flush_rewrite_rules()` در `init`). این‌جا صدازننده ثبت
+ * می‌شود تا با نام پیدا شود؛ نتیجه در `/perf` → `rewrite_flush`.
+ */
+add_action( 'update_option', static function ( string $option, $old, $value ): void {
+	if ( 'rewrite_rules' !== $option || ! empty( $value ) ) {
+		return;
+	}
+	$trace = wp_debug_backtrace_summary( null, 0, false );
+	$trace = array_values( array_filter( $trace, static fn( $f ) => ! preg_match( '/^(do_action|apply_filters|WP_Hook|require|include)/', $f ) ) );
+	$GLOBALS['stlh_rewrite_flush'] = [
+		'at'    => gmdate( 'c' ),
+		'uri'   => substr( (string) ( $_SERVER['REQUEST_URI'] ?? '' ), 0, 80 ),
+		'hook'  => current_filter(),
+		'admin' => is_admin(),
+		'trace' => array_slice( $trace, 0, 14 ),
+	];
+}, 10, 3 );
+add_action( 'shutdown', static function (): void {
+	if ( empty( $GLOBALS['stlh_rewrite_flush'] ) ) {
+		return;
+	}
+	$prev = (array) get_transient( 'stlh_rewrite_flush' );
+	$n    = (int) ( $prev['count'] ?? 0 ) + 1;
+	set_transient( 'stlh_rewrite_flush', $GLOBALS['stlh_rewrite_flush'] + [ 'count' => $n, 'first' => $prev['first'] ?? gmdate( 'c' ) ], DAY_IN_SECONDS );
+}, 1 );

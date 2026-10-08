@@ -50,6 +50,17 @@ if ( $stlh_prof_page && ! defined( 'SAVEQUERIES' ) ) {
 	define( 'SAVEQUERIES', true );
 }
 
+// قواعدِ نشانی در شروعِ درخواست خالی بودند؟ (یعنی درخواستِ قبلی پاکشان کرده یا ذخیره نشده‌اند)
+add_action( 'plugins_loaded', static function (): void {
+	$GLOBALS['stlh_prof']['rules_empty'] = empty( get_option( 'rewrite_rules' ) );
+	if ( isset( $GLOBALS['wp_rewrite'] ) && has_action( 'wp_loaded', [ $GLOBALS['wp_rewrite'], 'flush_rules' ] ) ) {
+		$GLOBALS['stlh_prof']['flush_by'] = 'during plugin file load (before plugins_loaded)';
+	}
+	if ( $GLOBALS['stlh_prof']['rules_empty'] && ! isset( $GLOBALS['stlh_prof']['flush_by'] ) ) {
+		$GLOBALS['stlh_prof']['flush_by'] = 'rules empty before plugins_loaded';
+	}
+}, PHP_INT_MIN + 1 );
+
 add_action( 'plugin_loaded', static function ( string $plugin ): void {
 	$now  = microtime( true );
 	$slug = basename( dirname( $plugin ) ) ?: basename( $plugin );
@@ -124,6 +135,10 @@ function stlh_prof_wrap( string $hook ): void {
 				$ms  = ( microtime( true ) - $t0 ) * 1000;
 				$GLOBALS['stlh_prof']['owner'][ $owner ][ $hook ] = ( $GLOBALS['stlh_prof']['owner'][ $owner ][ $hook ] ?? 0 ) + $ms;
 				$GLOBALS['stlh_prof']['cb'][ $name ]              = ( $GLOBALS['stlh_prof']['cb'][ $name ] ?? 0 ) + $ms;
+				// اولین کال‌بکی که بازسازیِ قواعدِ نشانی را (برای wp_loaded) جلو انداخت
+				if ( ! isset( $GLOBALS['stlh_prof']['flush_by'] ) && isset( $GLOBALS['wp_rewrite'] ) && has_action( 'wp_loaded', [ $GLOBALS['wp_rewrite'], 'flush_rules' ] ) ) {
+					$GLOBALS['stlh_prof']['flush_by'] = $name;
+				}
 				return $out;
 			};
 			$GLOBALS['stlh_prof']['wrapped']++;
@@ -167,7 +182,7 @@ function stlh_prof_report(): array {
 	$cb = $p['cb'] ?? [];
 	arsort( $cb );
 	$cb = array_map( static fn( $v ) => (int) round( $v ), array_slice( $cb, 0, 40, true ) );
-	return [ 'wrapped_callbacks' => $p['wrapped'], 'note' => 'load_ms فقط برای افزونه‌های بعد از stland-home (ترتیبِ الفبایی) معلوم است', 'rows' => $rows, 'top_callbacks' => $cb ];
+	return [ 'flush_by' => $p['flush_by'] ?? null, 'rules_empty_at_start' => $p['rules_empty'] ?? null, 'wrapped_callbacks' => $p['wrapped'], 'note' => 'load_ms فقط برای افزونه‌های بعد از stland-home (ترتیبِ الفبایی) معلوم است', 'rows' => $rows, 'top_callbacks' => $cb ];
 }
 
 /* ─── حالتِ صفحه: مرحله‌ها، کوئری‌ها، ذخیره‌ی نتیجه ─── */
