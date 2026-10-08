@@ -157,3 +157,52 @@ add_action( 'pre_get_posts', static function ( WP_Query $q ): void {
 		$q->set( 'update_post_meta_cache', false );
 	}
 }, 1 );
+
+/*
+ * ─── قالب در هر درخواست قواعدِ نشانی را از نو نسازد ───
+ * ردیابِ ۱.۳۶ روی سایتِ زنده (مهر ۱۴۰۵): `bakala_add_rewrite_rules` (قالب، روی `init`)
+ * قاعده‌های خودش (لینک‌های کوتاهِ `Product/BKP-…`) را اضافه می‌کند و بعد `flush_rewrite_rules()`
+ * می‌زند — در **هر** بازدید. نتیجه: همه‌ی ۱٬۳۶۱ قاعده از نو ساخته و در پایگاه داده
+ * (و ‎.htaccess‎) نوشته می‌شوند؛ ۳۰ تا ۸۰ میلی‌ثانیه و یک نوشتنِ بزرگ در هر درخواست، و
+ * روی هاستِ اشتراکی قفلِ جدول برای درخواست‌های هم‌زمان.
+ *
+ * درمان: تابعِ قالب همان‌طور اجرا می‌شود (قاعده‌هایش ثبت می‌شوند)، ولی اگر همه‌ی
+ * قاعده‌های اضافه‌شده **از قبل** در قواعدِ ذخیره‌شده هستند، بازسازیِ زمان‌بندی‌شده برداشته
+ * می‌شود. اگر یکی کم باشد (قالب قاعده‌ی تازه آورد)، بازسازی یک بار انجام می‌شود و بعد دیگر نه.
+ * بازسازی‌های دیگر (ذخیره‌ی پیوندهای یکتا، نصبِ افزونه) دست نمی‌خورند.
+ */
+function stlh_rewrite_covered(): bool {
+	global $wp_rewrite;
+	$stored = get_option( 'rewrite_rules' );
+	if ( ! is_array( $stored ) || ! $stored ) {
+		return false;
+	}
+	foreach ( array_merge( (array) $wp_rewrite->extra_rules_top, (array) $wp_rewrite->extra_rules ) as $regex => $query ) {
+		if ( ! isset( $stored[ $regex ] ) || $stored[ $regex ] !== $query ) {
+			return false;
+		}
+	}
+	return true;
+}
+
+add_action( 'after_setup_theme', static function (): void {
+	$prio = has_action( 'init', 'bakala_add_rewrite_rules' );
+	if ( false === $prio || ! stlh_diet_on() ) {
+		return;
+	}
+	remove_action( 'init', 'bakala_add_rewrite_rules', $prio );
+	add_action( 'init', static function () use ( $prio ): void {
+		global $wp_rewrite;
+		$was = (bool) has_action( 'wp_loaded', [ $wp_rewrite, 'flush_rules' ] );
+		bakala_add_rewrite_rules();
+		if ( ! $was && has_action( 'wp_loaded', [ $wp_rewrite, 'flush_rules' ] ) ) {
+			// قاعده‌هایی که بقیه بعد از قالب در init اضافه می‌کنند هم باید سنجیده شوند، پس آخرِ init
+			add_action( 'init', static function () use ( $wp_rewrite ): void {
+				if ( stlh_rewrite_covered() ) {
+					remove_action( 'wp_loaded', [ $wp_rewrite, 'flush_rules' ] );
+					$GLOBALS['stlh_rewrite_skipped'] = true;
+				}
+			}, PHP_INT_MAX );
+		}
+	}, $prio );
+}, PHP_INT_MAX );

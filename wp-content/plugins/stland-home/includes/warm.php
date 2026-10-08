@@ -83,6 +83,62 @@ foreach ( [ 'woocommerce_new_product', 'woocommerce_update_product' ] as $stlh_h
 }
 unset( $stlh_h );
 
+/**
+ * یک نشانی را مثلِ بازدیدکننده‌ی ناشناس می‌گیرد. درخواست مستقیم به خودِ سرور می‌رود
+ * (`CURLOPT_RESOLVE` به آی‌پیِ همین سرور)، نه دور زدن از QUIC.cloud در خارج — هدف پر کردنِ
+ * کشِ LiteSpeed روی همین سرور است. اگر نشد، از راهِ عادی.
+ */
+function stlh_warm_fetch( string $url, string $ua ): array {
+	$host = (string) wp_parse_url( $url, PHP_URL_HOST );
+	$ip   = (string) ( $_SERVER['SERVER_ADDR'] ?? '' );
+	$pin  = static function ( $h ) use ( $host, $ip ) {
+		if ( $ip && filter_var( $ip, FILTER_VALIDATE_IP ) && defined( 'CURLOPT_RESOLVE' ) ) {
+			curl_setopt( $h, CURLOPT_RESOLVE, [ $host . ':443:' . $ip, $host . ':80:' . $ip ] );
+		}
+	};
+	$args = [ 'timeout' => 25, 'redirection' => 2, 'sslverify' => false, 'user-agent' => $ua, 'cookies' => [] ];
+	$s    = microtime( true );
+	add_action( 'http_api_curl', $pin );
+	$res = wp_remote_get( $url, $args );
+	remove_action( 'http_api_curl', $pin );
+	$via = 'origin';
+	if ( is_wp_error( $res ) ) {
+		$res = wp_remote_get( $url, $args );
+		$via = 'dns';
+	}
+	return [
+		'url'   => str_replace( home_url(), '', $url ) ?: '/',
+		'ms'    => (int) round( ( microtime( true ) - $s ) * 1000 ),
+		'code'  => is_wp_error( $res ) ? $res->get_error_message() : wp_remote_retrieve_response_code( $res ),
+		'cache' => is_wp_error( $res ) ? '' : (string) wp_remote_retrieve_header( $res, 'x-litespeed-cache' ),
+		'via'   => $via,
+	];
+}
+
+function stlh_warm_uas(): array {
+	return [
+		'mobile'  => 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Safari/604.1',
+		'desktop' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36',
+	];
+}
+
+/** نشانی‌ها را با گوشی و دسکتاپ می‌گیرد، تا سقفِ زمان؛ برمی‌گرداند [ردیف‌ها، باقی‌مانده] */
+function stlh_warm_run( array $urls, float $budget = 50 ): array {
+	$t0   = microtime( true );
+	$rows = [];
+	$left = [];
+	foreach ( array_values( $urls ) as $i => $url ) {
+		if ( microtime( true ) - $t0 > $budget ) {
+			$left = array_slice( array_values( $urls ), $i );
+			break;
+		}
+		foreach ( stlh_warm_uas() as $dev => $ua ) {
+			$rows[] = [ 'dev' => $dev ] + stlh_warm_fetch( $url, $ua );
+		}
+	}
+	return [ $rows, $left ];
+}
+
 /** اجرای رویداد: صف را خالی و هر نشانی را با دو مرورگر می‌گیرد؛ خلاصه در `stlh_warm_last` */
 add_action( STLH_WARM_HOOK, static function (): void {
 	$q = array_values( array_unique( (array) get_option( STLH_WARM_OPT, [] ) ) );
@@ -90,30 +146,62 @@ add_action( STLH_WARM_HOOK, static function (): void {
 	if ( ! $q || ! stlh_warm_on() ) {
 		return;
 	}
-	// صفحه‌ی اصلی و فروشگاه اول، بعد بقیه؛ سقفِ تعداد
 	$base = stlh_warm_base();
 	$q    = array_slice( array_merge( array_intersect( $base, $q ), array_diff( $q, $base ) ), 0, STLH_WARM_MAX );
-	$uas  = [
-		'mobile'  => 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Safari/604.1 stlh-warm',
-		'desktop' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36 stlh-warm',
-	];
-	$t0   = microtime( true );
-	$rows = [];
-	foreach ( $q as $url ) {
-		foreach ( $uas as $dev => $ua ) {
-			if ( microtime( true ) - $t0 > 50 ) {
-				break 2; // بقیه با پاک شدنِ بعدی
-			}
-			$s   = microtime( true );
-			$res = wp_remote_get( $url, [ 'timeout' => 25, 'redirection' => 2, 'sslverify' => false, 'user-agent' => $ua, 'cookies' => [], 'headers' => [ 'Accept-Encoding' => 'gzip' ] ] );
-			$rows[] = [
-				'url'   => str_replace( home_url(), '', $url ) ?: '/',
-				'dev'   => $dev,
-				'ms'    => (int) round( ( microtime( true ) - $s ) * 1000 ),
-				'code'  => is_wp_error( $res ) ? $res->get_error_message() : wp_remote_retrieve_response_code( $res ),
-				'cache' => is_wp_error( $res ) ? '' : (string) wp_remote_retrieve_header( $res, 'x-litespeed-cache' ),
-			];
+	[ $rows, $left ] = stlh_warm_run( $q );
+	if ( $left ) {
+		stlh_warm_queue( $left );
+	}
+	update_option( 'stlh_warm_last', [ 'at' => gmdate( 'c' ), 'kind' => 'change', 'rows' => $rows ], false );
+} );
+
+/*
+ * ─── گرم نگه داشتنِ همه‌ی صفحه‌ها (هر ساعت) ───
+ * صاحب فروشگاه (مهر ۱۴۰۵): «محصولی که تا حالا باز نشده ۵–۶ ثانیه طول می‌کشد.» صفحه‌ای که
+ * هیچ‌کس بعد از آخرین پاک شدنِ کش ندیده، برای اولین بازدیدکننده از صفر ساخته می‌شود.
+ * پس هر ساعت همه‌ی صفحه‌های فروشگاه (اصلی، فروشگاه، همه‌ی محصولاتِ منتشرشده، دسته‌های
+ * دارای محصول، برگه‌های منتشرشده) گرفته می‌شوند. صفحه‌ای که در کش است ~۰٫۱ ثانیه
+ * جواب می‌دهد، پس اجرای ساعتی ارزان است؛ فقط صفحه‌های تازه ساخته می‌شوند.
+ */
+function stlh_warm_all_urls(): array {
+	$urls = stlh_warm_base();
+	foreach ( get_posts( [ 'post_type' => 'product', 'post_status' => 'publish', 'numberposts' => 300, 'fields' => 'ids', 'orderby' => 'modified', 'order' => 'DESC' ] ) as $id ) {
+		$urls[] = get_permalink( $id );
+	}
+	$terms = get_terms( [ 'taxonomy' => 'product_cat', 'hide_empty' => true ] );
+	foreach ( is_array( $terms ) ? $terms : [] as $t ) {
+		$l = get_term_link( $t );
+		if ( is_string( $l ) ) {
+			$urls[] = $l;
 		}
 	}
-	update_option( 'stlh_warm_last', [ 'at' => gmdate( 'c' ), 'rows' => $rows ], false );
+	foreach ( get_posts( [ 'post_type' => 'page', 'post_status' => 'publish', 'numberposts' => 40, 'fields' => 'ids' ] ) as $id ) {
+		$urls[] = get_permalink( $id );
+	}
+	$skip = array_filter( [ function_exists( 'wc_get_page_permalink' ) ? wc_get_page_permalink( 'cart' ) : '', function_exists( 'wc_get_page_permalink' ) ? wc_get_page_permalink( 'checkout' ) : '', function_exists( 'wc_get_page_permalink' ) ? wc_get_page_permalink( 'myaccount' ) : '' ] );
+	return array_values( array_diff( array_unique( array_filter( $urls ) ), $skip ) );
+}
+
+add_action( 'init', static function (): void {
+	if ( stlh_warm_on() && ! wp_next_scheduled( 'stlh_warm_all' ) ) {
+		wp_schedule_event( time() + 60, 'hourly', 'stlh_warm_all' );
+	} elseif ( ! stlh_warm_on() && wp_next_scheduled( 'stlh_warm_all' ) ) {
+		wp_clear_scheduled_hook( 'stlh_warm_all' );
+	}
 } );
+
+add_action( 'stlh_warm_all', static function (): void {
+	if ( ! stlh_warm_on() ) {
+		return;
+	}
+	$cursor = (array) get_option( 'stlh_warm_cursor', [] );
+	$urls   = $cursor ?: stlh_warm_all_urls();
+	[ $rows, $left ] = stlh_warm_run( $urls, 80 );
+	update_option( 'stlh_warm_cursor', $left, false );
+	if ( $left && ! wp_next_scheduled( 'stlh_warm_all_more' ) ) {
+		wp_schedule_single_event( time() + 60, 'stlh_warm_all_more' );
+	}
+	$miss = count( array_filter( $rows, static fn( $r ) => 'hit' !== $r['cache'] ) );
+	update_option( 'stlh_warm_all_last', [ 'at' => gmdate( 'c' ), 'urls' => count( $urls ), 'fetched' => count( $rows ), 'built' => $miss, 'left' => count( $left ), 'sample' => array_slice( $rows, 0, 12 ) ], false );
+} );
+add_action( 'stlh_warm_all_more', static fn() => do_action( 'stlh_warm_all' ) );
