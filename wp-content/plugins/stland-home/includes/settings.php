@@ -82,7 +82,7 @@ function stlh_sanitize( mixed $in ): array {
 			'banner_link' === $k                                                                         => esc_url_raw( (string) $v ),
 			in_array( $k, [ 'categories', 'product_rows', 'faq', 'address', 'trust', 'card_badges' ], true ) => sanitize_textarea_field( (string) $v ),
 			'order' === $k                                                                               => implode( "\n", array_values( array_intersect( array_unique( stlh_lines( sanitize_textarea_field( (string) $v ) ) ), array_keys( stlh_sections() ) ) ) ),
-			in_array( $k, [ 'font_enable', 'font_sitewide', 'takeover', 'speed_diet', 'warm' ], true )                       => empty( $in[ $k ] ) ? '' : '1',
+			in_array( $k, [ 'font_enable', 'font_sitewide', 'takeover', 'speed_diet', 'warm', 'page_cache' ], true )                       => empty( $in[ $k ] ) ? '' : '1',
 			'cat_style' === $k                                                                           => 'photo' === $v ? 'photo' : 'icon',
 			in_array( $k, [ 'cat_source', 'rows_source' ], true )                                        => 'manual' === $v ? 'manual' : 'auto',
 			'hide_cats' === $k                                                                           => array_values( array_filter( array_map( 'absint', (array) $v ) ) ),
@@ -432,6 +432,7 @@ function stlh_settings_page(): void {
 				stlh_row_sections( (string) $o['order'] );
 				stlh_row_check( 'وزیرمتن در کل سایت', 'font_sitewide', (string) $o['font_sitewide'], 'فونت همه صفحات سایت هم وزیرمتن شود', 'پیش‌فرض خاموش؛ قبل از روشن کردن، صفحات محصول و سبد خرید را چک کنید.' );
 				stlh_row_check( 'رژیمِ فایل‌ها (سرعت)', 'speed_diet', (string) $o['speed_diet'], 'فایل‌هایی که هر صفحه لازم ندارد، فرستاده نشوند', 'صفحه‌ی اصلی، محصول و فروشگاه چند صد کیلوبایت سبک‌تر می‌شوند (آیکن‌فونتِ المنتور، تقویم، کیف پول، استوری…). اگر چیزی در صفحه از کار افتاد، اول این را خاموش کنید.' );
+				stlh_row_check( 'کشِ صفحه روی سرور (سرعت)', 'page_cache', (string) $o['page_cache'], 'صفحه‌ها برای مهمان از فایلِ آماده فرستاده شوند، بی اجرای وردپرس', 'صفحه‌ی آماده در چند میلی‌ثانیه به‌جای ۲ تا ۴ ثانیه. فقط مهمان (نه مدیر یا مشتریِ واردشده)؛ سبد، پرداخت، حساب و جستجو هرگز. هر تغییرِ محصول یا تنظیمات کش را پاک می‌کند. اگر صفحه‌ای قدیمی ماند، یک بار خاموش و روشن کنید.' );
 				stlh_row_check( 'گرم کردنِ کش (سرعت)', 'warm', (string) $o['warm'], 'بعد از هر تغییرِ محصول، صفحه‌ی اصلی، فروشگاه، محصول و دسته‌اش دوباره در کش بنشینند', 'هر ارسال از حسابداری کشِ این صفحه‌ها را پاک می‌کند و اولین مشتری ۱ تا ۳ ثانیه منتظرِ ساختِ صفحه می‌ماند؛ با این کلید ۲۰ ثانیه بعد از تغییر، خودِ سرور صفحه‌ها را می‌سازد. نتیجه در گزارشِ سرعت (`warm_last`).' );
 				?>
 			</table>
