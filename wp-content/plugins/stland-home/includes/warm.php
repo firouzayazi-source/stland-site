@@ -75,14 +75,12 @@ function stlh_warm_product_urls( int $product_id ): array {
 	return array_filter( $urls );
 }
 
-// کشِ صفحه با هر تغییر کامل پاک می‌شود (page-cache.php)، پس همه‌ی صفحه‌ها دوباره ساخته می‌شوند
-add_action( 'stlh_cache_flushed', static fn() => stlh_warm_queue( stlh_warm_all_urls() ) );
-foreach ( [ 'woocommerce_new_product', 'woocommerce_update_product' ] as $stlh_h ) {
-	add_action( $stlh_h, static function ( $id ): void {
-		stlh_warm_queue( array_merge( stlh_warm_base(), stlh_warm_product_urls( (int) $id ) ) );
-	}, 20, 1 );
+// صف کردنِ گرم کردن را page-cache.php بعد از هر پاک کردن انجام می‌دهد (فهرست‌ها، محصولِ تغییرکرده، یا همه)
+
+/** همه‌ی نشانی‌ها جز صفحه‌های محصول */
+function stlh_warm_listing_urls(): array {
+	return array_values( array_filter( stlh_warm_all_urls(), static fn( $u ) => ! preg_match( '#^/product/#i', rawurldecode( (string) wp_parse_url( $u, PHP_URL_PATH ) ) ) ) );
 }
-unset( $stlh_h );
 
 /**
  * یک نشانی را مثلِ بازدیدکننده‌ی ناشناس می‌گیرد. درخواست مستقیم به خودِ سرور می‌رود

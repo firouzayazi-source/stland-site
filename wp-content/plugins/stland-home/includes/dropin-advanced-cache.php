@@ -20,12 +20,25 @@ defined( 'ABSPATH' ) || exit;
 		return;
 	}
 	$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+	$uri    = (string) ( $_SERVER['REQUEST_URI'] ?? '/' );
+	$parts  = explode( '?', $uri, 2 );
+	$path   = $parts[0];
+	/*
+	 * فایلِ ایستای ناموجود (عکس/CSS/JS در wp-content) به وردپرس نرسد: هر کدام کلِ سایت را
+	 * بالا می‌آورد تا یک صفحه‌ی ۴۰۴ِ ۵۰ کیلوبایتی بسازد (روی سایتِ زنده ۳٫۶ ثانیه، و پیشخوان/
+	 * گالری چندتا پشتِ سرِ هم می‌خواست). جوابِ کوتاه و کش‌پذیر، بی بار شدنِ وردپرس.
+	 */
+	if ( preg_match( '#^/wp-content/.+\.(jpe?g|png|gif|webp|avif|svg|ico|css|js|map|woff2?|ttf|eot|otf|mp4|webm)$#i', $path ) ) {
+		http_response_code( 404 );
+		header( 'Content-Type: text/plain; charset=UTF-8' );
+		header( 'Cache-Control: public, max-age=600' );
+		header( 'X-STLH-Cache: static-404' );
+		echo 'Not found';
+		exit;
+	}
 	if ( 'GET' !== $method && 'HEAD' !== $method ) {
 		return;
 	}
-	$uri   = (string) ( $_SERVER['REQUEST_URI'] ?? '/' );
-	$parts = explode( '?', $uri, 2 );
-	$path  = $parts[0];
 	if ( isset( $parts[1] ) && '' !== $parts[1] ) {
 		parse_str( $parts[1], $q );
 		foreach ( array_keys( $q ) as $k ) {
@@ -45,7 +58,9 @@ defined( 'ABSPATH' ) || exit;
 	$ua     = (string) ( $_SERVER['HTTP_USER_AGENT'] ?? '' );
 	$mobile = (bool) preg_match( '#Mobile|Android|Silk/|Kindle|BlackBerry|Opera Mini|Opera Mobi#', $ua );
 	$https  = ( ! empty( $_SERVER['HTTPS'] ) && 'off' !== $_SERVER['HTTPS'] ) || 'https' === ( $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '' );
-	$key    = md5( ( $https ? 'https' : 'http' ) . '://' . strtolower( (string) ( $_SERVER['HTTP_HOST'] ?? '' ) ) . rawurldecode( $path ) ) . ( $mobile ? '-m' : '-d' );
+	// صفحه‌ی محصول جدا نام‌گذاری می‌شود تا تغییرِ یک محصول فقط همان را (و فهرست‌ها را) پاک کند
+	$pre    = preg_match( '#^/product/#i', rawurldecode( $path ) ) ? 'p-' : 'l-';
+	$key    = $pre . md5( ( $https ? 'https' : 'http' ) . '://' . strtolower( (string) ( $_SERVER['HTTP_HOST'] ?? '' ) ) . rawurldecode( $path ) ) . ( $mobile ? '-m' : '-d' );
 	$file   = $dir . $key . '.html';
 
 	$GLOBALS['stlh_pc'] = [ 'file' => $file, 'dir' => $dir, 'store' => null ];

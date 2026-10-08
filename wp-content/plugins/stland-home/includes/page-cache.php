@@ -94,6 +94,62 @@ function stlh_pc_purge(): int {
 	return $n;
 }
 
+/** نام‌های فایلِ یک نشانی (هر دو طرح × گوشی/دسکتاپ) — همان کلیدِ advanced-cache */
+function stlh_pc_files_for( string $url ): array {
+	$host = strtolower( (string) wp_parse_url( $url, PHP_URL_HOST ) );
+	$path = rawurldecode( (string) ( wp_parse_url( $url, PHP_URL_PATH ) ?: '/' ) );
+	$pre  = preg_match( '#^/product/#i', $path ) ? 'p-' : 'l-';
+	$out  = [];
+	foreach ( [ 'https', 'http' ] as $scheme ) {
+		foreach ( [ '-m', '-d' ] as $dev ) {
+			$out[] = stlh_pc_dir() . $pre . md5( $scheme . '://' . $host . $path ) . $dev . '.html';
+		}
+	}
+	return $out;
+}
+
+/**
+ * فهرست‌ها پاک شوند (صفحه‌ی اصلی، فروشگاه، دسته‌ها، برگه‌ها — هر چه صفحه‌ی محصول نیست)؛
+ * صفحه‌های محصول می‌مانند. این برای هر تغییرِ موجودی/قیمت/دسته/تنظیماتِ صفحه‌ی اصلی است:
+ * پیش از این هر ارسال از حسابداری **همه‌ی** صفحه‌ها را پاک می‌کرد و صفحه‌ی محصولی که
+ * مشتری باز می‌کرد تا رسیدنِ گرم‌کن سرد بود.
+ */
+function stlh_pc_purge_listings(): int {
+	$n = 0;
+	foreach ( (array) glob( stlh_pc_dir() . 'l-*.html' ) as $f ) {
+		$n += (int) @unlink( (string) $f );
+	}
+	if ( function_exists( 'stlh_warm_queue' ) && did_action( 'init' ) ) {
+		stlh_warm_queue( stlh_warm_listing_urls() );
+	}
+	return $n;
+}
+
+/** یک محصول: صفحه‌ی خودش + فهرست‌ها */
+function stlh_pc_purge_product( $product ): void {
+	$id = is_object( $product ) && method_exists( $product, 'get_id' ) ? (int) $product->get_id() : (int) $product;
+	if ( $id && 'product_variation' === get_post_type( $id ) ) {
+		$id = (int) wp_get_post_parent_id( $id );
+	}
+	if ( ! $id ) {
+		return;
+	}
+	$link = get_permalink( $id );
+	if ( $link ) {
+		foreach ( stlh_pc_files_for( $link ) as $f ) {
+			@unlink( $f );
+		}
+	}
+	stlh_pc_purge_listings();
+	if ( function_exists( 'stlh_warm_queue' ) && did_action( 'init' ) && $link && 'publish' === get_post_status( $id ) ) {
+		stlh_warm_queue( [ $link ] );
+	}
+}
+foreach ( [ 'woocommerce_new_product', 'woocommerce_update_product', 'woocommerce_delete_product', 'woocommerce_trash_product', 'woocommerce_product_set_stock', 'woocommerce_variation_set_stock', 'woocommerce_product_set_stock_status', 'woocommerce_variation_set_stock_status' ] as $stlh_h ) {
+	add_action( $stlh_h, 'stlh_pc_purge_product', 99, 1 );
+}
+unset( $stlh_h );
+
 /* ─── چه چیزی ذخیره شود ─── */
 add_action( 'template_redirect', static function (): void {
 	if ( empty( $GLOBALS['stlh_pc'] ) ) {
@@ -116,12 +172,15 @@ add_action( 'template_redirect', static function (): void {
 }, PHP_INT_MAX );
 
 /* ─── چه چیزی کش را پاک می‌کند ─── */
-add_action( 'stlh_cache_flushed', 'stlh_pc_purge' );
+add_action( 'stlh_cache_flushed', 'stlh_pc_purge_listings' );
 add_action( 'litespeed_purge_all', 'stlh_pc_purge' );
 add_action( 'litespeed_purged_all', 'stlh_pc_purge' );
 add_action( 'save_post', static function ( $id, $post ): void {
 	if ( wp_is_post_revision( $id ) || wp_is_post_autosave( $id ) || 'auto-draft' === $post->post_status ) {
 		return;
+	}
+	if ( in_array( $post->post_type, [ 'product', 'product_variation' ], true ) ) {
+		return; // محصول: فقط خودش و فهرست‌ها (stlh_pc_purge_product)
 	}
 	if ( is_post_type_viewable( $post->post_type ) || 'wp_template' === $post->post_type || 'elementor_library' === $post->post_type ) {
 		stlh_pc_purge();
