@@ -121,37 +121,65 @@ function stlh_warm_uas(): array {
 	];
 }
 
-/** نشانی‌ها را با گوشی و دسکتاپ می‌گیرد، تا سقفِ زمان؛ برمی‌گرداند [ردیف‌ها، باقی‌مانده] */
-function stlh_warm_run( array $urls, float $budget = 50 ): array {
+/**
+ * نشانی‌ها را با گوشی و دسکتاپ می‌گیرد، تا سقفِ زمان؛ برمی‌گرداند [ردیف‌ها، باقی‌مانده].
+ *
+ * ⛔ روی سایتِ زنده (مهر ۱۴۰۵) هاست پردازشِ cron را بعد از حدودِ ۳۰ ثانیه می‌کشت: صف در
+ *    ابتدا خالی شده بود و نتیجه در انتها ذخیره می‌شد، پس هر گرم کردنِ بلند **بی‌صدا گم
+ *    می‌شد** و کش بعد از هر تغییر خالی می‌ماند. حالا: سقفِ ۲۰ ثانیه، و باقی‌مانده **پیش از
+ *    هر نشانی** ذخیره می‌شود ($save) — اگر وسطِ کار کشته شد، دورِ بعد از همان‌جا ادامه می‌دهد.
+ */
+function stlh_warm_run( array $urls, float $budget = 20, ?callable $save = null ): array {
+	if ( function_exists( 'set_time_limit' ) ) {
+		@set_time_limit( 120 );
+	}
+	ignore_user_abort( true );
 	$t0   = microtime( true );
 	$rows = [];
+	$urls = array_values( $urls );
 	$left = [];
-	foreach ( array_values( $urls ) as $i => $url ) {
+	foreach ( $urls as $i => $url ) {
 		if ( microtime( true ) - $t0 > $budget ) {
-			$left = array_slice( array_values( $urls ), $i );
+			$left = array_slice( $urls, $i );
 			break;
+		}
+		if ( $save ) {
+			$save( array_slice( $urls, $i ) );
 		}
 		foreach ( stlh_warm_uas() as $dev => $ua ) {
 			$rows[] = [ 'dev' => $dev ] + stlh_warm_fetch( $url, $ua );
 		}
 	}
+	if ( $save ) {
+		$save( $left );
+	}
 	return [ $rows, $left ];
 }
 
-/** اجرای رویداد: صف را خالی و هر نشانی را با دو مرورگر می‌گیرد؛ خلاصه در `stlh_warm_last` */
+/** اجرای رویداد: صف را دسته‌دسته می‌سازد؛ باقی‌مانده با رویدادِ بعدی؛ خلاصه در `stlh_warm_last` */
 add_action( STLH_WARM_HOOK, static function (): void {
 	$q = array_values( array_unique( (array) get_option( STLH_WARM_OPT, [] ) ) );
-	delete_option( STLH_WARM_OPT );
 	if ( ! $q || ! stlh_warm_on() ) {
+		delete_option( STLH_WARM_OPT );
 		return;
 	}
 	$base = stlh_warm_base();
 	$q    = array_slice( array_merge( array_intersect( $base, $q ), array_diff( $q, $base ) ), 0, STLH_WARM_MAX );
-	[ $rows, $left ] = stlh_warm_run( $q );
-	if ( $left ) {
-		stlh_warm_queue( $left );
+	// تا کار تمام نشده، یک رویدادِ پشتیبان (اگر این پردازش کشته شد، ادامه بدهد)
+	if ( ! wp_next_scheduled( STLH_WARM_HOOK ) ) {
+		wp_schedule_single_event( time() + 90, STLH_WARM_HOOK );
 	}
-	update_option( 'stlh_warm_last', [ 'at' => gmdate( 'c' ), 'kind' => 'change', 'rows' => $rows ], false );
+	[ $rows, $left ] = stlh_warm_run( $q, 20, static fn( array $rest ) => update_option( STLH_WARM_OPT, $rest, false ) );
+	$next = wp_next_scheduled( STLH_WARM_HOOK );
+	if ( $left ) {
+		if ( $next ) {
+			wp_unschedule_event( $next, STLH_WARM_HOOK );
+		}
+		wp_schedule_single_event( time() + 5, STLH_WARM_HOOK );
+	} elseif ( $next ) {
+		wp_unschedule_event( $next, STLH_WARM_HOOK );
+	}
+	update_option( 'stlh_warm_last', [ 'at' => gmdate( 'c' ), 'kind' => 'change', 'left' => count( $left ), 'rows' => array_slice( $rows, 0, 30 ) ], false );
 } );
 
 /*
@@ -195,10 +223,18 @@ add_action( 'stlh_warm_all', static function (): void {
 	}
 	$cursor = (array) get_option( 'stlh_warm_cursor', [] );
 	$urls   = $cursor ?: stlh_warm_all_urls();
-	[ $rows, $left ] = stlh_warm_run( $urls, 80 );
-	update_option( 'stlh_warm_cursor', $left, false );
-	if ( $left && ! wp_next_scheduled( 'stlh_warm_all_more' ) ) {
-		wp_schedule_single_event( time() + 60, 'stlh_warm_all_more' );
+	if ( ! wp_next_scheduled( 'stlh_warm_all_more' ) ) {
+		wp_schedule_single_event( time() + 90, 'stlh_warm_all_more' ); // پشتیبان، اگر کشته شد
+	}
+	[ $rows, $left ] = stlh_warm_run( $urls, 20, static fn( array $rest ) => update_option( 'stlh_warm_cursor', $rest, false ) );
+	$next = wp_next_scheduled( 'stlh_warm_all_more' );
+	if ( $next && ! $left ) {
+		wp_unschedule_event( $next, 'stlh_warm_all_more' );
+	} elseif ( $left ) {
+		if ( $next ) {
+			wp_unschedule_event( $next, 'stlh_warm_all_more' );
+		}
+		wp_schedule_single_event( time() + 5, 'stlh_warm_all_more' );
 	}
 	$miss = count( array_filter( $rows, static fn( $r ) => 'hit' !== $r['cache'] ) );
 	update_option( 'stlh_warm_all_last', [ 'at' => gmdate( 'c' ), 'urls' => count( $urls ), 'fetched' => count( $rows ), 'built' => $miss, 'left' => count( $left ), 'sample' => array_slice( $rows, 0, 12 ) ], false );
