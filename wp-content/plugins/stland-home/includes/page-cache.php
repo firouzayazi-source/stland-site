@@ -152,5 +152,7 @@ function stlh_pc_report(): array {
 		'pages'   => count( $files ),
 		'kb'      => (int) round( array_sum( array_map( 'filesize', $files ) ) / 1024 ),
 		'install' => get_option( 'stlh_pc_install', null ),
+		'why_not' => is_file( stlh_pc_dir() . '.why' ) ? array_slice( (array) file( stlh_pc_dir() . '.why', FILE_IGNORE_NEW_LINES ), -25 ) : [],
+		'files'   => array_map( static fn( $f ) => basename( (string) $f ) . ' ' . gmdate( 'H:i:s', (int) filemtime( (string) $f ) ), array_slice( array_values( $files ), 0, 60 ) ),
 	];
 }

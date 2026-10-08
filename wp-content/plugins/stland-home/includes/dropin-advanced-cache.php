@@ -77,23 +77,41 @@ defined( 'ABSPATH' ) || exit;
 			return $html;
 		}
 		if ( ! empty( $GLOBALS['stlh_pc']['partial'] ) ) {
+			@file_put_contents( $GLOBALS['stlh_pc']['dir'] . '.why', gmdate( 'H:i:s' ) . ' partial ' . substr( (string) ( $_SERVER['REQUEST_URI'] ?? '' ), 0, 70 ) . "\n", FILE_APPEND );
 			return $html;
 		}
-		$pc = $GLOBALS['stlh_pc'] ?? null;
-		if ( ! $pc || true !== $pc['store'] || ( defined( 'DONOTCACHEPAGE' ) && DONOTCACHEPAGE ) || 200 !== http_response_code() ) {
-			return $html;
-		}
-		if ( strlen( $html ) < 5000 || false === stripos( $html, '</html>' ) ) {
-			return $html;
-		}
+		$pc  = $GLOBALS['stlh_pc'] ?? null;
+		$why = '';
 		$keep = [];
-		foreach ( headers_list() as $h ) {
-			if ( preg_match( '/^set-cookie\s*:/i', $h ) ) {
-				return $html; // صفحه‌ای که کوکی می‌گذارد، شخصی است
+		if ( ! $pc ) {
+			return $html;
+		}
+		if ( true !== $pc['store'] ) {
+			$why = null === $pc['store'] ? 'no-decision' : 'not-cacheable';
+		} elseif ( defined( 'DONOTCACHEPAGE' ) && DONOTCACHEPAGE ) {
+			$why = 'DONOTCACHEPAGE';
+		} elseif ( 200 !== http_response_code() ) {
+			$why = 'status-' . http_response_code();
+		} elseif ( strlen( $html ) < 5000 || false === stripos( $html, '</html>' ) ) {
+			$why = 'short-' . strlen( $html );
+		} else {
+			foreach ( headers_list() as $h ) {
+				if ( preg_match( '/^set-cookie\s*:\s*([^=;]+)/i', $h, $m ) ) {
+					$why = 'cookie-' . $m[1];
+					break;
+				}
+				if ( ! preg_match( '/^(date|expires|x-powered-by|content-length|x-stlh-cache)\s*:/i', $h ) ) {
+					$keep[] = $h;
+				}
 			}
-			if ( ! preg_match( '/^(date|expires|x-powered-by|content-length|x-stlh-cache)\s*:/i', $h ) ) {
-				$keep[] = $h;
-			}
+		}
+		if ( '' !== $why ) {
+			// چرا ذخیره نشد — ۴۰ خطِ آخر، برای /perf
+			$log = $pc['dir'] . '.why';
+			$old = is_file( $log ) ? array_slice( (array) file( $log, FILE_IGNORE_NEW_LINES ), -39 ) : [];
+			$old[] = gmdate( 'H:i:s' ) . ' ' . $why . ' ' . substr( (string) ( $_SERVER['REQUEST_URI'] ?? '' ), 0, 70 );
+			@file_put_contents( $log, implode( "\n", $old ) . "\n" );
+			return $html;
 		}
 		if ( ! is_dir( $pc['dir'] ) ) {
 			@mkdir( $pc['dir'], 0755, true );
