@@ -90,6 +90,7 @@ function stlh_perf_report(): array {
 			'advanced_cache'    => file_exists( WP_CONTENT_DIR . '/advanced-cache.php' ),
 		],
 		'object_cache'    => wp_using_ext_object_cache(),
+		'cache_backends'  => [ 'redis_ext' => class_exists( 'Redis' ), 'memcached_ext' => class_exists( 'Memcached' ), 'apcu' => function_exists( 'apcu_enabled' ) && apcu_enabled() ],
 		'db_ping_ms'      => $db_ping,
 		'db_queries'      => (int) $wpdb->num_queries,
 		'autoload'        => [ 'kb' => (int) round( $autoload_bytes / 1024 ), 'count' => $autoload_count, 'top' => $top ],
@@ -114,13 +115,14 @@ function stlh_perf_litespeed_conf(): ?array {
 	if ( ! defined( 'LSCWP_V' ) ) {
 		return null;
 	}
-	$out = [ 'version' => LSCWP_V ];
-	foreach ( [ 'cache', 'cache-priv', 'cache-commenter', 'cache-rest', 'cache-page_login', 'cache-mobile', 'cache-ttl_pub', 'cache-browser',
-		'optm-css_min', 'optm-css_comb', 'optm-js_min', 'optm-js_comb', 'optm-js_defer', 'optm-ucss', 'optm-ccss_gen', 'media-lazy', 'object', 'guest' ] as $k ) {
-		$v = get_option( 'litespeed.conf.' . $k, null );
-		if ( null !== $v ) {
-			$out[ $k ] = $v;
-		}
+	global $wpdb;
+	$out  = [ 'version' => LSCWP_V ];
+	$rows = $wpdb->get_results( "SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE 'litespeed.conf.%' AND (option_name LIKE 'litespeed.conf.cache%' OR option_name LIKE 'litespeed.conf.optm%' OR option_name LIKE 'litespeed.conf.object%' OR option_name LIKE 'litespeed.conf.guest%' OR option_name LIKE 'litespeed.conf.media-lazy%' OR option_name LIKE 'litespeed.conf.cdn%')", ARRAY_A );
+	foreach ( $rows as $r ) {
+		$k = substr( $r['option_name'], strlen( 'litespeed.conf.' ) );
+		$v = maybe_unserialize( $r['option_value'] );
+		// فهرست‌های بلند (استثناها) فقط تعدادشان
+		$out[ $k ] = is_array( $v ) ? count( $v ) . ' items' : ( is_string( $v ) && strlen( $v ) > 120 ? substr( $v, 0, 120 ) . '…' : $v );
 	}
 	return $out;
 }
