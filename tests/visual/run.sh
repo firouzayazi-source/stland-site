@@ -35,5 +35,6 @@ cp -r "$root/wp-content/plugins/stland-home" "$WP_DIR/wp-content/plugins/"
 php -r '$_SERVER["HTTP_HOST"]="localhost"; define("WP_INSTALLING", true); require getenv("WP_DIR")."/wp-load.php"; require ABSPATH."wp-admin/includes/upgrade.php"; if (!is_blog_installed()) wp_install("Test", "admin", "a@b.test", true, "", "visual-test");' >/dev/null
 php "$here/seed.php"
 php "$here/theme-files.php"
+php "$here/offsite-backup.php"
 OUT="$out/home.html" php "$here/render.php"
 node "$here/check.mjs" "$out/home.html" "$out"
