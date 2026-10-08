@@ -136,3 +136,24 @@ add_action( 'admin_enqueue_scripts', static function ( string $hook ): void {
 		wp_dequeue_script( 'heartbeat' );
 	}
 }, 99 );
+
+/*
+ * ─── متایِ برگه‌های منو در هر صفحه خوانده نشود ───
+ * پروفایلِ سایتِ زنده (مهر ۱۴۰۵): سنگین‌ترین کوئری‌های هر صفحه‌ی محصول/دسته (۱۵۰ تا ۳۵۰
+ * میلی‌ثانیه، ۱۰ کوئری) خواندنِ **همه‌ی** متایِ برگه‌هایی است که در منوهای هدر و فوتر
+ * لینک شده‌اند (درباره‌ی ما، تماس، راهنمای خرید، روش‌های پرداخت، حریم خصوصی، پرسش‌ها…).
+ * این برگه‌ها با المنتور ساخته شده‌اند و متایشان (`_elementor_data`) ده‌ها کیلوبایت
+ * است؛ منو فقط عنوان و لینکشان را لازم دارد. هسته (`wp_get_nav_menu_items`) آن‌ها را با
+ * `get_posts( include, nopaging, update_post_term_cache=false )` می‌گیرد که به‌طورِ
+ * پیش‌فرض متا را هم بار می‌کند. این‌جا فقط برای همان الگو `update_post_meta_cache` خاموش
+ * می‌شود؛ اگر کدی بعداً متایِ یکی از آن برگه‌ها را بخواهد، همان لحظه و فقط برای همان
+ * برگه خوانده می‌شود (درستی عوض نمی‌شود، فقط کارِ بیهوده حذف می‌شود).
+ */
+add_action( 'pre_get_posts', static function ( WP_Query $q ): void {
+	if ( is_admin() || ! stlh_diet_on() ) {
+		return;
+	}
+	if ( $q->get( 'include' ) && $q->get( 'nopaging' ) && false === $q->get( 'update_post_term_cache' ) && 'nav_menu_item' !== $q->get( 'post_type' ) && ! $q->is_main_query() ) {
+		$q->set( 'update_post_meta_cache', false );
+	}
+}, 1 );

@@ -44,7 +44,7 @@ if ( ! $stlh_prof_page && ( '1' !== $stlh_prof_q || ! str_contains( (string) ( $
 }
 unset( $stlh_prof_q );
 
-$GLOBALS['stlh_prof'] = [ 'owner' => [], 'load' => [], 'last_load' => microtime( true ), 'wrapped' => 0, 'page' => $stlh_prof_page, 'phase' => [] ];
+$GLOBALS['stlh_prof'] = [ 'owner' => [], 'load' => [], 'last_load' => microtime( true ), 'wrapped' => 0, 'page' => $stlh_prof_page, 'phase' => [], 'cb' => [] ];
 
 if ( $stlh_prof_page && ! defined( 'SAVEQUERIES' ) ) {
 	define( 'SAVEQUERIES', true );
@@ -85,6 +85,24 @@ function stlh_prof_owner_of_file( string $file ): string {
 	return 'core';
 }
 
+/** نامِ خوانای یک کال‌بک: Class->method، تابع، یا closure@file:line (برای پیدا کردنِ مقصر) */
+function stlh_prof_name( callable|array|string $cb ): string {
+	if ( is_string( $cb ) ) {
+		return $cb;
+	}
+	if ( is_array( $cb ) ) {
+		return ( is_object( $cb[0] ) ? get_class( $cb[0] ) . '->' : $cb[0] . '::' ) . $cb[1];
+	}
+	try {
+		$ref  = new ReflectionFunction( $cb );
+		$file = str_replace( '\\', '/', (string) $ref->getFileName() );
+		$file = preg_replace( '#^.*/(wp-content|wp-includes|wp-admin)/#', '$1/', $file );
+		return 'closure@' . $file . ':' . $ref->getStartLine();
+	} catch ( Throwable ) {
+		return 'closure';
+	}
+}
+
 /** همه‌ی کال‌بک‌های باقی‌مانده‌ی یک هوک را در تایمر می‌پیچد (از اولویتِ فعلی به بعد) */
 function stlh_prof_wrap( string $hook ): void {
 	global $wp_filter;
@@ -99,11 +117,13 @@ function stlh_prof_wrap( string $hook ): void {
 				continue;
 			}
 			$owner             = stlh_prof_owner( $fn );
-			$entry['function'] = static function ( ...$args ) use ( $fn, $owner, $hook ) {
+			$name              = $hook . ' → ' . stlh_prof_name( $fn );
+			$entry['function'] = static function ( ...$args ) use ( $fn, $owner, $hook, $name ) {
 				$t0  = microtime( true );
 				$out = $fn( ...$args );
 				$ms  = ( microtime( true ) - $t0 ) * 1000;
 				$GLOBALS['stlh_prof']['owner'][ $owner ][ $hook ] = ( $GLOBALS['stlh_prof']['owner'][ $owner ][ $hook ] ?? 0 ) + $ms;
+				$GLOBALS['stlh_prof']['cb'][ $name ]              = ( $GLOBALS['stlh_prof']['cb'][ $name ] ?? 0 ) + $ms;
 				return $out;
 			};
 			$GLOBALS['stlh_prof']['wrapped']++;
@@ -144,7 +164,10 @@ function stlh_prof_report(): array {
 	}
 	unset( $r );
 	uasort( $rows, static fn( $a, $b ) => $b['total_ms'] <=> $a['total_ms'] );
-	return [ 'wrapped_callbacks' => $p['wrapped'], 'note' => 'load_ms فقط برای افزونه‌های بعد از stland-home (ترتیبِ الفبایی) معلوم است', 'rows' => $rows ];
+	$cb = $p['cb'] ?? [];
+	arsort( $cb );
+	$cb = array_map( static fn( $v ) => (int) round( $v ), array_slice( $cb, 0, 40, true ) );
+	return [ 'wrapped_callbacks' => $p['wrapped'], 'note' => 'load_ms فقط برای افزونه‌های بعد از stland-home (ترتیبِ الفبایی) معلوم است', 'rows' => $rows, 'top_callbacks' => $cb ];
 }
 
 /* ─── حالتِ صفحه: مرحله‌ها، کوئری‌ها، ذخیره‌ی نتیجه ─── */
