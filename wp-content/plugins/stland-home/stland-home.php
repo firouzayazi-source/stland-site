@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       StockLand Home
  * Description:       صفحه اصلی داینامیک استوک لند — بنر، دسته‌ها، ردیف محصولات، پیشنهاد ویژه، شبکه‌ها، سوالات متداول و مقالات. شورت‌کد: [stl_home]
- * Version:           1.30.0
+ * Version:           1.31.0
  * Requires at least: 6.3
  * Requires PHP:      8.1
  * Requires Plugins:  woocommerce
@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'STLH_VER', '1.30.0' );
+define( 'STLH_VER', '1.31.0' );
 // نسخه‌ی قرارداد با حسابداری (contract/card-meta.json) — پنلِ سلامتِ حسابداری با آن می‌سنجد
 define( 'STLH_CONTRACT', 5 );
 define( 'STLH_DIR', plugin_dir_path( __FILE__ ) );
@@ -61,6 +61,24 @@ add_action( 'wp_head', function (): void {
 		printf( '<link rel="preload" href="%s" as="font" type="font/woff2" crossorigin>' . "\n", esc_url( stlh_font_url() ) );
 	}
 }, 1 );
+
+/*
+ * ۱.۳۱ — یک بار: وزیرمتن خاموش. صاحب فروشگاه (مهر ۱۴۰۵) برای سرعت پذیرفت که بخش‌های
+ * صفحه‌ی اصلی با فونتِ خودِ قالب نوشته شوند؛ سه خانواده‌ی فونت در هر صفحه زیاد بود.
+ * `--st-font` تعریف نمی‌شود و `home.css` به `inherit` می‌افتد. از تنظیمات برگشت‌پذیر است.
+ */
+add_action( 'init', static function (): void {
+	if ( get_option( 'stlh_font_off_131' ) ) {
+		return;
+	}
+	$o = (array) get_option( STLH_OPT, [] );
+	if ( '' !== (string) ( $o['font_enable'] ?? '' ) || '' !== (string) ( $o['font_sitewide'] ?? '' ) ) {
+		$o['font_enable']   = '';
+		$o['font_sitewide'] = '';
+		update_option( STLH_OPT, $o );
+	}
+	update_option( 'stlh_font_off_131', 1, false );
+}, 5 );
 
 register_activation_hook( __FILE__, function (): void {
 	if ( false === get_option( STLH_OPT ) ) {
