@@ -31,7 +31,8 @@ function stlh_defaults(): array {
 		'group_limit'    => 12,
 		'group_title'    => 'لوازم جانبی استوک لند',
 		'group_subtitle' => 'همه لوازم جانبی، به تفکیک دسته',
-		'font_enable'    => '1',
+		// ۱.۳۱: پیش‌فرض خاموش — بخش‌ها با فونتِ خودِ قالب (ایران‌یکان)؛ وزیرمتن ۱۰۸ کیلوبایت و یک preload اضافه بود
+		'font_enable'    => '',
 		'font_sitewide'  => '',
 		// رژیمِ فایل‌ها (includes/speed.php) — پیش‌فرض روشن؛ اگر چیزی در صفحه شکست، اول این
 		'speed_diet'     => '1',
