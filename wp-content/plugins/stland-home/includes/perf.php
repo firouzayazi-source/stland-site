@@ -108,7 +108,9 @@ function stlh_perf_report(): array {
 		'profile'         => function_exists( 'stlh_prof_report' ) ? stlh_prof_report() : null,
 		'profile_token'   => function_exists( 'stlh_prof_token' ) ? stlh_prof_token() : '',
 		'profile_last'    => get_transient( 'stlh_prof_last' ) ?: null,
-		'slow_http'       => get_transient( 'stlh_slow_http' ) ?: [],
+		'slow_http'       => array_values( array_filter( (array) get_transient( 'stlh_slow_http' ) ) ),
+		'warm_last'       => get_option( 'stlh_warm_last', null ),
+		'elementor'       => stlh_perf_elementor(),
 		'admin_times'     => stlh_perf_admin_times(),
 		'usage'           => stlh_perf_usage(),
 	];
@@ -142,7 +144,7 @@ add_action( 'http_api_debug', static function ( $response, $context, $class, $ar
 		return;
 	}
 	$where = wp_doing_cron() ? 'cron' : ( wp_doing_ajax() ? 'ajax' : ( ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ? 'rest' : ( is_admin() ? 'admin' : 'front' ) ) );
-	$list  = (array) get_transient( 'stlh_slow_http' );
+	$list  = array_filter( (array) get_transient( 'stlh_slow_http' ) );
 	array_unshift( $list, [
 		'at'      => gmdate( 'c' ),
 		'host'    => $host,
@@ -170,7 +172,7 @@ add_action( 'shutdown', static function (): void {
 			$page .= ( str_contains( $page, '?' ) ? '&' : '?' ) . $k . '=' . sanitize_key( (string) $_GET[ $k ] );
 		}
 	}
-	$list = (array) get_transient( 'stlh_admin_times' );
+	$list = array_filter( (array) get_transient( 'stlh_admin_times' ) );
 	array_unshift( $list, [
 		'at'      => gmdate( 'c' ),
 		'page'    => $page,
@@ -183,7 +185,7 @@ add_action( 'shutdown', static function (): void {
 
 /** آخرین صفحه‌های پیشخوان + خلاصه (میانگین و بیشینه) */
 function stlh_perf_admin_times(): array {
-	$list = (array) get_transient( 'stlh_admin_times' );
+	$list = array_values( array_filter( (array) get_transient( 'stlh_admin_times' ) ) );
 	if ( ! $list ) {
 		return [ 'n' => 0, 'rows' => [] ];
 	}
@@ -266,4 +268,18 @@ function stlh_perf_usage(): array {
 		'attribute_groups'  => (int) $jcaa,
 		'theme'             => [ 'name' => wp_get_theme()->get( 'Name' ), 'version' => wp_get_theme()->get( 'Version' ) ],
 	];
+}
+
+/** تنظیماتِ المنتور که روی سرعت اثر دارند (آزمایش‌ها، کشِ عنصر، روشِ چاپِ CSS) — بی هیچ رمزی */
+function stlh_perf_elementor(): ?array {
+	if ( ! defined( 'ELEMENTOR_VERSION' ) ) {
+		return null;
+	}
+	global $wpdb;
+	$out  = [ 'version' => ELEMENTOR_VERSION, 'pro' => defined( 'ELEMENTOR_PRO_VERSION' ) ? ELEMENTOR_PRO_VERSION : null ];
+	$rows = $wpdb->get_results( "SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE 'elementor\\_experiment-%' OR option_name IN ('elementor_element_cache_ttl','elementor_css_print_method','elementor_optimized_dom_output','elementor_font_display','elementor_load_fa4_shim','elementor_disable_color_schemes','elementor_disable_typography_schemes')", ARRAY_A );
+	foreach ( $rows as $r ) {
+		$out[ $r['option_name'] ] = mb_substr( (string) $r['option_value'], 0, 40 );
+	}
+	return $out;
 }

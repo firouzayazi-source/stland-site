@@ -35,7 +35,14 @@ function stlh_section( string $key ): string {
 	if ( ! isset( stlh_sections()[ $key ] ) ) {
 		return '';
 	}
-	return stlh_cached( 'sec:' . $key, 'rows' === $key ? 'stlh_render_rows' : 'stlh_' . $key );
+	if ( function_exists( 'stlh_prof_phase' ) ) {
+		stlh_prof_phase( 'section:' . $key . ' start' );
+	}
+	$html = stlh_cached( 'sec:' . $key, 'rows' === $key ? 'stlh_render_rows' : 'stlh_' . $key );
+	if ( function_exists( 'stlh_prof_phase' ) ) {
+		stlh_prof_phase( 'section:' . $key . ' end' );
+	}
+	return $html;
 }
 
 /** کل صفحه اصلی به ترتیبی که در تنظیمات آمده */
