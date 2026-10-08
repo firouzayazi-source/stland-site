@@ -21,6 +21,20 @@ foreach ( [ 'plugins_loaded', 'setup_theme', 'after_setup_theme', 'init', 'wp_lo
 	}, PHP_INT_MIN );
 }
 
+/*
+ * مسیرهای مدیرِ کلِ stland/v1 هرگز کش نمی‌شوند. LiteSpeed با «کشِ REST» روشن، پاسخِ
+ * درخواستِ رمزدار را (که کوکی ندارد و مهمان دیده می‌شود) کش می‌کرد: گزارشِ `/perf`
+ * سه بار پشتِ سرِ هم یک عدد می‌داد. به ناشناس ۴۰۱ می‌دهد (آزموده شد)، ولی گزارشِ کهنه
+ * هم به دردِ عیب‌یابی نمی‌خورد.
+ */
+add_filter( 'rest_pre_dispatch', static function ( $result, $server, $request ) {
+	if ( str_starts_with( (string) $request->get_route(), '/stland/v1/' ) ) {
+		do_action( 'litespeed_control_set_nocache', 'stland admin api' );
+		nocache_headers();
+	}
+	return $result;
+}, 10, 3 );
+
 add_action( 'rest_api_init', static function (): void {
 	register_rest_route( 'stland/v1', '/perf', [
 		'methods'             => 'GET',
