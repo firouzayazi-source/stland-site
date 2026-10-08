@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       StockLand Updater
  * Description:       افزونه‌های استوک لند را از گیت‌هاب به‌روز می‌کند — مثل آپدیت معمولی افزونه‌ها، بدون FTP.
- * Version:           1.0.1
+ * Version:           1.1.0
  * Requires at least: 6.3
  * Requires PHP:      8.1
  * Text Domain:       stland-updater
@@ -158,6 +158,80 @@ function stlu_purge_caches(): void {
 	}
 }
 
+/*
+ * ─── به‌روزرسانیِ خودکارِ واقعی: هر ۱۵ دقیقه ───
+ * صاحب فروشگاه (مهر ۱۴۰۵): «به‌روزرسانیِ خودکار روشن است ولی هر چه بمانم آپدیت نمی‌کند.»
+ * به‌روزرسانیِ خودکارِ خودِ وردپرس فقط با رویدادِ `wp_version_check` اجرا می‌شود — هر ۱۲
+ * ساعت — و آن هم به جوابِ api.wordpress.org بسته است. این‌جا با کلیدِ همان صفحه، هر ۱۵
+ * دقیقه manifest تازه خوانده و هر افزونه‌ی ما که نسخه‌ی تازه دارد، در پس‌زمینه (cron) نصب
+ * می‌شود. در cron وردپرس افزونه را پیش از نصب غیرفعال نمی‌کند، پس فعال می‌ماند.
+ * نتیجه‌ی آخرین اجرا در گزینه‌ی `stlu_auto_last` (در `/perf` و همین صفحه دیده می‌شود).
+ */
+add_filter( 'cron_schedules', static function ( array $s ): array {
+	$s['stlu_15min'] = [ 'interval' => 15 * MINUTE_IN_SECONDS, 'display' => 'هر ۱۵ دقیقه (استوک لند)' ];
+	return $s;
+} );
+
+add_action( 'init', static function (): void {
+	$on = '1' === get_option( STLU_OPT_AUTO );
+	$at = wp_next_scheduled( 'stlu_auto_run' );
+	if ( $on && ! $at ) {
+		wp_schedule_event( time() + 60, 'stlu_15min', 'stlu_auto_run' );
+	} elseif ( ! $on && $at ) {
+		wp_clear_scheduled_hook( 'stlu_auto_run' );
+	}
+} );
+
+/** افزونه‌های ما که نسخه‌ی تازه‌تر در گیت‌هاب دارند: [file => [installed, new]] */
+function stlu_outdated( array $manifest ): array {
+	if ( ! function_exists( 'get_plugins' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+	}
+	$installed = get_plugins();
+	$out       = [];
+	foreach ( $manifest['plugins'] as $slug => $info ) {
+		$file = stlu_file( (string) $slug );
+		if ( isset( $installed[ $file ] ) && version_compare( (string) $info['version'], (string) $installed[ $file ]['Version'], '>' ) ) {
+			$out[ $file ] = [ (string) $installed[ $file ]['Version'], (string) $info['version'] ];
+		}
+	}
+	return $out;
+}
+
+add_action( 'stlu_auto_run', static function (): void {
+	if ( '1' !== get_option( STLU_OPT_AUTO ) || get_transient( 'stlu_auto_lock' ) ) {
+		return;
+	}
+	$manifest = stlu_manifest( true );
+	$log      = [ 'at' => gmdate( 'c' ), 'result' => [] ];
+	$todo     = $manifest ? stlu_outdated( $manifest ) : [];
+	if ( ! $manifest ) {
+		$log['result'][] = 'manifest: no answer from GitHub';
+	}
+	if ( $todo ) {
+		set_transient( 'stlu_auto_lock', 1, 10 * MINUTE_IN_SECONDS );
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/misc.php';
+		require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+		wp_clean_plugins_cache( false );
+		// خودِ به‌روزرسان آخر — تا اگر نسخه‌ی تازه‌اش ایرادی داشت، بقیه نصب شده باشند
+		uksort( $todo, static fn( $a, $b ) => ( str_starts_with( $a, 'stland-updater/' ) <=> str_starts_with( $b, 'stland-updater/' ) ) );
+		foreach ( $todo as $file => [ $from, $to ] ) {
+			$up  = new Plugin_Upgrader( new Automatic_Upgrader_Skin() );
+			$res = $up->upgrade( $file );
+			$ok  = true === $res || ( is_array( $res ) && ! is_wp_error( $res ) );
+			$log['result'][] = $file . ' ' . $from . ' → ' . $to . ': ' . ( $ok ? 'ok' : ( is_wp_error( $res ) ? $res->get_error_message() : wp_strip_all_tags( implode( ' ', (array) $up->skin->get_upgrade_messages() ) ) ) );
+		}
+		wp_clean_plugins_cache( false );
+		stlu_purge_caches();
+		delete_transient( 'stlu_auto_lock' );
+		update_option( 'stlu_auto_last', $log, false );
+	} else {
+		$prev = (array) get_option( 'stlu_auto_last', [] );
+		update_option( 'stlu_auto_last', [ 'checked' => gmdate( 'c' ) ] + array_diff_key( $prev, [ 'checked' => 1 ] ), false );
+	}
+} );
+
 // ─── صفحه‌ی تنظیمات ───
 add_action( 'admin_menu', function (): void {
 	add_options_page( 'به‌روزرسانی استوک لند', 'به‌روزرسانی استوک لند', 'update_plugins', 'stland-updater', 'stlu_page' );
@@ -267,6 +341,15 @@ function stlu_page(): void {
 				به‌روزرسانی خودکار: <?php echo $auto ? 'روشن — خاموش کن' : 'خاموش — روشن کن'; ?>
 			</a>
 		</p>
+		<?php if ( $auto ) : ?>
+			<?php $last = (array) get_option( 'stlu_auto_last', [] ); $next = wp_next_scheduled( 'stlu_auto_run' ); ?>
+			<p class="description">
+				هر ۱۵ دقیقه خودش بررسی و نصب می‌کند<?php echo $next ? ' — بررسیِ بعدی ' . esc_html( human_time_diff( time(), (int) $next ) ) . ' دیگر' : ''; ?>.
+				<?php if ( ! empty( $last['at'] ) ) : ?>
+					<br>آخرین نصبِ خودکار (<?php echo esc_html( $last['at'] ); ?>): <?php echo esc_html( implode( ' | ', (array) ( $last['result'] ?? [] ) ) ); ?>
+				<?php endif; ?>
+			</p>
+		<?php endif; ?>
 
 		<?php if ( ! $manifest ) : ?>
 			<div class="notice notice-warning inline"><p>فهرست از گیت‌هاب خوانده نشد. «آزمایش اتصال» را بزنید.</p></div>
