@@ -104,6 +104,8 @@ function stlh_perf_report(): array {
 		'litespeed'       => stlh_perf_litespeed_conf(),
 		'speed'           => [ 'diet' => stlh_diet_on(), 'db_tune' => get_option( 'stlh_db_tune', null ), 'autoload_off_count' => count( (array) get_option( 'stlh_autoload_off', [] ) ) ],
 		'probe'           => ! empty( $_GET['probe'] ) ? stlh_perf_probe() : null,
+		'profile'         => function_exists( 'stlh_prof_report' ) ? stlh_prof_report() : null,
+		'usage'           => stlh_perf_usage(),
 	];
 }
 
@@ -157,4 +159,28 @@ function stlh_perf_probe(): array {
 		}
 	}
 	return $out;
+}
+
+/**
+ * چه چیزی واقعاً استفاده می‌شود — برای تصمیمِ «کدام افزونه لازم نیست»:
+ * برگه‌های ساخته‌شده با المنتور، تکه‌کدهای فعالِ Code Snippets، محصولِ متغیر
+ * (برای swatches)، و گروه‌بندیِ ویژگی‌ها (افزونه‌ی attributes).
+ */
+function stlh_perf_usage(): array {
+	global $wpdb;
+	$el = $wpdb->get_results( "SELECT p.ID, p.post_title, p.post_type, p.post_status FROM {$wpdb->posts} p JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = '_elementor_edit_mode' AND m.meta_value = 'builder' WHERE p.post_status IN ('publish','draft','private') ORDER BY p.post_type, p.post_title LIMIT 60", ARRAY_A );
+	$snips = [];
+	$t     = $wpdb->prefix . 'snippets';
+	if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $t ) ) ) {
+		$snips = $wpdb->get_results( "SELECT id, name, scope, active FROM {$t} ORDER BY active DESC, id", ARRAY_A );
+	}
+	$variable = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} p JOIN {$wpdb->term_relationships} tr ON tr.object_id = p.ID JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.taxonomy = 'product_type' JOIN {$wpdb->terms} te ON te.term_id = tt.term_id AND te.slug = 'variable' WHERE p.post_type = 'product' AND p.post_status = 'publish'" );
+	$jcaa = $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->term_taxonomy} WHERE taxonomy LIKE 'jcaa%'" );
+	return [
+		'elementor_built'   => array_map( static fn( $r ) => [ 'id' => (int) $r['ID'], 'title' => $r['post_title'], 'type' => $r['post_type'], 'status' => $r['post_status'], 'url' => get_permalink( (int) $r['ID'] ) ], $el ),
+		'snippets'          => $snips,
+		'variable_products' => $variable,
+		'attribute_groups'  => (int) $jcaa,
+		'theme'             => [ 'name' => wp_get_theme()->get( 'Name' ), 'version' => wp_get_theme()->get( 'Version' ) ],
+	];
 }
