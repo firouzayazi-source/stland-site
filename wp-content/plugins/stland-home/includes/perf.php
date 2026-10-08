@@ -88,6 +88,7 @@ function stlh_perf_report(): array {
 		'timeline_ms'     => $marks,
 		'peak_memory_mb'  => round( memory_get_peak_usage( true ) / 1048576, 1 ),
 		'litespeed'       => stlh_perf_litespeed_conf(),
+		'speed'           => [ 'diet' => stlh_diet_on(), 'db_tune' => get_option( 'stlh_db_tune', null ), 'autoload_off_count' => count( (array) get_option( 'stlh_autoload_off', [] ) ) ],
 		'probe'           => ! empty( $_GET['probe'] ) ? stlh_perf_probe() : null,
 	];
 }

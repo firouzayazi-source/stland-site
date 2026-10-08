@@ -82,7 +82,7 @@ function stlh_sanitize( mixed $in ): array {
 			'banner_link' === $k                                                                         => esc_url_raw( (string) $v ),
 			in_array( $k, [ 'categories', 'product_rows', 'faq', 'address', 'trust', 'card_badges' ], true ) => sanitize_textarea_field( (string) $v ),
 			'order' === $k                                                                               => implode( "\n", array_values( array_intersect( array_unique( stlh_lines( sanitize_textarea_field( (string) $v ) ) ), array_keys( stlh_sections() ) ) ) ),
-			in_array( $k, [ 'font_enable', 'font_sitewide', 'takeover' ], true )                                     => empty( $in[ $k ] ) ? '' : '1',
+			in_array( $k, [ 'font_enable', 'font_sitewide', 'takeover', 'speed_diet' ], true )                       => empty( $in[ $k ] ) ? '' : '1',
 			'cat_style' === $k                                                                           => 'photo' === $v ? 'photo' : 'icon',
 			in_array( $k, [ 'cat_source', 'rows_source' ], true )                                        => 'manual' === $v ? 'manual' : 'auto',
 			'hide_cats' === $k                                                                           => array_values( array_filter( array_map( 'absint', (array) $v ) ) ),
@@ -431,6 +431,7 @@ function stlh_settings_page(): void {
 				stlh_row_check( 'استفاده از وزیرمتن', 'font_enable', (string) $o['font_enable'], 'در بخش‌های صفحه اصلی' );
 				stlh_row_sections( (string) $o['order'] );
 				stlh_row_check( 'وزیرمتن در کل سایت', 'font_sitewide', (string) $o['font_sitewide'], 'فونت همه صفحات سایت هم وزیرمتن شود', 'پیش‌فرض خاموش؛ قبل از روشن کردن، صفحات محصول و سبد خرید را چک کنید.' );
+				stlh_row_check( 'رژیمِ فایل‌ها (سرعت)', 'speed_diet', (string) $o['speed_diet'], 'فایل‌هایی که هر صفحه لازم ندارد، فرستاده نشوند', 'صفحه‌ی اصلی، محصول و فروشگاه چند صد کیلوبایت سبک‌تر می‌شوند (آیکن‌فونتِ المنتور، تقویم، کیف پول، استوری…). اگر چیزی در صفحه از کار افتاد، اول این را خاموش کنید.' );
 				?>
 			</table>
 
