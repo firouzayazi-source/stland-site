@@ -54,8 +54,12 @@ defined( 'ABSPATH' ) || exit;
 		$fh   = fopen( $file, 'rb' );
 		$meta = $fh ? json_decode( (string) fgets( $fh ), true ) : null;
 		if ( $fh && is_array( $meta ) ) {
+			// سرآیندها base64 ذخیره می‌شوند: یک بایتِ نا-UTF-8 در یکی‌شان json را خراب می‌کرد و هیچ صفحه‌ای از کش نمی‌آمد
 			foreach ( (array) ( $meta['h'] ?? [] ) as $h ) {
-				header( $h, false );
+				$h = base64_decode( (string) $h, true );
+				if ( is_string( $h ) && '' !== $h && ! preg_match( '/[\r\n]/', $h ) ) {
+					header( $h, false );
+				}
 			}
 			header( 'X-STLH-Cache: hit; age=' . ( time() - (int) filemtime( $file ) ) );
 			if ( 'HEAD' !== $method ) {
@@ -97,6 +101,10 @@ defined( 'ABSPATH' ) || exit;
 		} else {
 			foreach ( headers_list() as $h ) {
 				if ( preg_match( '/^set-cookie\s*:\s*([^=;]+)/i', $h, $m ) ) {
+					// «اخیراً دیده‌شده»ی ووکامرس شخصی نیست و صفحه به آن وابسته نیست: فقط در نسخه‌ی ذخیره‌شده گذاشته نمی‌شود
+					if ( 'woocommerce_recently_viewed' === trim( $m[1] ) ) {
+						continue;
+					}
 					$why = 'cookie-' . $m[1];
 					break;
 				}
@@ -117,7 +125,7 @@ defined( 'ABSPATH' ) || exit;
 			@mkdir( $pc['dir'], 0755, true );
 		}
 		$tmp = $pc['file'] . '.' . getmypid() . '.tmp';
-		if ( false !== @file_put_contents( $tmp, json_encode( [ 'h' => $keep, 't' => time() ] ) . "\n" . $html . "\n<!-- stlh page cache " . gmdate( 'c' ) . ' -->' ) ) {
+		if ( false !== @file_put_contents( $tmp, json_encode( [ 'h' => array_map( 'base64_encode', $keep ), 't' => time() ] ) . "\n" . $html . "\n<!-- stlh page cache " . gmdate( 'c' ) . ' -->' ) ) {
 			@rename( $tmp, $pc['file'] );
 		}
 		return $html;
