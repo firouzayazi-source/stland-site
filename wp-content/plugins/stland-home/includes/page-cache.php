@@ -86,6 +86,11 @@ function stlh_pc_purge(): int {
 			$n++;
 		}
 	}
+	// هر پاک شدن (به‌روزرسانیِ افزونه، ذخیره‌ی برگه، تنظیمات…) = همه‌ی صفحه‌ها دوباره ساخته شوند؛
+	// وگرنه اولین مشتریِ هر صفحه ساختِ سرد را می‌دید (روی سایتِ زنده تا ۳۰ ثانیه از راهِ CDN)
+	if ( $n && function_exists( 'stlh_warm_queue' ) && did_action( 'init' ) ) {
+		stlh_warm_queue( stlh_warm_all_urls() );
+	}
 	return $n;
 }
 
