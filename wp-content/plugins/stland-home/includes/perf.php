@@ -106,8 +106,89 @@ function stlh_perf_report(): array {
 		'speed'           => [ 'diet' => stlh_diet_on(), 'db_tune' => get_option( 'stlh_db_tune', null ), 'autoload_off_count' => count( (array) get_option( 'stlh_autoload_off', [] ) ) ],
 		'probe'           => ! empty( $_GET['probe'] ) ? stlh_perf_probe() : null,
 		'profile'         => function_exists( 'stlh_prof_report' ) ? stlh_prof_report() : null,
+		'profile_token'   => function_exists( 'stlh_prof_token' ) ? stlh_prof_token() : '',
+		'profile_last'    => get_transient( 'stlh_prof_last' ) ?: null,
+		'slow_http'       => get_transient( 'stlh_slow_http' ) ?: [],
+		'admin_times'     => stlh_perf_admin_times(),
 		'usage'           => stlh_perf_usage(),
 	];
+}
+
+/*
+ * ─── ثبتِ همیشگی و سبک (هر درخواست، چند میکروثانیه) ───
+ * پیشخوان از راهِ پل دیده نمی‌شود (رمزِ برنامه فقط برای REST است)، پس خودِ سایت
+ * یادداشت می‌کند: (۱) هر درخواستِ بیرونیِ کند یا خطادار (api.wordpress.org، ژاکت،
+ * Yoast، المنتور…) با زمانش — روی هاستِ ایرانی خیلی از این‌ها تا timeout می‌مانند و
+ * پیشخوان را قفل می‌کنند؛ (۲) زمانِ ساختِ هر صفحه‌ی پیشخوان با تعدادِ کوئری. هر دو
+ * در `/perf` → `slow_http` و `admin_times`. درخواست به خودِ سایت (cron، probe) ثبت نمی‌شود.
+ */
+add_filter( 'http_request_args', static function ( array $args ): array {
+	$args['stlh_t0'] = microtime( true );
+	return $args;
+}, 1 );
+
+add_action( 'http_api_debug', static function ( $response, $context, $class, $args, $url ): void {
+	$t0 = (float) ( $args['stlh_t0'] ?? 0 );
+	if ( ! $t0 ) {
+		return;
+	}
+	$host = (string) wp_parse_url( (string) $url, PHP_URL_HOST );
+	if ( '' === $host || $host === (string) wp_parse_url( home_url(), PHP_URL_HOST ) ) {
+		return;
+	}
+	$ms  = (int) round( ( microtime( true ) - $t0 ) * 1000 );
+	$err = is_wp_error( $response ) ? $response->get_error_message() : '';
+	if ( $ms < 700 && '' === $err ) {
+		return;
+	}
+	$where = wp_doing_cron() ? 'cron' : ( wp_doing_ajax() ? 'ajax' : ( ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ? 'rest' : ( is_admin() ? 'admin' : 'front' ) ) );
+	$list  = (array) get_transient( 'stlh_slow_http' );
+	array_unshift( $list, [
+		'at'      => gmdate( 'c' ),
+		'host'    => $host,
+		'path'    => substr( (string) wp_parse_url( (string) $url, PHP_URL_PATH ), 0, 60 ),
+		'ms'      => $ms,
+		'result'  => '' !== $err ? $err : (string) wp_remote_retrieve_response_code( $response ),
+		'where'   => $where,
+		'timeout' => $args['timeout'] ?? null,
+	] );
+	set_transient( 'stlh_slow_http', array_slice( $list, 0, 40 ), WEEK_IN_SECONDS );
+}, 10, 5 );
+
+add_action( 'shutdown', static function (): void {
+	global $wpdb, $pagenow;
+	if ( ! is_admin() || wp_doing_ajax() || wp_doing_cron() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+		return;
+	}
+	$start = (float) ( $_SERVER['REQUEST_TIME_FLOAT'] ?? 0 );
+	if ( ! $start ) {
+		return;
+	}
+	$page = (string) $pagenow;
+	foreach ( [ 'page', 'post_type', 'action', 'tab' ] as $k ) {
+		if ( isset( $_GET[ $k ] ) ) {
+			$page .= ( str_contains( $page, '?' ) ? '&' : '?' ) . $k . '=' . sanitize_key( (string) $_GET[ $k ] );
+		}
+	}
+	$list = (array) get_transient( 'stlh_admin_times' );
+	array_unshift( $list, [
+		'at'      => gmdate( 'c' ),
+		'page'    => $page,
+		'ms'      => (int) round( ( microtime( true ) - $start ) * 1000 ),
+		'queries' => (int) $wpdb->num_queries,
+		'mb'      => round( memory_get_peak_usage( true ) / 1048576, 1 ),
+	] );
+	set_transient( 'stlh_admin_times', array_slice( $list, 0, 50 ), WEEK_IN_SECONDS );
+}, PHP_INT_MAX );
+
+/** آخرین صفحه‌های پیشخوان + خلاصه (میانگین و بیشینه) */
+function stlh_perf_admin_times(): array {
+	$list = (array) get_transient( 'stlh_admin_times' );
+	if ( ! $list ) {
+		return [ 'n' => 0, 'rows' => [] ];
+	}
+	$ms = array_map( static fn( $r ) => (int) ( $r['ms'] ?? 0 ), $list );
+	return [ 'n' => count( $list ), 'avg_ms' => (int) round( array_sum( $ms ) / count( $ms ) ), 'max_ms' => max( $ms ), 'rows' => $list ];
 }
 
 /** تنظیماتِ کلیدیِ LiteSpeed Cache (هر کدام یک گزینه‌ی `litespeed.conf.*`) */
