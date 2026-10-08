@@ -24,7 +24,7 @@ defined( 'ABSPATH' ) || exit;
 const STLH_WARM_HOOK  = 'stlh_warm';
 const STLH_WARM_OPT   = 'stlh_warm_queue';
 const STLH_WARM_DELAY = 20;
-const STLH_WARM_MAX   = 12;
+const STLH_WARM_MAX   = 150;
 
 function stlh_warm_on(): bool {
 	return '1' === (string) stlh_opt( 'warm' );
@@ -42,7 +42,7 @@ function stlh_warm_queue( array $urls ): void {
 			$q[] = $u;
 		}
 	}
-	update_option( STLH_WARM_OPT, array_slice( $q, 0, 40 ), false );
+	update_option( STLH_WARM_OPT, array_slice( $q, 0, 150 ), false );
 	if ( ! wp_next_scheduled( STLH_WARM_HOOK ) ) {
 		wp_schedule_single_event( time() + STLH_WARM_DELAY, STLH_WARM_HOOK );
 	}
@@ -75,7 +75,8 @@ function stlh_warm_product_urls( int $product_id ): array {
 	return array_filter( $urls );
 }
 
-add_action( 'stlh_cache_flushed', static fn() => stlh_warm_queue( stlh_warm_base() ) );
+// کشِ صفحه با هر تغییر کامل پاک می‌شود (page-cache.php)، پس همه‌ی صفحه‌ها دوباره ساخته می‌شوند
+add_action( 'stlh_cache_flushed', static fn() => stlh_warm_queue( stlh_warm_all_urls() ) );
 foreach ( [ 'woocommerce_new_product', 'woocommerce_update_product' ] as $stlh_h ) {
 	add_action( $stlh_h, static function ( $id ): void {
 		stlh_warm_queue( array_merge( stlh_warm_base(), stlh_warm_product_urls( (int) $id ) ) );

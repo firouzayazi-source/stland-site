@@ -110,6 +110,7 @@ function stlh_perf_report(): array {
 		'profile_last'    => get_transient( 'stlh_prof_last' ) ?: null,
 		'slow_http'       => array_values( array_filter( (array) get_transient( 'stlh_slow_http' ) ) ),
 		'warm_last'       => get_option( 'stlh_warm_last', null ),
+		'page_cache'      => function_exists( 'stlh_pc_report' ) ? stlh_pc_report() : null,
 		'warm_all_last'   => get_option( 'stlh_warm_all_last', null ),
 		'warm_next'       => wp_next_scheduled( 'stlh_warm_all' ) ? gmdate( 'c', (int) wp_next_scheduled( 'stlh_warm_all' ) ) : null,
 		'rewrite_flush'   => get_transient( 'stlh_rewrite_flush' ) ?: null,
