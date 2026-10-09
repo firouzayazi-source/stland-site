@@ -25,7 +25,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const STLH_CONTENT_VER = '1';
+const STLH_CONTENT_VER = '2';
 
 /** اطلاعاتِ واقعیِ فروشگاه — یک جا، برای همه‌ی صفحه‌ها (صاحب فروشگاه، مهر ۱۴۰۵) */
 function stlh_store_facts(): array {
@@ -224,8 +224,12 @@ function stlh_store_content_apply(): array {
 	$f    = stlh_store_facts();
 	$opts = (array) get_option( STLH_OPT, [] );
 	$set  = static function ( string $k, $v, array $old_values = [] ) use ( &$opts, &$log ): void {
-		$cur = $opts[ $k ] ?? null;
-		if ( null === $cur || '' === $cur || in_array( $cur, $old_values, true ) ) {
+		$cur  = $opts[ $k ] ?? null;
+		$norm = static fn( $v ) => is_string( $v ) ? trim( str_replace( "\r", '', $v ) ) : $v;
+		$olds = array_map( $norm, $old_values );
+		// پرسش‌های قدیمی با شماره‌ی قدیمیِ اقساط (۰۹۰۵…) هم «قدیمی» حساب می‌شوند
+		$stale = 'faq' === $k && is_string( $cur ) && str_contains( $cur, '۰۹۰۵۰۳۲۳۲۱۷' );
+		if ( null === $cur || '' === $cur || $stale || in_array( $norm( $cur ), $olds, true ) ) {
 			$opts[ $k ]           = $v;
 			$log['settings'][]    = $k;
 		}
