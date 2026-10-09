@@ -110,6 +110,7 @@ function stlh_perf_report(): array {
 		'profile_last'    => get_transient( 'stlh_prof_last' ) ?: null,
 		'slow_http'       => array_values( array_filter( (array) get_transient( 'stlh_slow_http' ) ) ),
 		'warm_last'       => get_option( 'stlh_warm_last', null ),
+		'store_content'   => array_diff_key( (array) get_option( 'stlh_store_content', [] ), [ 'stamp' => 1 ] ),
 		'auto_update'     => [ 'on' => '1' === get_option( 'stlu_auto' ), 'next' => wp_next_scheduled( 'stlu_auto_run' ) ? gmdate( 'c', (int) wp_next_scheduled( 'stlu_auto_run' ) ) : null, 'last' => get_option( 'stlu_auto_last', null ) ],
 		'page_cache'      => function_exists( 'stlh_pc_report' ) ? stlh_pc_report() : null,
 		'warm_queue'      => [ 'n' => count( (array) get_option( 'stlh_warm_queue', [] ) ), 'event' => wp_next_scheduled( 'stlh_warm' ) ? gmdate( 'c', (int) wp_next_scheduled( 'stlh_warm' ) ) : null, 'more' => wp_next_scheduled( 'stlh_warm_all_more' ) ? gmdate( 'c', (int) wp_next_scheduled( 'stlh_warm_all_more' ) ) : null, 'cursor' => count( (array) get_option( 'stlh_warm_cursor', [] ) ), 'doing_cron' => get_transient( 'doing_cron' ) ],

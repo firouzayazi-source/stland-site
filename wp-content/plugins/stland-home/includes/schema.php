@@ -63,6 +63,9 @@ function stlh_local_business(): array {
 	if ( $ig = ltrim( (string) stlh_opt( 'instagram' ), '@' ) ) {
 		$same[] = 'https://instagram.com/' . $ig;
 	}
+	if ( $ch = ltrim( (string) stlh_opt( 'telegram' ), '@' ) ) {
+		$same[] = 'https://t.me/' . $ch;
+	}
 	if ( $bot = ltrim( (string) stlh_opt( 'telegram_bot' ), '@' ) ) {
 		$same[] = 'https://t.me/' . $bot;
 	}
