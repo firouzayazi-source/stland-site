@@ -25,7 +25,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const STLH_CONTENT_VER = '2';
+const STLH_CONTENT_VER = '3';
 
 /** اطلاعاتِ واقعیِ فروشگاه — یک جا، برای همه‌ی صفحه‌ها (صاحب فروشگاه، مهر ۱۴۰۵) */
 function stlh_store_facts(): array {
@@ -212,6 +212,30 @@ function stlh_store_content_apply(): array {
 		}
 	}
 
+	/*
+	 * ۳: صاحب فروشگاه (مهر ۱۴۰۵): «صفحه‌هایی که غیرفعال کردی را کلاً پاک کن؛ هیچ اسمی از باکالا
+	 * یا سایتِ دیگری نماند.» پیش‌نویس‌های بالا برای همیشه حذف می‌شوند (فقط اگر هنوز پیش‌نویس‌اند
+	 * و نامکشان همان است)، و سه قالبِ نمونه‌ی المنتور که متنِ «باکالا» داشتند.
+	 */
+	foreach ( stlh_store_drafts() as $id => $slug ) {
+		$post = get_post( $id );
+		if ( $post && 'page' === $post->post_type && 'draft' === $post->post_status && in_array( rawurldecode( $post->post_name ), [ $slug, $slug . '__trashed' ], true ) ) {
+			wp_delete_post( $id, true );
+			$log['deleted'][] = $slug;
+		}
+	}
+	foreach ( [ 44204, 43741, 43714 ] as $id ) {
+		$post = get_post( $id );
+		if ( ! $post || 'elementor_library' !== $post->post_type ) {
+			continue;
+		}
+		$text = $post->post_content . (string) get_post_meta( $id, '_elementor_data', true );
+		if ( str_contains( $text, 'باکالا' ) || str_contains( $text, '\u0628\u0627\u06a9\u0627\u0644\u0627' ) ) {
+			wp_delete_post( $id, true );
+			$log['deleted'][] = 'elementor_library:' . $id;
+		}
+	}
+
 	foreach ( stlh_store_noindex_slugs() as $slug ) {
 		$page = get_page_by_path( $slug );
 		if ( $page ) {
@@ -301,3 +325,14 @@ function stlh_store_content_revert(): int {
 	}
 	return $n;
 }
+
+/*
+ * قالب در پنجره‌ی «ثبت دیدگاه»ِ صفحه‌ی محصول `do_shortcode('[bakala-comments]')` می‌زند ولی این
+ * کدِ کوتاه ثبت نشده است؛ نتیجه: متنِ خامِ «[bakala-comments]» در صفحه. فرمِ دیدگاه همان بالای
+ * صفحه هست، پس این‌جا چیزی چاپ نمی‌شود.
+ */
+add_action( 'wp', static function (): void {
+	if ( ! shortcode_exists( 'bakala-comments' ) ) {
+		add_shortcode( 'bakala-comments', '__return_empty_string' );
+	}
+} );
