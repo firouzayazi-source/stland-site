@@ -478,3 +478,31 @@ function stlh_ai_strip_spam( string $html ): string {
 }
 add_filter( 'the_content', 'stlh_ai_strip_spam', 999 );
 add_filter( 'elementor/frontend/the_content', 'stlh_ai_strip_spam', 999 );
+
+/* ───────────────────── ۶. تأییدِ مالکیت در Bing Webmaster ───────────────────── */
+
+/**
+ * جستجوی ChatGPT از فهرستِ بینگ استفاده می‌کند. صاحب فروشگاه فایلِ BingSiteAuth.xml را
+ * از Bing Webmaster گرفت (مهر ۱۴۰۵). هم همان فایل در `/BingSiteAuth.xml` سرو می‌شود و
+ * هم متای `msvalidate.01` در صفحه‌ی اصلی — هر کدام را بینگ بخواهد.
+ */
+function stlh_bing_code(): string {
+	return preg_replace( '/[^A-F0-9]/i', '', (string) ( stlh_opt( 'bing_verify' ) ?: 'F9357456FEE080CC139D38C67F0B2265' ) );
+}
+
+add_action( 'init', static function (): void {
+	$path = (string) wp_parse_url( (string) ( $_SERVER['REQUEST_URI'] ?? '' ), PHP_URL_PATH );
+	if ( 0 !== strcasecmp( $path, '/BingSiteAuth.xml' ) || '' === stlh_bing_code() ) {
+		return;
+	}
+	status_header( 200 );
+	header( 'Content-Type: application/xml; charset=UTF-8' );
+	echo '<?xml version="1.0"?>' . "\n<users>\n\t<user>" . stlh_bing_code() . "</user>\n</users>\n"; // phpcs:ignore
+	exit;
+}, 1 );
+
+add_action( 'wp_head', static function (): void {
+	if ( is_front_page() && '' !== stlh_bing_code() ) {
+		echo '<meta name="msvalidate.01" content="' . esc_attr( stlh_bing_code() ) . '" />' . "\n";
+	}
+}, 1 );
