@@ -80,7 +80,7 @@ function stlh_sanitize( mixed $in ): array {
 		$out[ $k ] = match ( true ) {
 			in_array( $k, [ 'banner_desktop', 'banner_mobile', 'flash_product', 'posts_count', 'group_limit', 'recent_span' ], true ) => absint( $v ),
 			'banner_link' === $k                                                                         => esc_url_raw( (string) $v ),
-			in_array( $k, [ 'categories', 'product_rows', 'faq', 'address', 'trust', 'card_badges' ], true ) => sanitize_textarea_field( (string) $v ),
+			in_array( $k, [ 'categories', 'product_rows', 'faq', 'address', 'trust', 'card_badges', 'opening_hours', 'store_facts', 'payment_methods' ], true ) => sanitize_textarea_field( (string) $v ),
 			'order' === $k                                                                               => implode( "\n", array_values( array_intersect( array_unique( stlh_lines( sanitize_textarea_field( (string) $v ) ) ), array_keys( stlh_sections() ) ) ) ),
 			in_array( $k, [ 'font_enable', 'font_sitewide', 'takeover', 'speed_diet', 'warm', 'page_cache' ], true )                       => empty( $in[ $k ] ) ? '' : '1',
 			'cat_style' === $k                                                                           => 'photo' === $v ? 'photo' : 'icon',
@@ -538,6 +538,11 @@ function stlh_settings_page(): void {
 				stlh_row_text( 'شماره تماس', 'phone', (string) $o['phone'], 'با ارقام انگلیسی' );
 				stlh_row_textarea( 'آدرس فروشگاه', 'address', (string) $o['address'], '', 2 );
 				stlh_row_text( 'شهر', 'city', (string) $o['city'], 'برای گوگل (جستجوی محلی و نقشه). آدرس، تلفن و شهر به‌صورت «فروشگاه موبایل» به گوگل معرفی می‌شوند.' );
+				stlh_row_textarea( 'ساعت کاری', 'opening_hours', (string) $o['opening_hours'], 'هر خط: روزها|ساعت شروع|ساعت پایان — مثلاً «شنبه تا پنج‌شنبه|10:00|23:00». برای گوگل و هوش مصنوعی.', 3 );
+				stlh_row_text( 'ایمیل فروشگاه', 'store_email', (string) $o['store_email'], '', 'email' );
+				stlh_row_textarea( 'روش‌های پرداخت', 'payment_methods', (string) $o['payment_methods'], 'یک جمله، مثلاً «پرداخت آنلاین (زرین‌پال)، اقساطی، حضوری با کارت‌خوان». خالی = نوشته نمی‌شود.', 2 );
+				stlh_row_text( 'لینک نقشه (گوگل‌مپ/نشان/بلد)', 'map_url', (string) $o['map_url'], 'اختیاری' , 'url' );
+				stlh_row_textarea( 'نکته‌های فروشگاه برای هوش مصنوعی', 'store_facts', (string) $o['store_facts'], 'هر خط یک جمله‌ی واقعی: شرایط اقساط، مهلت تست، گارانتی کارکرده‌ها، ارسال، تعویض… در /llms.txt برای ChatGPT و بقیه نوشته می‌شود.', 6 );
 				?>
 			</table>
 

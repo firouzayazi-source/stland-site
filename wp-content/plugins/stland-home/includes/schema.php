@@ -69,7 +69,8 @@ function stlh_local_business(): array {
 	if ( $same ) {
 		$data['sameAs'] = $same;
 	}
-	return $data;
+	// ساعت کاری، ایمیل، پرداخت… (includes/ai-seo.php)
+	return (array) apply_filters( 'stlh_local_business', $data );
 }
 
 add_action( 'wp_head', function (): void {
