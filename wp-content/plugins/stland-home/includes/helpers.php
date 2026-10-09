@@ -38,6 +38,12 @@ function stlh_defaults(): array {
 		'speed_diet'     => '1',
 		'warm'           => '1',
 		'page_cache'     => '1',
+		// اطلاعاتِ فروشگاه برای گوگل و هوش مصنوعی (includes/ai-seo.php) — از صفحه‌ی «تماس با ما»ی سایت
+		'opening_hours'  => "شنبه تا پنج‌شنبه|10:00|23:00\nجمعه|16:00|23:00",
+		'store_email'    => 'info@stland.ir',
+		'payment_methods' => '',
+		'map_url'        => '',
+		'store_facts'    => '',
 		'trust'          => "shield|گارانتی اصالت|تضمین اصالت و سلامت کالا\nclock|مهلت تست|تست با خیال راحت پس از خرید\ncard|خرید اقساطی|شرایط ویژه پرداخت قسطی\nstore|خرید حضوری|قم، بازار سلام، واحد F11",
 		'card_badges'    => "battery|باتری|٪\nregistry|ریجستری|\nreal_photo|عکس واقعی|",
 		// صاحب فروشگاه: نوار اعتماد زیر بنر نه، درست پیش از سوالات متداول.
