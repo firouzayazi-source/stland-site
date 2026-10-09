@@ -120,6 +120,7 @@ function stlh_perf_report(): array {
 		'elementor'       => stlh_perf_elementor(),
 		'admin_times'     => stlh_perf_admin_times(),
 		'usage'           => stlh_perf_usage(),
+		'htaccess'        => ! empty( $_GET['htaccess'] ) ? stlh_perf_htaccess() : null,
 	];
 }
 
@@ -321,3 +322,21 @@ add_action( 'shutdown', static function (): void {
 	$n    = (int) ( $prev['count'] ?? 0 ) + 1;
 	set_transient( 'stlh_rewrite_flush', $GLOBALS['stlh_rewrite_flush'] + [ 'count' => $n, 'first' => $prev['first'] ?? gmdate( 'c' ) ], DAY_IN_SECONDS );
 }, 1 );
+
+/**
+ * فایل‌های .htaccess (ریشه، wp-content، uploads) — برای پیدا کردنِ قانونی که ربات‌ها را می‌بندد.
+ * روی سایتِ زنده (مهر ۱۴۰۵) بینگ‌بات و ClaudeBot روی هر صفحه و عکس ۴۰۳ می‌گرفتند (فایلِ JS نه)،
+ * پس قانون در Apache است نه وردپرس. فقط خواندن، فقط مدیرِ کل؛ خطِ رمز/توکن پوشیده.
+ */
+function stlh_perf_htaccess(): array {
+	$out = [];
+	foreach ( [ ABSPATH . '.htaccess', WP_CONTENT_DIR . '/.htaccess', wp_upload_dir()['basedir'] . '/.htaccess', ABSPATH . '.user.ini', ABSPATH . 'php.ini' ] as $f ) {
+		if ( ! is_readable( $f ) ) {
+			continue;
+		}
+		$txt = (string) file_get_contents( $f, false, null, 0, 60000 );
+		$txt = preg_replace( '/^(.*(?:pass|secret|token|key)\b.*)$/mi', '# [redacted]', $txt );
+		$out[ str_replace( ABSPATH, '/', $f ) ] = $txt;
+	}
+	return $out;
+}
