@@ -535,6 +535,7 @@ function stlh_settings_page(): void {
 				<?php
 				stlh_row_text( 'آیدی اینستاگرام', 'instagram', (string) $o['instagram'], 'بدون @' );
 				stlh_row_text( 'آیدی ربات تلگرام', 'telegram_bot', (string) $o['telegram_bot'], 'بدون @' );
+				stlh_row_text( 'آیدی کانال تلگرام', 'telegram', (string) $o['telegram'], 'بدون @ — به گوگل و هوش مصنوعی معرفی می‌شود' );
 				stlh_row_text( 'شماره تماس', 'phone', (string) $o['phone'], 'با ارقام انگلیسی' );
 				stlh_row_textarea( 'آدرس فروشگاه', 'address', (string) $o['address'], '', 2 );
 				stlh_row_text( 'شهر', 'city', (string) $o['city'], 'برای گوگل (جستجوی محلی و نقشه). آدرس، تلفن و شهر به‌صورت «فروشگاه موبایل» به گوگل معرفی می‌شوند.' );

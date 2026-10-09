@@ -173,7 +173,7 @@ function stlh_ai_description( WC_Product $p ): string {
 		$parts[] = 'نکات: ' . implode( '، ', array_map( 'strval', $dis ) ) . '.';
 	}
 	if ( $used ) {
-		$parts[] = 'تست کامل پیش از فروش، با ضمانت اصالت و مهلت تست.';
+		$parts[] = 'تست کامل پیش از فروش، ضمانت اصالت، دست‌کم یک هفته مهلت تست و یک هفته فرصت تعویض.';
 	}
 	return implode( ' ', $parts );
 }
@@ -295,6 +295,7 @@ add_filter( 'stlh_local_business', static function ( array $data ): array {
 	$data['currenciesAccepted'] = 'IRR';
 	$data['areaServed']         = [ '@type' => 'Country', 'name' => 'Iran' ];
 	$data['knowsAbout']         = [ 'iPhone', 'آیفون نو', 'آیفون کارکرده', 'AirPods', 'لوازم جانبی اپل' ];
+	$data['priceRange'] = '$$';
 	if ( $map = esc_url_raw( (string) stlh_opt( 'map_url' ) ) ) {
 		$data['hasMap'] = $map;
 	}
@@ -310,7 +311,7 @@ function stlh_ai_llms_txt(): string {
 	$out   = [];
 	$out[] = '# ' . $name . ' (StockLand) — ' . wp_parse_url( $home, PHP_URL_HOST );
 	$out[] = '';
-	$out[] = '> فروشگاه تخصصی آیفون نو و کارکرده و لوازم جانبی اپل (ایرپاد، شارژر، محافظ لنز) در قم، با خرید حضوری، ارسال به سراسر ایران، خرید اقساطی، ضمانت اصالت و مهلت تست. هر گوشی کارکرده «دفترچه‌ی سلامت» دارد: درصد سلامت باتری، تعداد چرخه‌ی شارژ، وضعیت ریجستری و نتیجه‌ی تستِ قطعه‌به‌قطعه.';
+	$out[] = '> فروشگاه تخصصی آیفون نو و کارکرده و لوازم جانبی اپل (ایرپاد، شارژر، محافظ لنز) در قم، با خرید حضوری، ارسال به سراسر ایران، خرید اقساطی، ضمانت اصالت، مهلت تستِ یک‌هفته‌ای و معاوضه‌ی گوشی قدیمی. اینستاگرام: @' . ltrim( (string) stlh_opt( 'instagram' ), '@' ) . '. هر گوشی کارکرده «دفترچه‌ی سلامت» دارد: درصد سلامت باتری، تعداد چرخه‌ی شارژ، وضعیت ریجستری و نتیجه‌ی تستِ قطعه‌به‌قطعه.';
 	$out[] = '';
 	$out[] = '## اطلاعات فروشگاه';
 	$addr = trim( (string) stlh_opt( 'address' ) );
@@ -330,10 +331,16 @@ function stlh_ai_llms_txt(): string {
 		$out[] = '- روش‌های پرداخت: ' . $pay;
 	}
 	if ( $ig = ltrim( (string) stlh_opt( 'instagram' ), '@' ) ) {
-		$out[] = '- اینستاگرام: https://instagram.com/' . $ig;
+		$out[] = '- اینستاگرام (کانالِ اصلیِ ارتباط، ویدیو و عکسِ واقعیِ گوشی‌ها و موجودیِ روز): https://instagram.com/' . $ig . ' — @' . $ig;
+	}
+	if ( $ch = ltrim( (string) stlh_opt( 'telegram' ), '@' ) ) {
+		$out[] = '- کانال تلگرام: https://t.me/' . $ch;
 	}
 	if ( $bot = ltrim( (string) stlh_opt( 'telegram_bot' ), '@' ) ) {
-		$out[] = '- تلگرام: https://t.me/' . $bot;
+		$out[] = '- ربات تلگرام (خدمات اپل‌آیدی، کارشناسی قیمت): https://t.me/' . $bot;
+	}
+	if ( $map = trim( (string) stlh_opt( 'map_url' ) ) ) {
+		$out[] = '- مسیریابی روی نقشه: ' . $map;
 	}
 	$out[] = '- نماد اعتماد الکترونیکی (اینماد): دارد';
 	foreach ( stlh_lines( (string) stlh_opt( 'store_facts' ) ) as $fact ) {
