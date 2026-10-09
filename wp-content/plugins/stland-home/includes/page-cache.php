@@ -29,8 +29,17 @@ function stlh_pc_dir(): string {
 	return WP_CONTENT_DIR . '/cache/stlh-page/';
 }
 
+/**
+ * وب‌سرورِ LiteSpeed دارد؟ آن‌وقت کشِ خودِ سرور (LSCache) پیش از PHP جواب می‌دهد و از این
+ * کش سریع‌تر است؛ دو کشِ روی هم فقط پاک‌کردن را پیچیده می‌کند. انتقال به پارس‌پک (مهر ۱۴۰۵).
+ */
+function stlh_pc_lsws(): bool {
+	$sw = (string) ( $_SERVER['SERVER_SOFTWARE'] ?? '' );
+	return stripos( $sw, 'litespeed' ) !== false || ! empty( $_SERVER['X-LSCACHE'] ) || ! empty( $_SERVER['HTTP_X_LSCACHE'] );
+}
+
 function stlh_pc_on(): bool {
-	return '1' === (string) stlh_opt( 'page_cache' );
+	return '1' === (string) stlh_opt( 'page_cache' ) && ! stlh_pc_lsws();
 }
 
 /** وضعیتِ فعلیِ advanced-cache.php: ours | foreign | none */
