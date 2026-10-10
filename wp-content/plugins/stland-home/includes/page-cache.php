@@ -34,8 +34,12 @@ function stlh_pc_dir(): string {
  * کش سریع‌تر است؛ دو کشِ روی هم فقط پاک‌کردن را پیچیده می‌کند. انتقال به پارس‌پک (مهر ۱۴۰۵).
  */
 function stlh_pc_lsws(): bool {
+	/*
+	 * ⛔ فقط SERVER_SOFTWARE. هاستِ نت‌افراز هم X-LSCACHE می‌فرستد (LSAPI پشتِ Apache) ولی
+	 *    کشِ سرورش کار نمی‌کند؛ ۱.۴۵ با همان نشانه کشِ صفحه‌ی سایتِ زنده را خاموش کرد.
+	 */
 	$sw = (string) ( $_SERVER['SERVER_SOFTWARE'] ?? '' );
-	return stripos( $sw, 'litespeed' ) !== false || ! empty( $_SERVER['X-LSCACHE'] ) || ! empty( $_SERVER['HTTP_X_LSCACHE'] );
+	return stripos( $sw, 'litespeed' ) !== false;
 }
 
 function stlh_pc_on(): bool {
