@@ -126,7 +126,31 @@ function stlh_perf_report(): array {
 		'action_scheduler' => stlh_perf_action_scheduler(),
 		'load'            => function_exists( 'sys_getloadavg' ) ? sys_getloadavg() : null,
 		'static404'       => get_option( 'stlh_static404', null ),
+		'memcached_test'  => stlh_perf_memcached_test(),
 	];
+}
+
+/** اتصالِ واقعی به Memcachedِ تنظیم‌شده در LiteSpeed (پنلِ LiteSpeed گاهی «ناموفق» نشان می‌دهد) */
+function stlh_perf_memcached_test(): ?array {
+	if ( ! class_exists( 'Memcached' ) ) {
+		return [ 'ext' => false ];
+	}
+	$host = (string) get_option( 'litespeed.conf.object-host', '' );
+	$port = (int) get_option( 'litespeed.conf.object-port', 0 );
+	$out  = [ 'ext' => true, 'host' => $host, 'port' => $port ];
+	foreach ( array_unique( [ $host, '127.0.0.1', 'localhost' ] ) as $h ) {
+		if ( '' === $h ) {
+			continue;
+		}
+		$m = new Memcached();
+		$m->setOption( Memcached::OPT_CONNECT_TIMEOUT, 500 );
+		$m->addServer( $h, $port );
+		$ok = $m->set( 'stlh_mc_test', 1, 30 );
+		$v  = $m->getVersion();
+		$out['try'][ $h ] = [ 'set' => $ok, 'get' => $m->get( 'stlh_mc_test' ), 'code' => $m->getResultCode(), 'msg' => $m->getResultMessage(), 'version' => $v ? array_values( $v )[0] : null ];
+		$m->quit();
+	}
+	return $out;
 }
 
 /** صفِ Action Scheduler (ووکامرس): چند کارِ معوق/در حالِ اجرا و پرتکرارترین‌ها */
