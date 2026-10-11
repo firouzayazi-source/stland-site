@@ -121,7 +121,24 @@ function stlh_perf_report(): array {
 		'admin_times'     => stlh_perf_admin_times(),
 		'usage'           => stlh_perf_usage(),
 		'htaccess'        => ! empty( $_GET['htaccess'] ) ? stlh_perf_htaccess() : null,
+		'inflight'        => function_exists( 'stlh_inflight_report' ) ? stlh_inflight_report() : null,
+		'procs'           => ! empty( $_GET['procs'] ) && function_exists( 'stlh_inflight_procs' ) ? stlh_inflight_procs() : null,
+		'action_scheduler' => stlh_perf_action_scheduler(),
+		'load'            => function_exists( 'sys_getloadavg' ) ? sys_getloadavg() : null,
 	];
+}
+
+/** صفِ Action Scheduler (ووکامرس): چند کارِ معوق/در حالِ اجرا و پرتکرارترین‌ها */
+function stlh_perf_action_scheduler(): ?array {
+	global $wpdb;
+	$t = $wpdb->prefix . 'actionscheduler_actions';
+	if ( $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $t ) ) !== $t ) {
+		return null;
+	}
+	$by_status = $wpdb->get_results( "SELECT status, COUNT(*) n FROM {$t} GROUP BY status", ARRAY_A ); // phpcs:ignore
+	$pending   = $wpdb->get_results( "SELECT hook, COUNT(*) n, MIN(scheduled_date_gmt) oldest FROM {$t} WHERE status IN ('pending','in-progress') GROUP BY hook ORDER BY n DESC LIMIT 12", ARRAY_A ); // phpcs:ignore
+	$due       = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE status='pending' AND scheduled_date_gmt < %s", gmdate( 'Y-m-d H:i:s' ) ) ); // phpcs:ignore
+	return [ 'by_status' => $by_status, 'past_due' => $due, 'pending_hooks' => $pending ];
 }
 
 /*
