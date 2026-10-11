@@ -233,3 +233,41 @@ function stlh_pc_report(): array {
 		'files'   => array_map( static fn( $f ) => basename( (string) $f ) . ' ' . gmdate( 'H:i:s', (int) filemtime( (string) $f ) ), array_slice( array_values( $files ), 0, 60 ) ),
 	];
 }
+
+/*
+ * ─── «۴۰۴ِ ایستا» در .htaccess (روزِ جابه‌جایی به پارس‌پک، مهر ۱۴۰۵) ───
+ * فایلِ جاافتاده‌ی `wp-content` (مثلاً `uploads/product-placeholder-1.png`) وردپرس را کامل بالا
+ * می‌آورد تا صفحه‌ی ۴۰۴ بسازد؛ همان صفحه دوباره آن عکس را از خودِ سایت می‌خواست ⇒ چرخه‌ی
+ * بی‌پایان، ۲۲۶ درخواستِ هم‌زمان، CPU و رمِ ۱۰۰٪. روی نت‌افراز drop-inِ ما همین ۴۰۴ را بی‌وردپرس
+ * می‌داد؛ روی LiteSpeedِ واقعی drop-in نیست، پس قاعده باید در .htaccess و **پیش از** قاعده‌های
+ * وردپرس باشد (insert_with_markers آن را ته فایل می‌گذاشت که بی‌اثر است).
+ * webp/avif بیرون‌اند: افزونه‌ی webp ممکن است نبودشان را خودش جواب دهد.
+ */
+const STLH_STATIC404_MARK = 'STLH static 404';
+
+function stlh_static404_block(): string {
+	return '# BEGIN ' . STLH_STATIC404_MARK . "\n<IfModule mod_rewrite.c>\nRewriteEngine On\n"
+		. "RewriteCond %{REQUEST_URI} ^/wp-content/.+\\.(jpe?g|png|gif|svg|ico|css|js|woff2?|ttf|eot|map)$ [NC]\n"
+		. "RewriteCond %{REQUEST_FILENAME} !-f\nRewriteRule .* - [R=404,L]\n</IfModule>\n# END " . STLH_STATIC404_MARK . "\n";
+}
+
+/** اگر بلوک نیست، اولِ .htaccess می‌گذارد؛ نتیجه در گزینه‌ی `stlh_static404` */
+function stlh_static404_ensure(): string {
+	$file = ABSPATH . '.htaccess';
+	if ( ! is_file( $file ) || ! is_writable( $file ) ) {
+		return 'no-file';
+	}
+	$txt = (string) file_get_contents( $file );
+	if ( str_contains( $txt, '# BEGIN ' . STLH_STATIC404_MARK ) ) {
+		return 'present';
+	}
+	return false !== file_put_contents( $file, stlh_static404_block() . $txt, LOCK_EX ) ? 'added' : 'write-failed';
+}
+
+add_action( 'init', static function (): void {
+	if ( ! stlh_pc_lsws() || get_transient( 'stlh_static404_checked' ) ) {
+		return;
+	}
+	set_transient( 'stlh_static404_checked', 1, HOUR_IN_SECONDS );
+	update_option( 'stlh_static404', [ 'at' => gmdate( 'c' ), 'result' => stlh_static404_ensure() ], false );
+}, 99 );

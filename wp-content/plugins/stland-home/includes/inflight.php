@@ -56,13 +56,15 @@ function stlh_inflight_report(): array {
 		if ( ! is_array( $d ) ) {
 			continue;
 		}
-		$age = $now - (float) ( $d['start'] ?? $now );
-		if ( $age > DAY_IN_SECONDS ) {
+		$age   = $now - (float) ( $d['start'] ?? $now );
+		$alive = is_dir( '/proc/' . (int) $d['pid'] );
+		// پردازه‌ی کشته‌شده shutdown را اجرا نمی‌کند؛ بعد از ۱۰ دقیقه فقط شلوغی است
+		if ( $age > DAY_IN_SECONDS || ( ! $alive && $age > 600 ) ) {
 			@unlink( $f );
 			continue;
 		}
 		$d['age_s'] = round( $age, 1 );
-		$d['alive'] = is_dir( '/proc/' . (int) $d['pid'] );
+		$d['alive'] = $alive;
 		unset( $d['start'] );
 		$rows[] = $d;
 	}
