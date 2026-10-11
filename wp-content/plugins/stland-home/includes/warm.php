@@ -27,6 +27,14 @@ const STLH_WARM_DELAY = 20;
 const STLH_WARM_MAX   = 150;
 
 function stlh_warm_on(): bool {
+	/*
+	 * روی LiteSpeedِ واقعی (پارس‌پک، مهر ۱۴۰۵) کشِ صفحه کارِ LSCache است و گرم‌کردن خاموش:
+	 * هاستِ اشتراکی چند پردازه‌ی PHP بیشتر ندارد و درخواست‌های گرم‌کن به خودِ سرور (هر کدام تا
+	 * ۲۵ ثانیه) همان‌ها را می‌گرفتند — روزِ جابه‌جایی صفحه‌ها ۱۰ تا ۳۰ ثانیه و فروشگاه ۵۰۲ شد.
+	 */
+	if ( function_exists( 'stlh_pc_lsws' ) && stlh_pc_lsws() ) {
+		return false;
+	}
 	return '1' === (string) stlh_opt( 'warm' );
 }
 
