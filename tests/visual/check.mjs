@@ -7,6 +7,7 @@
  *  • ردیف‌ها به همان ترتیبِ تنظیمات‌اند؛ لوازم جانبی یک کراسول با دکمه‌ی زیردسته‌ها.
  *  • خطِ وضعیت («کارکرده · آبی») زیرِ نامِ گوشی هست؛ هیچ ردیفی خالی نیست.
  *  • کالای ناموجود در ردیف‌ها نیست (صفحه‌اش در سایت می‌ماند، ولی صفحه‌ی اصلی فقط خریدنی‌ها).
+ *  • کارکرده‌ی ۱۴ به بالا ردیفِ بالا، ۱۳ و پایین‌تر ردیفِ زیرش.
  *  • خطای جاوااسکریپت نیست.
  */
 import { chromium } from 'playwright'
@@ -57,6 +58,18 @@ for (const [name, width, height] of [['mobile', 390, 844], ['desktop', 1280, 900
 
   const names = await page.$$eval('.st-pr-name', (els) => els.map((e) => e.textContent))
   check(!names.some((n) => n.includes('فروخته‌شده')), `${name}: کالای ناموجود در ردیف‌ها آمد`)
+
+  // صاحب فروشگاه (۲۱ مهر ۱۴۰۵): کارکرده‌ی ۱۴ به بالا ردیفِ بالا، ۱۳ و پایین‌تر ردیفِ زیرش (`recent_from`)
+  const rowNames = async (title) =>
+    page
+      .locator('section.st-pr-wrapper', { has: page.locator('h2', { hasText: new RegExp(`^${title}$`) }) })
+      .locator('.st-pr-name')
+      .allTextContents()
+  const gen = (n) => Number((n.match(/آیفون\s+(\d+)/) || [])[1] || 0)
+  const top = await rowNames('آیفون کارکرده')
+  const low = await rowNames('آیفون کارکرده — مدل‌های قدیمی‌تر')
+  check(top.length > 0 && top.every((n) => gen(n) >= 14), `${name}: ردیفِ بالای کارکرده فقط ۱۴ به بالا — آمد: ${top.join('، ')}`)
+  check(low.length > 0 && low.every((n) => gen(n) < 14), `${name}: ردیفِ زیرینِ کارکرده ۱۳ و پایین‌تر — آمد: ${low.join('، ')}`)
 
   check(errors.length === 0, `${name}: خطای جاوااسکریپت: ${errors.join(' / ')}`)
   if (outDir) await page.screenshot({ path: `${outDir}/home-${name}.png`, fullPage: true })
