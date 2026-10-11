@@ -11,8 +11,13 @@
  *  ۱. در فروشگاه، دسته‌ها، برچسب‌ها و جستجو، موجودها پیش از ناموجودها — هر
  *     مرتب‌سازیِ دیگری (جدیدترین، ارزان‌ترین…) داخلِ هر گروه سرِ جایش می‌ماند.
  *     ردیف‌های صفحه‌ی اصلی از قبل فقط موجودها را می‌آورند (`render.php`).
- *  ۲. «ناموجود»ِ گوشیِ کارکرده «فروش رفت» می‌شود (`stlh_label('sold')`) — آن گوشی
- *     دیگر برنمی‌گردد. کالای نو همان «ناموجود» می‌ماند، چون شاید دوباره بیاید.
+ *  ۲. «ناموجود» هر کالا «فروخته شد» می‌شود (`stlh_label('sold')`). صاحب فروشگاه (۲۱ مهر ۱۴۰۵): «فقط بنویسد
+ *     فروخته شد به‌جای موجود نیست.» حسابداری کالای فروخته‌شده را دیگر خودکار پاک یا بایگانی نمی‌کند، پس هر
+ *     کالای بی‌موجودیِ سایت یعنی فروخته شد — نو یا کارکرده.
+ *
+ *     جای «ناموجود» سه جاست: متنِ موجودیِ ووکامرس، و دو رشته‌ی قالبِ باکالا («unavailable» در جعبه‌ی صفحه‌ی
+ *     محصول، «Out Of Stock » روی کارتِ فروشگاه). قالب دست نمی‌خورد — رشته‌هایش ترجمه‌پذیرند و همین‌جا
+ *     عوض می‌شوند (`gettext_bakala`)، پس به‌روزرسانیِ قالب هم این را نمی‌شکند.
  */
 defined( 'ABSPATH' ) || exit;
 
@@ -38,8 +43,27 @@ function stlh_is_used( WC_Product $p ): bool {
 }
 
 add_filter( 'woocommerce_get_availability_text', static function ( $text, $product ) {
-	if ( $product instanceof WC_Product && ! $product->is_in_stock() && stlh_is_used( $product ) ) {
+	if ( $product instanceof WC_Product && ! $product->is_in_stock() ) {
 		return stlh_label( 'sold' );
 	}
 	return $text;
+}, 20, 2 );
+
+/** رشته‌های «ناموجود»ِ قالبِ باکالا (متنِ انگلیسیِ اصلی، پیش از ترجمه) */
+function stlh_bakala_sold_strings(): array {
+	return [
+		'unavailable'  => 'sold',
+		'Out Of Stock ' => 'sold',
+		'Out Of Stock' => 'sold',
+		'Out of stock' => 'sold',
+		'This product is not available at the moment, but you can ring the bell and we will inform you as soon as it is available' => 'sold_note',
+	];
+}
+
+add_filter( 'gettext_bakala', static function ( $translation, $text ) {
+	if ( is_admin() && ! wp_doing_ajax() ) {
+		return $translation;
+	}
+	$key = stlh_bakala_sold_strings()[ $text ] ?? null;
+	return $key ? stlh_label( $key ) : $translation;
 }, 20, 2 );

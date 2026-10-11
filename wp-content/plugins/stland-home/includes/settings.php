@@ -78,7 +78,7 @@ function stlh_sanitize( mixed $in ): array {
 	foreach ( stlh_defaults() as $k => $def ) {
 		$v         = $in[ $k ] ?? $def;
 		$out[ $k ] = match ( true ) {
-			in_array( $k, [ 'banner_desktop', 'banner_mobile', 'flash_product', 'posts_count', 'group_limit', 'recent_span' ], true ) => absint( $v ),
+			in_array( $k, [ 'banner_desktop', 'banner_mobile', 'flash_product', 'posts_count', 'group_limit', 'recent_span', 'recent_from' ], true ) => absint( $v ),
 			'banner_link' === $k                                                                         => esc_url_raw( (string) $v ),
 			in_array( $k, [ 'categories', 'product_rows', 'faq', 'address', 'trust', 'card_badges', 'opening_hours', 'store_facts', 'payment_methods' ], true ) => sanitize_textarea_field( (string) $v ),
 			'order' === $k                                                                               => implode( "\n", array_values( array_intersect( array_unique( stlh_lines( sanitize_textarea_field( (string) $v ) ) ), array_keys( stlh_sections() ) ) ) ),
@@ -102,6 +102,7 @@ function stlh_sanitize( mixed $in ): array {
 	$out['posts_count'] = min( 12, $out['posts_count'] );
 	$out['group_limit'] = max( 1, min( 24, $out['group_limit'] ) );
 	$out['recent_span'] = max( 1, min( 20, $out['recent_span'] ?: 5 ) );
+	$out['recent_from'] = min( 40, $out['recent_from'] );
 	return $out;
 }
 
@@ -470,7 +471,8 @@ function stlh_settings_page(): void {
 			<table class="form-table" role="presentation">
 				<?php
 				stlh_row_lines( array_values( array_filter( (array) $o['lines'], 'is_array' ) ) );
-				stlh_row_text( 'نسل‌های تازه در «کارکرده ۱»', 'recent_span', (string) $o['recent_span'], '«کارکرده ۱» این تعداد نسلِ آخر را نشان می‌دهد (نسبت به جدیدترین گوشیِ موجود) و «کارکرده ۲» بقیه را. مثلاً ۵ و جدیدترین گوشی آیفون ۱۶: کارکرده ۱ = ۱۲ تا ۱۶.', 'number' );
+				stlh_row_text( '«کارکرده ۱» از کدام نسل', 'recent_from', (string) $o['recent_from'], 'ردیفِ بالا از همین نسل به بالا، و «کارکرده ۲» (ردیفِ زیرش) پایین‌تر. ۱۴ یعنی آیفون ۱۴ و بالاتر بالا، ۱۳ و پایین‌تر زیرش. صفر یعنی «چند نسلِ آخر» (کادرِ بعد).', 'number' );
+				stlh_row_text( 'نسل‌های تازه در «کارکرده ۱»', 'recent_span', (string) $o['recent_span'], 'فقط وقتی کادرِ بالا صفر است: «کارکرده ۱» این تعداد نسلِ آخر را نشان می‌دهد (نسبت به جدیدترین گوشیِ موجود). مثلاً ۵ و جدیدترین گوشی آیفون ۱۶: کارکرده ۱ = ۱۲ تا ۱۶.', 'number' );
 				stlh_row_cat_select( 'دسته‌ی پرفروش‌ها', 'best_cat', (string) $o['best_cat'], 'بخشِ «پرفروش‌ها» محصولاتِ همین دسته را نشان می‌دهد. در حسابداری، از پنلِ انتشارِ هر کالا این دسته را کنارِ دسته‌ی اصلی‌اش بزنید.' );
 				stlh_row_textarea( 'نشان‌های کارت', 'card_badges', (string) $o['card_badges'], 'هر خط: کلید ویژگی یا متای محصول|برچسب|پسوند — مثال: battery|باتری|٪ . حداکثر ۲ نشان روی هر کارت؛ اگر محصول آن مقدار را نداشته باشد نمایش داده نمی‌شود.', 3 );
 				?>

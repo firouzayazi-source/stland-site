@@ -239,7 +239,7 @@ function stlh_categories(): string {
 /* ---------- کارت محصول ---------- */
 function stlh_price( WC_Product $p ): string {
 	if ( ! $p->is_in_stock() ) {
-		return '<span class="st-out">' . esc_html( stlh_label( 'out' ) ) . '</span>';
+		return '<span class="st-out">' . esc_html( stlh_label( 'sold' ) ) . '</span>';
 	}
 	$html = $p->get_price_html();
 	return $html ? wp_kses_post( $html ) : '<span class="st-call">' . esc_html( stlh_label( 'call' ) ) . '</span>';
@@ -463,7 +463,9 @@ function stlh_split_generations( WP_Term $t ): array {
 	$items = stlh_query_products( [ (string) $t->term_id ], 100 );
 	$gens  = array_map( static fn( WC_Product $p ) => stlh_model_number( $p->get_name() ), $items );
 	$max   = $gens ? max( $gens ) : 0;
-	$from  = $max - max( 1, (int) stlh_opt( 'recent_span' ) ?: 5 ) + 1;
+	// نسلِ ثابت (`recent_from`، پیش‌فرض ۱۴) — صفر یعنی «چند نسلِ آخر» نسبت به جدیدترین
+	$fixed = (int) stlh_opt( 'recent_from' );
+	$from  = $fixed > 0 ? $fixed : $max - max( 1, (int) stlh_opt( 'recent_span' ) ?: 5 ) + 1;
 	$recent = [];
 	$older  = [];
 	foreach ( $items as $i => $p ) {
