@@ -51,7 +51,25 @@ add_action( 'rest_api_init', function (): void {
  *    پیامک…) با «***» پوشیده می‌شود — این پاسخ از پلِ حسابداری می‌گذرد و
  *    رمزِ درگاه یا پیامک نباید از سایت بیرون برود.
  */
-function stlh_site_options(): array {
+function stlh_site_options( ?WP_REST_Request $req = null ): array {
+	/*
+	 * `?prefix=mnsjay_` — گزینه‌های یک افزونه (جایگاه، مهر ۱۴۰۵: کدش ionCube است و
+	 * تنظیماتش تنها راهِ فهمیدنِ «هیچ روش حمل و نقلی» بود). همان پوشاندنِ رمزها.
+	 */
+	$prefix = $req ? sanitize_key( (string) $req->get_param( 'prefix' ) ) : '';
+	if ( strlen( $prefix ) >= 4 ) {
+		global $wpdb;
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s ORDER BY option_name LIMIT 300", $wpdb->esc_like( $prefix ) . '%' ), ARRAY_A );
+		$out  = [];
+		foreach ( $rows as $r ) {
+			$v = maybe_unserialize( $r['option_value'] );
+			if ( is_string( $v ) && strlen( $v ) > 4000 ) {
+				$v = '(' . strlen( $v ) . ' bytes)';
+			}
+			$out[ $r['option_name'] ] = is_array( $v ) ? $v : ( is_object( $v ) ? (array) $v : $v );
+		}
+		return [ 'prefix' => $prefix, 'options' => stlh_redact( $out ) ];
+	}
 	$opts = get_option( 'bakala_options', [] );
 	return [
 		'name'    => 'bakala_options',
