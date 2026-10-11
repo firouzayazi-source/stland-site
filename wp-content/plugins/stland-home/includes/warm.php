@@ -35,6 +35,13 @@ function stlh_warm_on(): bool {
 	if ( function_exists( 'stlh_pc_lsws' ) && stlh_pc_lsws() ) {
 		return false;
 	}
+	/*
+	 * cron از خطِ فرمان (cPanel → `php wp-cron.php`) نه SERVER_SOFTWARE دارد نه سقفِ زمان؛ همان
+	 * روز در پارس‌پک پردازه‌های CLI روی هم انباشته شدند و CPU و رمِ حساب را پر کردند.
+	 */
+	if ( PHP_SAPI === 'cli' ) {
+		return false;
+	}
 	return '1' === (string) stlh_opt( 'warm' );
 }
 
