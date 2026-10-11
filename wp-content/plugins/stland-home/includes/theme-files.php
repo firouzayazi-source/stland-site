@@ -12,6 +12,9 @@
  *   …&offset=N                                      تکه‌ی بعدیِ فایلِ بزرگ‌تر از ۱ مگ
  *   GET /stland/v1/site-options                     تنظیماتِ قالب (Redux)، رمزها پوشیده
  *
+ *   GET /stland/v1/theme-files?theme=plugin:<slug>[&path=…]  همان برای یک افزونه
+ *     (افزونه‌ی جایگاه، مهر ۱۴۰۵: بی کدش نمی‌شد فهمید چرا روشِ ارسال نمی‌دهد)
+ *
  * ⛔ هیچ نوشتنی نیست. تغییر از افزونه‌ی ما یا تنظیماتِ قالب می‌آید، نه ویرایشِ
  *    فایلِ باکالا (به‌روزرسانیِ قالب پاکش می‌کند).
  * ⛔ فقط زیرِ پوشه‌ی قالب‌ها (realpath)، نه wp-config یا uploads؛ فقط
@@ -90,6 +93,14 @@ function stlh_theme_path( string $base, string $rel ): ?string {
 function stlh_theme_files( WP_REST_Request $req ): array|WP_Error {
 	$dirs  = stlh_theme_dirs();
 	$theme = (string) $req->get_param( 'theme' );
+	if ( str_starts_with( $theme, 'plugin:' ) ) {
+		$slug = sanitize_key( substr( $theme, 7 ) );
+		$dir  = WP_PLUGIN_DIR . '/' . $slug;
+		if ( '' === $slug || ! is_dir( $dir ) ) {
+			return new WP_Error( 'stlh_not_found', 'افزونه نیست.', [ 'status' => 404 ] );
+		}
+		$dirs = [ $theme => $dir ];
+	}
 	$path  = (string) $req->get_param( 'path' );
 
 	if ( '' !== $path ) {
@@ -132,8 +143,8 @@ function stlh_theme_files( WP_REST_Request $req ): array|WP_Error {
 			}
 			sort( $files );
 		}
-		$t     = wp_get_theme( $slug );
-		$out[] = [ 'slug' => $slug, 'name' => $t->get( 'Name' ), 'version' => $t->get( 'Version' ), 'files' => $files ];
+		$t     = str_starts_with( $slug, 'plugin:' ) ? null : wp_get_theme( $slug );
+		$out[] = [ 'slug' => $slug, 'name' => $t ? $t->get( 'Name' ) : $slug, 'version' => $t ? $t->get( 'Version' ) : '', 'files' => $files ];
 	}
 	return [ 'active' => get_stylesheet(), 'themes' => $out ];
 }
