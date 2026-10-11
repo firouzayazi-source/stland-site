@@ -10,14 +10,20 @@ const page = await ctx.newPage();
 const errs = [];
 page.on('pageerror', e => errs.push('JS: ' + e.message.slice(0, 160) + ' @ ' + (e.stack || '').split('\n').slice(1,3).join(' | ').slice(0, 200)));
 page.on('console', m => { if (m.type() === 'error') errs.push('console: ' + m.text().slice(0, 160)); });
+// آهسته و کم: روزِ ۱۹ مهر ۱۴۰۵ ده‌ها درخواستِ هم‌زمانِ این ابزار آی‌پیِ حسابداری را در فایروالِ
+// پارس‌پک مسدود کرد (همگام‌سازی هم قطع شد). عکس و فونت نمی‌آید، و حداکثر ۲ درخواست با فاصله.
+let active = 0;
+const slot = async () => { while (active >= 2) await new Promise(r => setTimeout(r, 150)); active++; await new Promise(r => setTimeout(r, 300)); };
 await page.route('**/*', async route => {
   const u = new URL(route.request().url());
   if (u.hostname !== 'stland.ir' && u.hostname !== 'www.stland.ir') return route.abort();
+  if (['image', 'font', 'media'].includes(route.request().resourceType())) return route.abort();
+  await slot();
   try {
     const r = await fetch(`${R}?path=${encodeURIComponent(u.pathname + u.search)}${mobile ? '&ua=mobile' : ''}`, { headers: { Authorization: auth } });
     const body = Buffer.from(await r.arrayBuffer());
     await route.fulfill({ status: r.status, headers: { 'content-type': r.headers.get('content-type') || 'text/html' }, body });
-  } catch (e) { await route.abort(); }
+  } catch (e) { await route.abort(); } finally { active--; }
 });
 await page.goto('https://stland.ir' + path, { waitUntil: 'networkidle', timeout: 180000 }).catch(e => errs.push('goto: ' + e.message.slice(0, 100)));
 await page.waitForTimeout(2000);
