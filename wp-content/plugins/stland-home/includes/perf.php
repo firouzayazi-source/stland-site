@@ -28,7 +28,12 @@ foreach ( [ 'plugins_loaded', 'setup_theme', 'after_setup_theme', 'init', 'wp_lo
  * هم به دردِ عیب‌یابی نمی‌خورد.
  */
 add_filter( 'rest_pre_dispatch', static function ( $result, $server, $request ) {
-	if ( str_starts_with( (string) $request->get_route(), '/stland/v1/' ) ) {
+	/*
+	 * هر درخواستِ REST با کاربرِ واردشده (رمزِ برنامه‌ی حسابداری، پیشخوان) هرگز در کشِ LiteSpeed
+	 * نمی‌رود: روی پارس‌پک «Cache REST API» روشن بود و پاسخِ `wc/v3/orders`ِ حسابداری «hit» شد —
+	 * هم دادهٔ کهنه به حسابداری، هم خطرِ دیده شدنِ سفارش‌ها (مهر ۱۴۰۵).
+	 */
+	if ( str_starts_with( (string) $request->get_route(), '/stland/v1/' ) || is_user_logged_in() || ! empty( $_SERVER['HTTP_AUTHORIZATION'] ) || ! empty( $_SERVER['PHP_AUTH_USER'] ) ) {
 		do_action( 'litespeed_control_set_nocache', 'stland admin api' );
 		nocache_headers();
 	}
