@@ -125,6 +125,7 @@ function stlh_perf_report(): array {
 		'procs'           => ! empty( $_GET['procs'] ) && function_exists( 'stlh_inflight_procs' ) ? stlh_inflight_procs() : null,
 		'action_scheduler' => stlh_perf_action_scheduler(),
 		'load'            => function_exists( 'sys_getloadavg' ) ? sys_getloadavg() : null,
+		'static404'       => get_option( 'stlh_static404', null ),
 	];
 }
 
