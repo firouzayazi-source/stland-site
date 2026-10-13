@@ -17,20 +17,50 @@
 defined( 'ABSPATH' ) || exit;
 
 /** کلیدِ `bakala_options` => مقدار. هر خط: چرا، و درخواستِ چه کسی. */
-const STLH_BAKALA_SET = [];
+const STLH_BAKALA_SET = [
+	// پاپ‌آپِ «اولین خرید» (صاحب فروشگاه، ۲۱ مهر ۱۴۰۵): متنِ قبلی «تا سقفِ ۱ میلیون» با کدِ ۵۰ هزاری نمی‌خواند
+	'bk_popup_coupon_desc'      => '۵۰ هزار تومان تخفیف برای اولین خرید، برای سبد بالای ۱ میلیون تومان',
+	// شمارشِ معکوس تا ۲۶ مهر بود و بعدش تاریخِ گذشته نشان می‌داد؛ کد تاریخِ انقضا ندارد
+	'bk_popup_countdown_enable' => '0',
+];
+
+/**
+ * کدهای تخفیفی که سایت باید داشته باشد — فقط **ساخته** می‌شوند اگر نباشند؛ کدِ موجود هرگز بازنویسی
+ * نمی‌شود (ویرایش و آمار از «کالاها ← کدهای تخفیف»ِ حسابداری). مبلغ‌ها به واحدِ سایت (تومان، IRT).
+ */
+const STLH_COUPONS = [
+	// کدِ پاپ‌آپِ «اولین خرید»؛ بی‌آن نگهبانِ قالب پاپ‌آپ را پنهان می‌کرد
+	'STLAND19' => [
+		'type'         => 'fixed_cart',
+		'amount'       => 50000,
+		'minimum'      => 1000000,
+		'per_customer' => 1,
+		'individual'   => true,
+		'description'  => 'اولین خرید — پاپ‌آپِ سایت (۵۰ هزار تومان، سبدِ بالای ۱ میلیون)',
+	],
+];
 
 add_action( 'init', 'stlh_bakala_apply', 20 );
 
 function stlh_bakala_apply(): void {
-	$hash = md5( (string) wp_json_encode( STLH_BAKALA_SET ) );
+	$hash = md5( (string) wp_json_encode( [ STLH_BAKALA_SET, STLH_COUPONS ] ) );
 	if ( get_option( 'stlh_bakala_set_hash' ) === $hash ) {
 		return;
 	}
+	// دو درخواستِ هم‌زمان نباید هر دو کد بسازند: `add_option` درجِ اتمی است
+	if ( ! add_option( 'stlh_bakala_lock', time(), '', false ) ) {
+		if ( time() - (int) get_option( 'stlh_bakala_lock' ) < 120 ) {
+			return;
+		}
+		update_option( 'stlh_bakala_lock', time(), false );
+	}
+	$coupons = stlh_coupons_ensure();
 	global $wpdb;
 	// خامِ دیتابیس، نه `get_option`: نگهبانِ قالب (`theme-guard.php`) مقدارِ صفحه‌ی مشتری را دست می‌برد
 	$raw  = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", 'bakala_options' ) );
 	$opts = maybe_unserialize( (string) $raw );
 	if ( ! is_array( $opts ) ) {
+		delete_option( 'stlh_bakala_lock' );
 		return;
 	}
 	$backup  = (array) get_option( 'stlh_bakala_backup', [] );
@@ -54,12 +84,40 @@ function stlh_bakala_apply(): void {
 		update_option( 'stlh_bakala_backup', $backup, false );
 		update_option( 'bakala_options', $opts );
 		delete_option( 'bakala_options-transients' );
+	}
+	if ( $changed || $coupons ) {
 		if ( function_exists( 'litespeed_purge_all' ) ) {
 			litespeed_purge_all();
 		} else {
 			do_action( 'litespeed_purge_all' );
 		}
 	}
-	update_option( 'stlh_bakala_applied', [ 'at' => gmdate( 'c' ), 'ver' => STLH_VER, 'changed' => $changed, 'missing' => $missing ], false );
+	update_option( 'stlh_bakala_applied', [ 'at' => gmdate( 'c' ), 'ver' => STLH_VER, 'changed' => $changed, 'missing' => $missing, 'coupons' => $coupons ], false );
 	update_option( 'stlh_bakala_set_hash', $hash, false );
+	delete_option( 'stlh_bakala_lock' );
+}
+
+/** کدهای `STLH_COUPONS` که نیستند را می‌سازد؛ کدهای ساخته‌شده را برمی‌گرداند */
+function stlh_coupons_ensure(): array {
+	if ( ! class_exists( 'WC_Coupon' ) || ! function_exists( 'wc_get_coupon_id_by_code' ) ) {
+		return [];
+	}
+	$made = [];
+	foreach ( STLH_COUPONS as $code => $c ) {
+		if ( wc_get_coupon_id_by_code( $code ) > 0 ) {
+			continue;
+		}
+		$coupon = new WC_Coupon();
+		$coupon->set_code( $code );
+		$coupon->set_discount_type( $c['type'] );
+		$coupon->set_amount( $c['amount'] );
+		$coupon->set_minimum_amount( $c['minimum'] ?? 0 );
+		$coupon->set_usage_limit_per_user( $c['per_customer'] ?? 0 );
+		$coupon->set_individual_use( ! empty( $c['individual'] ) );
+		$coupon->set_description( $c['description'] ?? '' );
+		if ( $coupon->save() ) {
+			$made[] = $code;
+		}
+	}
+	return $made;
 }
