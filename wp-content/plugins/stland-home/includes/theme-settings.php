@@ -40,10 +40,20 @@ const STLH_COUPONS = [
 	],
 ];
 
+/**
+ * گزینه‌های خودِ وردپرس (نه قالب) — همان روال: یک بار نوشتن، مقدارِ قبلی در `stlh_bakala_backup`
+ * با پیشوندِ `wp:`. شناسه‌ی پیوست فقط وقتی نوشته می‌شود که فایلش روی هاست باشد.
+ */
+const STLH_SITE_OPTIONS = [
+	// آیکونِ سایت (نوارِ مدیر و تبِ مرورگر) — فایلِ پیوستِ ۴۴۴۹۲ در جابه‌جایی به پارس‌پک گم شد و
+	// اصلش هم نیست؛ لوگوی «SL» (۴۴۸۰۱، مربعِ ۱۰۲۴) جایش (صاحب فروشگاه، ۲۱ مهر ۱۴۰۵: «لوگوی بالا خراب است»)
+	'site_icon' => 44801,
+];
+
 add_action( 'init', 'stlh_bakala_apply', 20 );
 
 function stlh_bakala_apply(): void {
-	$hash = md5( (string) wp_json_encode( [ STLH_BAKALA_SET, STLH_COUPONS ] ) );
+	$hash = md5( (string) wp_json_encode( [ STLH_BAKALA_SET, STLH_COUPONS, STLH_SITE_OPTIONS ] ) );
 	if ( get_option( 'stlh_bakala_set_hash' ) === $hash ) {
 		return;
 	}
@@ -80,10 +90,30 @@ function stlh_bakala_apply(): void {
 		$opts[ $key ] = $value;
 		$changed[]    = $key;
 	}
+	foreach ( STLH_SITE_OPTIONS as $key => $value ) {
+		$current = get_option( $key );
+		if ( (string) $current === (string) $value ) {
+			continue;
+		}
+		if ( 'site_icon' === $key ) {
+			$file = get_attached_file( (int) $value );
+			if ( ! $file || ! file_exists( $file ) ) {
+				$missing[] = 'wp:' . $key;
+				continue;
+			}
+		}
+		if ( ! array_key_exists( 'wp:' . $key, $backup ) ) {
+			$backup[ 'wp:' . $key ] = $current;
+		}
+		update_option( $key, $value );
+		$changed[] = 'wp:' . $key;
+	}
 	if ( $changed ) {
 		update_option( 'stlh_bakala_backup', $backup, false );
-		update_option( 'bakala_options', $opts );
-		delete_option( 'bakala_options-transients' );
+		if ( array_filter( $changed, static fn( $k ) => ! str_starts_with( $k, 'wp:' ) ) ) {
+			update_option( 'bakala_options', $opts );
+			delete_option( 'bakala_options-transients' );
+		}
 	}
 	if ( $changed || $coupons ) {
 		if ( function_exists( 'litespeed_purge_all' ) ) {
