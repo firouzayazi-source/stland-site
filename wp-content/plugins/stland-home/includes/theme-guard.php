@@ -11,6 +11,8 @@
  *    می‌افتادند و نیمی از منو زیرِ بنر می‌رفت (صاحب فروشگاه با عکس، ۲۱ مهر ۱۴۰۵). زیرِ ۱۰۰۸ پیکسل:
  *    سربرگ هم‌عرضِ صفحه، لوگو و جستجو یک ردیف، منو چندخطی. سربرگِ گوشی (بی `.site-header`) دست نمی‌خورد.
  *    در ۳۸۰/۴۸۰/۶۰۰/۸۲۰ با `tests/visual/live-cache.mjs` دیده شد.
+ * ۴. پیوندِ «تماس» با رقمِ فارسی (`tel:۰۹۱۲…` از شماره‌ی پانویس و سربرگِ گوشی) را همه‌ی گوشی‌ها
+ *    شماره‌گیری نمی‌کنند؛ رقم‌ها در `href` لاتین می‌شوند، متنِ نمایشی فارسی می‌ماند.
  * ۲. منوی تب‌دارِ تازه‌ی قالب (`.bakala-tab-menu-items`) پنهان ولی بیرون از صفحه می‌ماند و در
  *    دسکتاپ اسکرولِ افقی می‌سازد (scrollWidth ۱۵۲۴ در پنجره‌ی ۱۳۶۶). `overflow-x: clip`
  *    برخلافِ `hidden` چسبندگیِ سربرگ (sticky) را نمی‌شکند.
@@ -37,3 +39,7 @@ const STLH_NARROW_HEADER_CSS = '@media (max-width:1008px){ .site-header{min-widt
 add_action( 'wp_head', static function (): void {
 	echo "<style id=\"stlh-guard\">html,body{overflow-x:clip}" . STLH_NARROW_HEADER_CSS . "</style>\n";
 }, 2 );
+
+add_action( 'wp_footer', static function (): void {
+	echo "<script id=\"stlh-tel\">document.querySelectorAll('a[href^=\"tel:\"]').forEach(function(a){var h=a.getAttribute('href'),n=h.replace(/[\\u06F0-\\u06F9]/g,function(d){return d.charCodeAt(0)-1776}).replace(/[\\u0660-\\u0669]/g,function(d){return d.charCodeAt(0)-1632});if(n!==h)a.setAttribute('href',n)});</script>\n";
+}, 99 );
