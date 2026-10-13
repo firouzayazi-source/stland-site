@@ -264,10 +264,37 @@ function stlh_static404_ensure(): string {
 	return false !== file_put_contents( $file, stlh_static404_block() . $txt, LOCK_EX ) ? 'added' : 'write-failed';
 }
 
+/*
+ * ─── xmlrpc.php بسته (۲۱ مهر ۱۴۰۵) ───
+ * رباتِ حدسِ رمز `POST /xmlrpc.php` می‌زد (در `/perf` → `inflight` دیده شد)؛ هر بار وردپرسِ کامل بالا
+ * می‌آید. سایت از آن استفاده نمی‌کند (نه اپِ وردپرس، نه Jetpack، نه pingback) — حسابداری REST می‌زند.
+ * `Deny` پیش از PHP جواب می‌دهد؛ LiteSpeed هر دو نحو را می‌فهمد.
+ */
+const STLH_XMLRPC_MARK = 'STLH xmlrpc';
+
+function stlh_xmlrpc_block(): string {
+	return '# BEGIN ' . STLH_XMLRPC_MARK . "\n<Files \"xmlrpc.php\">\n<IfModule mod_authz_core.c>\nRequire all denied\n</IfModule>\n"
+		. "<IfModule !mod_authz_core.c>\nOrder Allow,Deny\nDeny from all\n</IfModule>\n</Files>\n# END " . STLH_XMLRPC_MARK . "\n";
+}
+
+function stlh_xmlrpc_ensure(): string {
+	$file = ABSPATH . '.htaccess';
+	if ( ! is_file( $file ) || ! is_writable( $file ) ) {
+		return 'no-file';
+	}
+	$txt = (string) file_get_contents( $file );
+	if ( str_contains( $txt, '# BEGIN ' . STLH_XMLRPC_MARK ) ) {
+		return 'present';
+	}
+	return false !== file_put_contents( $file, stlh_xmlrpc_block() . $txt, LOCK_EX ) ? 'added' : 'write-failed';
+}
+
+add_filter( 'xmlrpc_enabled', '__return_false' );
+
 add_action( 'init', static function (): void {
 	if ( ! stlh_pc_lsws() || get_transient( 'stlh_static404_checked' ) ) {
 		return;
 	}
 	set_transient( 'stlh_static404_checked', 1, HOUR_IN_SECONDS );
-	update_option( 'stlh_static404', [ 'at' => gmdate( 'c' ), 'result' => stlh_static404_ensure() ], false );
+	update_option( 'stlh_static404', [ 'at' => gmdate( 'c' ), 'result' => stlh_static404_ensure(), 'xmlrpc' => stlh_xmlrpc_ensure() ], false );
 }, 99 );
