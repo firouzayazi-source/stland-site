@@ -89,6 +89,16 @@ function stlh_perf_report(): array {
 			'free_mb'  => round( ( $opcache['memory_usage']['free_memory'] ?? 0 ) / 1048576, 1 ),
 			'full'     => (bool) ( $opcache['cache_full'] ?? false ),
 		] : null,
+		// `opcache` تهی یعنی یا خاموش است یا `restrict_api` خواندنِ وضعیت را بسته — این دو را جدا می‌کند
+		'opcache_ini'     => [
+			'loaded'       => extension_loaded( 'Zend OPcache' ),
+			'enable'       => ini_get( 'opcache.enable' ),
+			'restrict_api' => ini_get( 'opcache.restrict_api' ),
+			'memory'       => ini_get( 'opcache.memory_consumption' ),
+			'validate'     => ini_get( 'opcache.validate_timestamps' ),
+			'revalidate'   => ini_get( 'opcache.revalidate_freq' ),
+			'cached'       => function_exists( 'opcache_is_script_cached' ) ? @opcache_is_script_cached( __FILE__ ) : null,
+		],
 		'zlib_compression' => (string) ini_get( 'zlib.output_compression' ),
 		'page_cache'      => [
 			'WP_CACHE'          => defined( 'WP_CACHE' ) && WP_CACHE,
