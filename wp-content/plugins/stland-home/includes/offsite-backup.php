@@ -71,7 +71,8 @@ function stlh_backup_dir(): string {
 /** فقط نامِ ساده‌ی فایلِ پشتیبانِ رمزگذاری‌شده */
 function stlh_backup_name( $raw ): ?string {
 	$name = is_string( $raw ) ? $raw : '';
-	return preg_match( '/^sthesabdari-[0-9]{8}-[0-9]{4,6}(-d)?\.db\.enc$/', $name ) ? $name : null;
+	// «novo-» نامِ تازه‌ی سیستمِ حسابداری (مهر ۱۴۰۵)؛ «sthesabdari-» پشتیبان‌های پیش از آن
+	return preg_match( '/^(sthesabdari|novo)-[0-9]{8}-[0-9]{4,6}(-d)?\.db\.enc$/', $name ) ? $name : null;
 }
 
 function stlh_backup_error( string $message, int $status = 400 ): WP_Error {
