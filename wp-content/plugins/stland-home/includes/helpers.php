@@ -37,6 +37,11 @@ function stlh_defaults(): array {
 		'font_sitewide'  => '',
 		// رژیمِ فایل‌ها (includes/speed.php) — پیش‌فرض روشن؛ اگر چیزی در صفحه شکست، اول این
 		'speed_diet'     => '1',
+		// پوسته‌ی سبد/پرداخت به سبکِ دیجی‌کالا (includes/checkout-skin.php)؛ رنگِ خالی = «رنگ تأکیدی»
+		'co_skin'        => '1',
+		'co_accent'      => '',
+		// سقفِ هر تراکنشِ زرین‌پال به تومان (includes/payment-guards.php)؛ ۰ = بی‌سقف
+		'zp_cap'         => 100000000,
 		'warm'           => '1',
 		'page_cache'     => '1',
 		// اطلاعاتِ فروشگاه برای گوگل و هوش مصنوعی (includes/ai-seo.php) — از صفحه‌ی «تماس با ما»ی سایت
