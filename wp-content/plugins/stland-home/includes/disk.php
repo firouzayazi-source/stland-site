@@ -22,6 +22,10 @@ add_action( 'rest_api_init', function (): void {
 } );
 
 function stlh_disk_report( WP_REST_Request $req ): array {
+	// `?errors=1` — آخرین خطاهای PHP (فقط خواندن؛ خطوطِ رازدار پوشیده). برای عیب‌یابیِ بی SSH.
+	if ( ! empty( $req->get_param( 'errors' ) ) ) {
+		return stlh_disk_error_tail();
+	}
 	$cached = get_transient( 'stlh_disk_report' );
 	if ( $cached && empty( $req->get_param( 'fresh' ) ) ) {
 		return $cached;
@@ -202,4 +206,31 @@ function stlh_sep_relay_report( WP_REST_Request $req ): array|WP_Error {
 	}
 	sort( $files );
 	return [ 'root' => 'public_html/sep-relay', 'files' => $files, 'php' => PHP_VERSION ];
+}
+
+/** ۸۰ خطِ آخرِ هر error_log/debug.log (بی تکرار پشتِ‌سرِ‌هم) */
+function stlh_disk_error_tail(): array {
+	$wp  = untrailingslashit( ABSPATH );
+	$out = [];
+	foreach ( [ $wp . '/error_log', $wp . '/wp-admin/error_log', WP_CONTENT_DIR . '/debug.log', dirname( $wp ) . '/logs/php.error.log' ] as $f ) {
+		if ( ! is_readable( $f ) ) {
+			continue;
+		}
+		$size  = (int) filesize( $f );
+		$txt   = (string) @file_get_contents( $f, false, null, max( 0, $size - 200000 ) );
+		$lines = array_slice( array_values( array_filter( explode( "\n", $txt ), 'strlen' ) ), -400 );
+		$keep  = [];
+		$prev  = '';
+		foreach ( $lines as $l ) {
+			$l   = preg_replace( '/((?:pass|secret|token|key)[^=:]*[=:]\s*)\S+/i', '$1***', mb_substr( $l, 0, 600 ) );
+			$sig = preg_replace( '/^\[[^\]]+\]\s*/', '', $l );
+			if ( $sig === $prev ) {
+				continue;
+			}
+			$prev   = $sig;
+			$keep[] = $l;
+		}
+		$out[ str_replace( dirname( $wp ), '', $f ) ] = [ 'bytes' => $size, 'mtime' => gmdate( 'c', (int) filemtime( $f ) ), 'tail' => array_slice( $keep, -80 ) ];
+	}
+	return [ 'now' => gmdate( 'c' ), 'logs' => $out ];
 }
