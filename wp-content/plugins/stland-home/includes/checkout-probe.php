@@ -31,6 +31,15 @@ function stlh_checkout_probe( WP_REST_Request $req ): array {
 		}
 		return true;
 	} );
+	if ( ! empty( $req->get_param( 'myip' ) ) ) {
+		// آی‌پیِ عمومیِ خروجیِ هاست — همان که درگاه‌ها (سپ) می‌بینند و باید در پنلشان ثبت شود
+		foreach ( [ 'https://api.ipify.org', 'https://ifconfig.me/ip', 'https://icanhazip.com' ] as $u ) {
+			$r                = wp_remote_get( $u, [ 'timeout' => 8 ] );
+			$out['ip'][ $u ] = is_wp_error( $r ) ? 'ERR ' . $r->get_error_message() : trim( (string) wp_remote_retrieve_body( $r ) );
+		}
+		restore_error_handler();
+		return $out;
+	}
 	if ( ! empty( $req->get_param( 'gateways' ) ) ) {
 		$out['gateway_test'] = stlh_probe_gateways();
 		restore_error_handler();
