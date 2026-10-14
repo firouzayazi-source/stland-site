@@ -41,7 +41,7 @@ function stlh_checkout_probe( WP_REST_Request $req ): array {
 		return $out;
 	}
 	if ( ! empty( $req->get_param( 'gateways' ) ) ) {
-		$out['gateway_test'] = stlh_probe_gateways();
+		$out['gateway_test'] = stlh_probe_gateways( max( 15000, (int) $req->get_param( 'zp_amount' ) ) );
 		restore_error_handler();
 		return $out;
 	}
@@ -107,7 +107,7 @@ function stlh_checkout_probe( WP_REST_Request $req ): array {
  * `?gateways=1` — مثلِ دکمه‌ی «تست اتصال»: یک درخواستِ پرداختِ ۱۰٬۰۰۰ ریالیِ پرداخت‌نشده به هر درگاه
  * با همان تنظیماتِ افزونه، بی سفارش. مقدارِ ترمینال/مرچنت هرگز برنمی‌گردد، فقط شکلش.
  */
-function stlh_probe_gateways(): array {
+function stlh_probe_gateways( int $zp_amount = 15000 ): array {
 	$res  = [];
 	$all  = function_exists( 'WC' ) ? WC()->payment_gateways()->payment_gateways() : [];
 	$back = home_url( '/' );
@@ -118,9 +118,9 @@ function stlh_probe_gateways(): array {
 	// زرین‌پال: همان کلاسِ خودِ افزونه
 	if ( isset( $all['WC_ZPal'] ) ) {
 		$g = $all['WC_ZPal'];
-		$r = [ 'merchant_shape' => $shape( $g->get_option( 'merchantcode' ) ) ];
+		$r = [ 'merchant_shape' => $shape( $g->get_option( 'merchantcode' ) ), 'amount_rial' => $zp_amount ];
 		try {
-			$auth          = $g->zarinpal->requestPayment( 10000, $back, 'stland connection test', [] );
+			$auth          = $g->zarinpal->requestPayment( $zp_amount, $back, 'stland connection test', [] );
 			$r['ok']        = true;
 			$r['authority'] = substr( (string) $auth, 0, 6 ) . '…';
 		} catch ( Throwable $e ) {
