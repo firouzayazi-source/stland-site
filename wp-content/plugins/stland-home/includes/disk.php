@@ -1,0 +1,143 @@
+<?php
+/**
+ * گزارشِ فضای هاست و فایل‌های زائد — فقط خواندن.
+ *
+ * صاحب فروشگاه (مهر ۱۴۰۵): «ببین چه فایل‌هایی داریم که بی‌استفاده‌اند، هم برای امنیت هم فضا، تا در
+ * فایل‌منیجر پاکشان کنم.» هاست SSH ندارد و پل فقط GET است؛ این مسیر فهرست می‌دهد و **هیچ چیز پاک
+ * نمی‌کند** — پاک کردن کارِ خودِ صاحب فروشگاه در فایل‌منیجر است.
+ *
+ *   GET /stland/v1/disk           (کشِ یک‌ساعته؛ `?fresh=1` از نو)
+ *
+ * ⛔ محتوای هیچ فایلی بیرون نمی‌رود، فقط مسیر و اندازه. فقط `manage_options`.
+ * ⛔ پیمایش سقف دارد (تعداد و زمان) تا روی هاستِ اشتراکی بار نشود.
+ */
+defined( 'ABSPATH' ) || exit;
+
+add_action( 'rest_api_init', function (): void {
+	register_rest_route( 'stland/v1', '/disk', [
+		'methods'             => 'GET',
+		'permission_callback' => static fn() => current_user_can( 'manage_options' ),
+		'callback'            => 'stlh_disk_report',
+	] );
+} );
+
+function stlh_disk_report( WP_REST_Request $req ): array {
+	$cached = get_transient( 'stlh_disk_report' );
+	if ( $cached && empty( $req->get_param( 'fresh' ) ) ) {
+		return $cached;
+	}
+	@set_time_limit( 90 );
+	$wp      = untrailingslashit( ABSPATH );
+	$home    = dirname( $wp );
+	$uploads = wp_upload_dir()['basedir'];
+	$rel     = static fn( string $p ): string => ltrim( substr( $p, strlen( $home ) ), '/' );
+
+	$dirs    = [];   // پوشه (تا عمقِ ۴ از home) => [اندازه، تعداد]
+	$flagged = [];
+	$big     = [];
+	$n       = 0;
+	$t0      = microtime( true );
+	$cut     = false;
+	$ext_bad = '/\.(zip|tar|gz|tgz|rar|7z|sql|bak|backup|old|orig|save|swp|wpress|jpa|daf|log)$/i';
+
+	try {
+		$it = new RecursiveIteratorIterator(
+			new RecursiveDirectoryIterator( $home, FilesystemIterator::SKIP_DOTS ),
+			RecursiveIteratorIterator::SELF_FIRST,
+			RecursiveIteratorIterator::CATCH_GET_CHILD
+		);
+		foreach ( $it as $f ) {
+			if ( ++$n > 600000 || microtime( true ) - $t0 > 60 ) {
+				$cut = true;
+				break;
+			}
+			if ( $f->isLink() || ! $f->isFile() ) {
+				continue;
+			}
+			$path = $f->getPathname();
+			$r    = $rel( $path );
+			$size = (int) $f->getSize();
+			$parts = explode( '/', $r );
+			for ( $d = 1; $d <= min( 4, count( $parts ) - 1 ); $d++ ) {
+				$k = implode( '/', array_slice( $parts, 0, $d ) );
+				$dirs[ $k ][0] = ( $dirs[ $k ][0] ?? 0 ) + $size;
+				$dirs[ $k ][1] = ( $dirs[ $k ][1] ?? 0 ) + 1;
+			}
+			$name = $f->getFilename();
+			$why  = null;
+			if ( preg_match( $ext_bad, $name ) || preg_match( '/^(error_log|php_errorlog|core\.\d+)$/', $name ) ) {
+				$why = 'archive/log';
+			} elseif ( str_starts_with( $path, $uploads . '/' ) && preg_match( '/\.(php\d?|phtml|phar|cgi|pl|sh)$/i', $name ) && 'index.php' !== $name ) {
+				$why = 'script-in-uploads';
+			} elseif ( preg_match( '/^(phpinfo|info|adminer|installer|test|shell|wso|up|upload|cmd)\.php$/i', $name ) ) {
+				$why = 'suspicious-name';
+			}
+			if ( $why && count( $flagged ) < 400 ) {
+				$flagged[] = [ $r, $size, $why, gmdate( 'Y-m-d', (int) $f->getMTime() ) ];
+			}
+			if ( $size > 20 * 1048576 ) {
+				$big[] = [ $r, $size, gmdate( 'Y-m-d', (int) $f->getMTime() ) ];
+			}
+		}
+	} catch ( Throwable $e ) {
+		$cut = 'error: ' . $e->getMessage();
+	}
+
+	$top = [];
+	foreach ( $dirs as $k => [ $s, $c ] ) {
+		if ( $s >= 5 * 1048576 ) {
+			$top[] = [ $k, round( $s / 1048576, 1 ), $c ];
+		}
+	}
+	usort( $top, static fn( $a, $b ) => $b[1] <=> $a[1] );
+
+	// ریشه‌ها: هر چیزی که در home و ریشه‌ی وردپرس هست (فقط نام و اندازه)
+	$ls = static function ( string $dir ) use ( $dirs, $rel ): array {
+		$out = [];
+		foreach ( (array) @scandir( $dir ) as $e ) {
+			if ( '.' === $e || '..' === $e || ! is_string( $e ) ) {
+				continue;
+			}
+			$p     = "$dir/$e";
+			$out[] = is_dir( $p ) ? [ $e . '/', round( ( $dirs[ $rel( $p ) ][0] ?? 0 ) / 1048576, 1 ) ] : [ $e, (int) @filesize( $p ) ];
+		}
+		return $out;
+	};
+
+	if ( ! function_exists( 'get_plugins' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+	}
+	$inactive = [];
+	foreach ( get_plugins() as $file => $data ) {
+		if ( ! is_plugin_active( $file ) ) {
+			$slug       = strtok( $file, '/' );
+			$inactive[] = [ $file, $data['Name'], $data['Version'], round( ( $dirs[ $rel( WP_PLUGIN_DIR . '/' . $slug ) ][0] ?? 0 ) / 1048576, 1 ) ];
+		}
+	}
+	$themes = [];
+	foreach ( wp_get_themes() as $slug => $t ) {
+		$themes[] = [ $slug, $t->get( 'Name' ), $t->get( 'Version' ), $slug === get_stylesheet() ? 'active' : ( $slug === get_template() ? 'parent' : 'inactive' ), round( ( $dirs[ $rel( $t->get_stylesheet_directory() ) ][0] ?? 0 ) / 1048576, 1 ) ];
+	}
+	$mu = $ls( WPMU_PLUGIN_DIR );
+
+	$out = [
+		'at'         => gmdate( 'c' ),
+		'home'       => basename( $home ),
+		'wp_dir'     => $rel( $wp ),
+		'scanned'    => $n,
+		'seconds'    => round( microtime( true ) - $t0, 1 ),
+		'cut'        => $cut,
+		'total_mb'   => round( array_sum( array_map( static fn( $k ) => $dirs[ $k ][0], array_filter( array_keys( $dirs ), static fn( $k ) => ! str_contains( $k, '/' ) ) ) ) / 1048576, 1 ),
+		'home_ls'    => $ls( $home ),
+		'wp_ls'      => $wp !== $home ? $ls( $wp ) : null,
+		'wpc_ls'     => $ls( WP_CONTENT_DIR ),
+		'top_dirs'   => array_slice( $top, 0, 120 ),
+		'big_files'  => $big,
+		'flagged'    => $flagged,
+		'inactive_plugins' => $inactive,
+		'themes'     => $themes,
+		'mu_plugins' => $mu,
+	];
+	set_transient( 'stlh_disk_report', $out, HOUR_IN_SECONDS );
+	return $out;
+}
