@@ -9,7 +9,8 @@
  *
  * ⛔ فقط همین مسیرها، نسبت به پوشه‌ی خانه‌ی هاست؛ هیچ الگو یا ستاره‌ای. پیوند دنبال نمی‌شود و هر چیزی
  *    که realpathاش بیرونِ خانه یا خودِ یکی از پوشه‌های اصلی باشد رد می‌شود.
- * ⛔ نگه داشته می‌شوند: `stland-backups/` (پشتیبانِ حسابداری)، `sep-relay/`، `golzaripmg.ir/` (جز Duplicatorاش)، `error_log`ها.
+ * ⛔ نگه داشته می‌شوند: `stland-backups/` (پشتیبانِ رمزگذاری‌شده‌ی حسابداری)، `sep-relay/` (درگاهِ سامان)،
+ *    `golzaripmg.ir/` (سایتِ دیگرِ صاحب فروشگاه — جز Duplicator و zipِ زیبانو).
  */
 defined( 'ABSPATH' ) || exit;
 
@@ -32,6 +33,16 @@ const STLH_CLEANUP = [
 	// Duplicator در سایتِ golzaripmg.ir (صاحب فروشگاه: «دوبلیکیتور را نمی‌خواهیم، خودِ سایت را می‌خواهیم»)؛
 	// وردپرسِ آن سایت با نبودِ پوشه افزونه را خودش غیرفعال می‌کند
 	'golzaripmg.ir/wp-content/plugins/duplicator',
+	// فایلِ نصبِ افزونه‌ی قالبِ زیبانو، از وب دانلودشدنی؛ خودِ قالب و افزونه‌ی نصب‌شده می‌مانند
+	'golzaripmg.ir/wp-content/themes/zibanoo/plugin/zibanoo-plugin.zip',
+	// سطلِ زباله‌ی Media Cleaner (عکس‌های حذف‌شده‌ی ۱۳ مهر) و لاگش
+	'public_html/wp-content/.media-cleaner-private-edeb42e161888f20e36f/trash',
+	'public_html/wp-content/.media-cleaner-private-edeb42e161888f20e36f/logs',
+	// لاگِ خطا (دوباره ساخته می‌شوند)؛ خلاصه‌شان پیش از پاک شدن در `stlh_cleanup_errors` می‌ماند
+	'error_log',
+	'public_html/error_log',
+	'public_html/wp-admin/error_log',
+	'public_html/wp-includes/customize/error_log',
 ];
 
 add_action( 'init', 'stlh_cleanup_run', 30 );
@@ -54,6 +65,7 @@ function stlh_cleanup_run(): void {
 	$home      = realpath( dirname( untrailingslashit( ABSPATH ) ) );
 	$protected = array_filter( array_map( 'realpath', [ $home, ABSPATH, WP_CONTENT_DIR, WP_PLUGIN_DIR, get_theme_root(), wp_upload_dir()['basedir'], $home . '/stland-backups' ] ) );
 	$done      = [];
+	$errors    = [];
 	foreach ( STLH_CLEANUP as $rel ) {
 		$path = $home . '/' . $rel;
 		if ( ! file_exists( $path ) && ! is_link( $path ) ) {
@@ -72,9 +84,15 @@ function stlh_cleanup_run(): void {
 				continue;
 			}
 		}
+		if ( 'error_log' === basename( $real ) ) {
+			$errors[ $rel ] = stlh_cleanup_error_summary( $real );
+		}
 		$freed        = 0;
 		$ok           = is_dir( $real ) ? stlh_cleanup_rmdir( $real, $freed ) : ( ( $freed = (int) filesize( $real ) ) >= 0 && @unlink( $real ) );
 		$done[ $rel ] = $ok ? 'deleted ' . round( $freed / 1048576, 1 ) . 'MB' : 'failed';
+	}
+	if ( $errors ) {
+		update_option( 'stlh_cleanup_errors', $errors, false );
 	}
 	wp_clean_plugins_cache( false );
 	delete_transient( 'stlh_disk_report' );
@@ -99,4 +117,27 @@ function stlh_cleanup_rmdir( string $dir, int &$freed ): bool {
 		}
 	}
 	return @rmdir( $dir ) && $ok;
+}
+
+/** پرتکرارترین خطاهای یک error_log (بی تاریخ)، از ۵۰۰ کیلوبایتِ آخرش */
+function stlh_cleanup_error_summary( string $file ): array {
+	$size = (int) filesize( $file );
+	$txt  = (string) @file_get_contents( $file, false, null, max( 0, $size - 512000 ) );
+	$seen = [];
+	$last = [];
+	foreach ( explode( "\n", $txt ) as $line ) {
+		$line = trim( (string) preg_replace( '/^\[[^\]]+\]\s*/', '', $line ) );
+		if ( '' === $line || str_starts_with( $line, '#' ) || str_starts_with( $line, 'thrown in' ) ) {
+			continue;
+		}
+		$key          = mb_substr( (string) preg_replace( '/\d+/', 'N', $line ), 0, 300 );
+		$seen[ $key ] = ( $seen[ $key ] ?? 0 ) + 1;
+		$last[ $key ] = mb_substr( $line, 0, 300 );
+	}
+	arsort( $seen );
+	$out = [];
+	foreach ( array_slice( $seen, 0, 25, true ) as $k => $n ) {
+		$out[] = [ $n, $last[ $k ] ];
+	}
+	return [ 'bytes' => $size, 'top' => $out ];
 }

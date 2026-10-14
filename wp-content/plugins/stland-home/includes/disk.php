@@ -158,3 +158,48 @@ function stlh_disk_report( WP_REST_Request $req ): array {
 	set_transient( 'stlh_disk_report', $out, HOUR_IN_SECONDS );
 	return $out;
 }
+
+/*
+ * ─── `public_html/sep-relay` — واسطِ درگاهِ سامان (صاحب فروشگاه: «باید درست کار کند، دقیق بررسی کن») ───
+ *   GET /stland/v1/sep-relay              فهرستِ فایل‌ها
+ *   GET /stland/v1/sep-relay?file=a.php   متن، با هر خطی که بوی رمز/ترمینال/کلید می‌دهد پوشیده
+ * ⛔ فقط خواندن، فقط زیرِ همان پوشه (realpath).
+ */
+add_action( 'rest_api_init', function (): void {
+	register_rest_route( 'stland/v1', '/sep-relay', [
+		'methods'             => 'GET',
+		'permission_callback' => static fn() => current_user_can( 'manage_options' ),
+		'callback'            => 'stlh_sep_relay_report',
+	] );
+} );
+
+function stlh_sep_relay_report( WP_REST_Request $req ): array|WP_Error {
+	$root = realpath( ABSPATH . 'sep-relay' );
+	if ( ! $root || ! is_dir( $root ) ) {
+		return new WP_Error( 'stlh_not_found', 'پوشه‌ی sep-relay نیست.', [ 'status' => 404 ] );
+	}
+	$file = (string) $req->get_param( 'file' );
+	if ( '' !== $file ) {
+		$full = realpath( $root . '/' . ltrim( $file, '/' ) );
+		if ( ! $full || ! is_file( $full ) || ! str_starts_with( $full, $root . '/' ) ) {
+			return new WP_Error( 'stlh_not_found', 'فایل نیست.', [ 'status' => 404 ] );
+		}
+		$txt = (string) file_get_contents( $full, false, null, 0, 300000 );
+		$txt = preg_replace_callback(
+			'/^(.*(?:pass|secret|token|key|terminal|merchant|mid\b|tid\b|username|user_name|api).*)$/mi',
+			static fn( $m ) => preg_replace( '/([\'"])[^\'"]{4,}\1/', '$1***$1', $m[1] ),
+			$txt
+		);
+		return [ 'file' => $file, 'size' => filesize( $full ), 'mtime' => gmdate( 'c', (int) filemtime( $full ) ), 'content' => $txt ];
+	}
+	$files = [];
+	$it    = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $root, FilesystemIterator::SKIP_DOTS ), RecursiveIteratorIterator::SELF_FIRST );
+	foreach ( $it as $f ) {
+		if ( count( $files ) >= 500 ) {
+			break;
+		}
+		$files[] = [ substr( $f->getPathname(), strlen( $root ) + 1 ) . ( $f->isDir() ? '/' : '' ), $f->isDir() ? null : $f->getSize(), gmdate( 'Y-m-d H:i', (int) $f->getMTime() ), substr( sprintf( '%o', $f->getPerms() ), -4 ) ];
+	}
+	sort( $files );
+	return [ 'root' => 'public_html/sep-relay', 'files' => $files, 'php' => PHP_VERSION ];
+}
