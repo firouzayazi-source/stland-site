@@ -140,7 +140,7 @@
 درد نمی‌خورد چون آی‌پیِ محیط ثابت نیست. راه: **پلِ سرورِ حسابداری** (VPS آلمان،
 آی‌پیِ ثابت، که هاست راهش می‌دهد) — `sthesabland/src/app/api/site-relay`:
 
-    curl -u "$STLAND_WP_USER:$STLAND_WP_PASS" "https://hesabdari.stland.ir/api/site-relay?path=/wp-json/stland/v1/status"
+    curl -u "$STLAND_WP_USER:$STLAND_WP_PASS" "https://novo.stland.ir/api/site-relay?path=/wp-json/stland/v1/status"
 
 * `path` هر مسیرِ همان سایت است (صفحه، `wp-json/...`)؛ `&ua=mobile` نسخه‌ی گوشی.
 * کدِ قالب: `path=/wp-json/stland/v1/theme-files` (فهرست) و
@@ -152,7 +152,7 @@
   `product-meta.php`) با SourceGuardian رمزگذاری شده؛ کلیدِ کادرها را از قالب‌هایی که چاپشان
   می‌کنند پیدا کنید (`woocommerce/content-single-product.php`، `tabs/description.php`).
 * فقط GET و فقط با رمزِ برنامه‌ی مدیرِ کلِ وردپرس (کاربرِ `claude`)؛ رمز در متغیرهای
-  محیطِ کار است، نه در چت یا مخزن. دامنه‌های `stland.ir` و `hesabdari.stland.ir`
+  محیطِ کار است، نه در چت یا مخزن. دامنه‌های `stland.ir` و `novo.stland.ir` (نامِ تازه‌ی حسابداری؛ `hesabdari.stland.ir` کنار رفت)
   در Allowed domainsِ محیط باز شده‌اند.
 * **⛔ آرام بزنید — هاست با ۲۰ اتصالِ هم‌زمان آی‌پیِ سرورِ حسابداری را می‌بندد** (LiteSpeedِ پارس‌پک، بی استثنا).
   مهر ۱۴۰۵ ده‌ها درخواستِ هم‌زمانِ یک ابزارِ اسکرین‌شات آی‌پیِ قبلی را یک روزِ کامل بست؛ همگام‌سازیِ حسابداری قطع شد

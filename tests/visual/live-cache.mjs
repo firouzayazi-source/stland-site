@@ -5,7 +5,7 @@
 import { chromium } from 'playwright';
 import { createHash } from 'node:crypto';
 import { mkdirSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
-const R = 'https://hesabdari.stland.ir/api/site-relay';
+const R = 'https://novo.stland.ir/api/site-relay';
 const auth = 'Basic ' + Buffer.from(`${process.env.STLAND_WP_USER}:${process.env.STLAND_WP_PASS}`).toString('base64');
 const [,, path, out, width = '1366', cssFile, mobile] = process.argv;
 const dir = process.env.LIVE_CACHE || '/tmp/stland-live-cache';

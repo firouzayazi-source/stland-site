@@ -1,7 +1,7 @@
 // عکس از سایتِ زنده از راهِ پلِ حسابداری (هاست ایرانی از خارج بسته است)
 // node live-shot.mjs <path> <out.png> [1=mobile] — عکس، خطاهای JS و اسکرولِ افقی؛ رمزِ برنامه از STLAND_WP_USER/PASS
 import { chromium } from 'playwright';
-const R = 'https://hesabdari.stland.ir/api/site-relay';
+const R = 'https://novo.stland.ir/api/site-relay';
 const auth = 'Basic ' + Buffer.from(`${process.env.STLAND_WP_USER}:${process.env.STLAND_WP_PASS}`).toString('base64');
 const [,, path, out, mobile] = process.argv;
 const browser = await chromium.launch();
