@@ -61,10 +61,31 @@ const STLH_SITE_OPTIONS = [
 	'site_icon' => 44801,
 ];
 
+/**
+ * افزونه‌هایی که یک بار خاموش می‌شوند (حذف نه — از «افزونه‌ها» دوباره روشن‌شدنی‌اند). صاحب فروشگاه، ۲۲ مهر ۱۴۰۵:
+ * «افزونه‌های بلااستفاده را غیرفعال کن، Code Snippets و ژاکت‌آپدیت هم». اگر کسی دوباره روشنشان کند، تا تغییرِ
+ * بعدیِ همین فهرست دست نمی‌خورند.
+ */
+const STLH_PLUGINS_OFF = [
+	// جستجوی سایت روی موتورِ خودِ باکالاست (`scale_search_engine` = scale)؛ FiboSearch فقط بار می‌شد
+	'ajax-search-for-woocommerce/ajax-search-for-woocommerce.php',
+	// تنها کدِ فعالش شورت‌کدِ قدیمیِ `[st_products_slider]` بود که صفحه‌ی اصلیِ افزونه جایش را گرفته (پایین‌تر بی‌صدا می‌شود)
+	'code-snippets/code-snippets.php',
+	// به‌روزرسانِ خودکارِ محصولاتِ ژاکت (درگاهِ سپ)؛ به‌روزرسانی از این به بعد دستی
+	'zhaket-updater/zhaket-updater.php',
+];
+
+// برگه‌ی ۴۲۶۱۵ (صفحه‌ی اصلیِ قدیمیِ المنتور) هنوز `[st_products_slider]` دارد؛ بی Code Snippets متنِ خامش نیاید
+add_action( 'init', static function (): void {
+	if ( ! shortcode_exists( 'st_products_slider' ) ) {
+		add_shortcode( 'st_products_slider', '__return_empty_string' );
+	}
+}, 99 );
+
 add_action( 'init', 'stlh_bakala_apply', 20 );
 
 function stlh_bakala_apply(): void {
-	$hash = md5( (string) wp_json_encode( [ STLH_BAKALA_SET, STLH_COUPONS, STLH_SITE_OPTIONS ] ) );
+	$hash = md5( (string) wp_json_encode( [ STLH_BAKALA_SET, STLH_COUPONS, STLH_SITE_OPTIONS, STLH_PLUGINS_OFF ] ) );
 	if ( get_option( 'stlh_bakala_set_hash' ) === $hash ) {
 		return;
 	}
@@ -76,6 +97,7 @@ function stlh_bakala_apply(): void {
 		update_option( 'stlh_bakala_lock', time(), false );
 	}
 	$coupons = stlh_coupons_ensure();
+	$plugins = stlh_plugins_off();
 	global $wpdb;
 	// خامِ دیتابیس، نه `get_option`: نگهبانِ قالب (`theme-guard.php`) مقدارِ صفحه‌ی مشتری را دست می‌برد
 	$raw  = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", 'bakala_options' ) );
@@ -126,14 +148,14 @@ function stlh_bakala_apply(): void {
 			delete_option( 'bakala_options-transients' );
 		}
 	}
-	if ( $changed || $coupons ) {
+	if ( $changed || $coupons || $plugins ) {
 		if ( function_exists( 'litespeed_purge_all' ) ) {
 			litespeed_purge_all();
 		} else {
 			do_action( 'litespeed_purge_all' );
 		}
 	}
-	update_option( 'stlh_bakala_applied', [ 'at' => gmdate( 'c' ), 'ver' => STLH_VER, 'changed' => $changed, 'missing' => $missing, 'coupons' => $coupons ], false );
+	update_option( 'stlh_bakala_applied', [ 'at' => gmdate( 'c' ), 'ver' => STLH_VER, 'changed' => $changed, 'missing' => $missing, 'coupons' => $coupons, 'plugins_off' => $plugins ], false );
 	update_option( 'stlh_bakala_set_hash', $hash, false );
 	delete_option( 'stlh_bakala_lock' );
 }
@@ -161,4 +183,16 @@ function stlh_coupons_ensure(): array {
 		}
 	}
 	return $made;
+}
+
+/** افزونه‌های `STLH_PLUGINS_OFF` که فعال‌اند را خاموش می‌کند؛ خاموش‌شده‌ها را برمی‌گرداند */
+function stlh_plugins_off(): array {
+	if ( ! function_exists( 'deactivate_plugins' ) ) {
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+	}
+	$off = array_values( array_filter( STLH_PLUGINS_OFF, 'is_plugin_active' ) );
+	if ( $off ) {
+		deactivate_plugins( $off, true );
+	}
+	return $off;
 }
