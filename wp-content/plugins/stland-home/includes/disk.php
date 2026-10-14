@@ -41,8 +41,19 @@ function stlh_disk_report( WP_REST_Request $req ): array {
 	$ext_bad = '/\.(zip|tar|gz|tgz|rar|7z|sql|bak|backup|old|orig|save|swp|wpress|jpa|daf|log)$/i';
 
 	try {
-		$it = new RecursiveIteratorIterator(
-			new RecursiveDirectoryIterator( $home, FilesystemIterator::SKIP_DOTS ),
+		// پیوندها دنبال نمی‌شوند و `.cagefs` (فایل‌سیستمِ مجازیِ CloudLinux) بیرون از open_basedir است
+		$skip = [ $home . '/.cagefs', $home . '/.cl.selector', $home . '/mail', $home . '/etc' ];
+		$it   = new RecursiveIteratorIterator(
+			new RecursiveCallbackFilterIterator(
+				new RecursiveDirectoryIterator( $home, FilesystemIterator::SKIP_DOTS ),
+				static function ( SplFileInfo $f ) use ( $skip ): bool {
+					try {
+						return ! $f->isLink() && ! in_array( $f->getPathname(), $skip, true );
+					} catch ( Throwable ) {
+						return false;
+					}
+				}
+			),
 			RecursiveIteratorIterator::SELF_FIRST,
 			RecursiveIteratorIterator::CATCH_GET_CHILD
 		);
@@ -51,12 +62,17 @@ function stlh_disk_report( WP_REST_Request $req ): array {
 				$cut = true;
 				break;
 			}
-			if ( $f->isLink() || ! $f->isFile() ) {
+			try {
+				if ( ! $f->isFile() ) {
+					continue;
+				}
+				$size  = (int) $f->getSize();
+				$mtime = (int) $f->getMTime();
+			} catch ( Throwable ) {
 				continue;
 			}
 			$path = $f->getPathname();
 			$r    = $rel( $path );
-			$size = (int) $f->getSize();
 			$parts = explode( '/', $r );
 			for ( $d = 1; $d <= min( 4, count( $parts ) - 1 ); $d++ ) {
 				$k = implode( '/', array_slice( $parts, 0, $d ) );
@@ -73,10 +89,10 @@ function stlh_disk_report( WP_REST_Request $req ): array {
 				$why = 'suspicious-name';
 			}
 			if ( $why && count( $flagged ) < 400 ) {
-				$flagged[] = [ $r, $size, $why, gmdate( 'Y-m-d', (int) $f->getMTime() ) ];
+				$flagged[] = [ $r, $size, $why, gmdate( 'Y-m-d', $mtime ) ];
 			}
 			if ( $size > 20 * 1048576 ) {
-				$big[] = [ $r, $size, gmdate( 'Y-m-d', (int) $f->getMTime() ) ];
+				$big[] = [ $r, $size, gmdate( 'Y-m-d', $mtime ) ];
 			}
 		}
 	} catch ( Throwable $e ) {
@@ -137,6 +153,7 @@ function stlh_disk_report( WP_REST_Request $req ): array {
 		'inactive_plugins' => $inactive,
 		'themes'     => $themes,
 		'mu_plugins' => $mu,
+		'wpc_dirs'   => array_map( static fn( $e ) => $e, $ls( WP_CONTENT_DIR . '/uploads' ) ),
 	];
 	set_transient( 'stlh_disk_report', $out, HOUR_IN_SECONDS );
 	return $out;
