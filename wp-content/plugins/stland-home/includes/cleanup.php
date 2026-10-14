@@ -9,7 +9,7 @@
  *
  * ⛔ فقط همین مسیرها، نسبت به پوشه‌ی خانه‌ی هاست؛ هیچ الگو یا ستاره‌ای. پیوند دنبال نمی‌شود و هر چیزی
  *    که realpathاش بیرونِ خانه یا خودِ یکی از پوشه‌های اصلی باشد رد می‌شود.
- * ⛔ نگه داشته می‌شوند: `stland-backups/` (پشتیبانِ حسابداری)، `sep-relay/`، `golzaripmg.ir/`، `error_log`ها.
+ * ⛔ نگه داشته می‌شوند: `stland-backups/` (پشتیبانِ حسابداری)، `sep-relay/`، `golzaripmg.ir/` (جز Duplicatorاش)، `error_log`ها.
  */
 defined( 'ABSPATH' ) || exit;
 
@@ -29,6 +29,9 @@ const STLH_CLEANUP = [
 	// افزونه‌هایی که ۱.۴۹.۹ خاموش کرد — فقط اگر هنوز خاموش‌اند
 	'public_html/wp-content/plugins/ajax-search-for-woocommerce',
 	'public_html/wp-content/plugins/zhaket-updater',
+	// Duplicator در سایتِ golzaripmg.ir (صاحب فروشگاه: «دوبلیکیتور را نمی‌خواهیم، خودِ سایت را می‌خواهیم»)؛
+	// وردپرسِ آن سایت با نبودِ پوشه افزونه را خودش غیرفعال می‌کند
+	'golzaripmg.ir/wp-content/plugins/duplicator',
 ];
 
 add_action( 'init', 'stlh_cleanup_run', 30 );
