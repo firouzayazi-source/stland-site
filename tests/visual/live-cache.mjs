@@ -17,12 +17,15 @@ const ctx = await browser.newContext(mobile
 const page = await ctx.newPage();
 const errs = [];
 page.on('pageerror', e => errs.push('JS: ' + e.message.slice(0, 160)));
+page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errs.push('console: ' + m.text().slice(0, 160)); });
 let active = 0, fetched = 0;
 const slot = async () => { while (active >= 2) await new Promise(r => setTimeout(r, 150)); active++; await new Promise(r => setTimeout(r, 300)); };
 await page.route('**/*', async route => {
   const u = new URL(route.request().url());
   if (u.hostname !== 'stland.ir' && u.hostname !== 'www.stland.ir') return route.abort();
   const type = route.request().resourceType();
+  // BLOCK="a.js,b.js": آزمودنِ اینکه صفحه بی این فایل‌ها سالم است (فقط در مرورگرِ آزمون)
+  if ((process.env.BLOCK || '').split(',').filter(Boolean).some(b => u.pathname.includes(b))) return route.abort();
   if (['font', 'media'].includes(type)) return route.abort();
   const key = createHash('md5').update((mobile ? 'm|' : 'd|') + u.pathname + u.search).digest('hex');
   const f = `${dir}/${key}`;
@@ -31,7 +34,7 @@ await page.route('**/*', async route => {
     return route.fulfill({ status: meta.status, headers: { 'content-type': meta.ct }, body: readFileSync(f) });
   }
   // عکس فقط از کش؛ تازه‌اش را نمی‌گیریم تا بارِ پل کم بماند (جز لوگو و بنرِ سربرگ که در کش نیست = خالی)
-  if (type === 'image') return route.abort();
+  if (type === 'image' && !process.env.IMG) return route.abort();
   await slot();
   try {
     const r = await fetch(`${R}?origin=new&path=${encodeURIComponent(u.pathname + u.search)}${mobile ? '&ua=mobile' : ''}`, { headers: { Authorization: auth } });
@@ -57,6 +60,6 @@ if (process.env.INSPECT) {
     return `${sel} L${Math.round(r.left)} W${Math.round(r.width)} H${Math.round(r.height)} | w:${c.width} minw:${c.minWidth} maxw:${c.maxWidth} disp:${c.display} flex:${c.flexWrap} pos:${c.position} ov:${c.overflow} h:${c.height} maxh:${c.maxHeight} T${Math.round(r.top)} pad:${c.padding} ml:${c.marginLeft} mr:${c.marginRight}`; }), process.env.INSPECT.split('|'));
   console.log(rows.join('\n'));
 }
-await page.screenshot({ path: out, clip: { x: 0, y: 0, width: +width, height: 700 } });
+await page.screenshot(process.env.FULL ? { path: out, fullPage: true } : { path: out, clip: { x: 0, y: 0, width: +width, height: 700 } });
 console.log(JSON.stringify({ width: +width, fetched, ...info, errs: [...new Set(errs)].slice(0, 6) }));
 await browser.close();

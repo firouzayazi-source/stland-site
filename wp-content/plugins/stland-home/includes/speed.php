@@ -29,15 +29,21 @@ function stlh_diet_lists(): array {
 	$never_css = [ 'mega-theme-icon', 'pDate-style', 'bakala-story-style', 'bakala-wallet-frontend' ];
 	// vanilla-tilt می‌ماند: قالب روی دسکتاپ `VanillaTilt` را همه‌جا صدا می‌زند
 	$never_js  = [ 'pDate', 'pDatepicker', 'pDatepickerLoader', 'bakala-story-script', 'bakala-wallet-frontend', 'jquery-flipclock', 'jquery-lif', 'matrix-wolfoffer-countdown', 'matrix-wolfoffer-easing', 'flipdown' ];
+	// GSAP + Lenis (~۲۴۵ کیلوبایت، ۵ فایل): فقط اسکرولِ نرم، نوارِ پیشرفتِ اسکرول و «دکمه‌ی مغناطیسی». هر
+	// ارجاعِ قالب به آن‌ها محافظت‌شده است (`typeof gsap`، `window.bkLenis &&`) — بی‌آن‌ها اسکرولِ عادیِ
+	// مرورگر می‌ماند که روی گوشی روان‌تر است. در صفحه‌ی اصلی، محصول (کامپیوتر و گوشی) بی خطا دیده شد (۲۲ مهر ۱۴۰۵).
+	$never_js  = array_merge( $never_js, [ 'gsap-core', 'gsap-scroll-trigger', 'gsap-draggable', 'lenis-smooth-scroll', 'bk-gsap-init' ] );
 	// صفحه‌ی اصلی (قالبِ خودِ افزونه): نه المنتور، نه اسلایدر، نه فیلتر، نه فرم
 	$front_css = [ 'elementor-frontend', 'elementor-post-42615', 'elementor-post-12643', 'nouislider', 'slick.css', 'slick.theme', 'select2', 'swatches-and-photos', 'jcaa-core', 'persian-datepicker' ];
 	// flickity می‌ماند: general.jsِ قالب روی صفحه‌ی اصلی `$.fn.flickity` را صدا می‌زند و بی‌آن خطا می‌دهد
 	$front_js  = [ 'elementor-frontend', 'elementor-frontend-modules', 'elementor-webpack-runtime', 'nouislider', 'slick.min.js', 'my_loadmore', 'bakala-select2', 'swatches-and-photos', 'jcaa-product', 'tippy', 'popper', 'persian-datepicker' ];
 	// صفحه‌ی محصول: فیلترِ قیمت و «بیشتر بارگذاری کن» ندارد. المنتور می‌ماند — کاروسلِ
 	// «محصولات مرتبط» از Swiperِ داخلِ المنتور (CSS و JS) استفاده می‌کند؛ بی‌آن کارت‌ها له می‌شوند.
-	$product_css = [ 'nouislider', 'persian-datepicker' ];
-	// تقویمِ شمسیِ قالب (`jalaliDatepicker`) فقط در فروشگاه صدا زده می‌شود، پس آنجا می‌ماند
-	$product_js  = [ 'nouislider', 'my_loadmore', 'tippy', 'persian-datepicker' ];
+	$product_css = [ 'nouislider', 'persian-datepicker', 'slick.css', 'slick.theme', 'select2' ];
+	// تقویمِ شمسیِ قالب (`jalaliDatepicker`) فقط در فروشگاه صدا زده می‌شود، پس آنجا می‌ماند.
+	// slick فقط اگر `.slick_carousel` باشد و select2 فقط برای `.bakala_serach_field` صدا زده می‌شوند (general.js) —
+	// هیچ‌کدام در صفحه‌ی محصول نیست. flipclock و فایل‌های متغیر در `stlh_diet_current` شرطی‌اند.
+	$product_js  = [ 'nouislider', 'my_loadmore', 'tippy', 'persian-datepicker', 'slick.min.js', 'bakala-select2', 'flipclock', 'swatches-and-photos', 'wc-add-to-cart-variation' ];
 	// فروشگاه/دسته/جستجو: فیلترِ قیمت و «بیشتر» لازم است؛ المنتور نه
 	$shop_css = [ 'elementor-frontend', 'elementor-post-12643' ];
 	$shop_js  = [ 'elementor-frontend', 'elementor-frontend-modules', 'elementor-webpack-runtime' ];
@@ -77,6 +83,19 @@ function stlh_diet_current(): array {
 	}
 	$ctx = stlh_diet_on() ? stlh_diet_context() : null;
 	$cur = $ctx ? stlh_diet_lists()[ $ctx ] : [ 'css' => [], 'js' => [] ];
+	if ( 'product' === $ctx ) {
+		$product = function_exists( 'wc_get_product' ) ? wc_get_product( get_queried_object_id() ) : null;
+		$keep    = [];
+		// محصولِ متغیر (رنگ/حافظه) به فرمِ انتخاب و نمونه‌رنگ‌ها نیاز دارد
+		if ( ! $product || ! $product->is_type( 'simple' ) ) {
+			$keep = [ 'swatches-and-photos', 'wc-add-to-cart-variation' ];
+		}
+		// شمارشِ معکوسِ «فروش ویژه» فقط وقتی پایانِ تخفیف زمان‌دار است
+		if ( ! $product || $product->get_date_on_sale_to() ) {
+			$keep[] = 'flipclock';
+		}
+		$cur['js'] = array_values( array_diff( $cur['js'], $keep ) );
+	}
 	return $cur;
 }
 
