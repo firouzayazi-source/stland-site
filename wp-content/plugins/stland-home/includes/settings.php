@@ -82,7 +82,9 @@ function stlh_sanitize( mixed $in ): array {
 			'banner_link' === $k                                                                         => esc_url_raw( (string) $v ),
 			in_array( $k, [ 'categories', 'product_rows', 'faq', 'address', 'trust', 'card_badges', 'opening_hours', 'store_facts', 'payment_methods' ], true ) => sanitize_textarea_field( (string) $v ),
 			'order' === $k                                                                               => implode( "\n", array_values( array_intersect( array_unique( stlh_lines( sanitize_textarea_field( (string) $v ) ) ), array_keys( stlh_sections() ) ) ) ),
-			in_array( $k, [ 'font_enable', 'font_sitewide', 'takeover', 'speed_diet', 'warm', 'page_cache' ], true )                       => empty( $in[ $k ] ) ? '' : '1',
+			in_array( $k, [ 'font_enable', 'font_sitewide', 'takeover', 'speed_diet', 'warm', 'page_cache', 'co_skin' ], true )            => empty( $in[ $k ] ) ? '' : '1',
+			'co_accent' === $k                                                                           => (string) sanitize_hex_color( (string) $v ),
+			'zp_cap' === $k                                                                              => absint( preg_replace( '/[^0-9]/', '', strtr( (string) $v, array_combine( mb_str_split( '۰۱۲۳۴۵۶۷۸۹' ), str_split( '0123456789' ) ) ) ) ),
 			'cat_style' === $k                                                                           => 'photo' === $v ? 'photo' : 'icon',
 			in_array( $k, [ 'cat_source', 'rows_source' ], true )                                        => 'manual' === $v ? 'manual' : 'auto',
 			'hide_cats' === $k                                                                           => array_values( array_filter( array_map( 'absint', (array) $v ) ) ),
@@ -426,6 +428,17 @@ function stlh_settings_page(): void {
 				<tr><th scope="row">رنگ تأکیدی</th><td>
 					<input type="color" name="<?php echo esc_attr( STLH_OPT ); ?>[accent]" value="<?php echo esc_attr( (string) $o['accent'] ); ?>">
 					<p class="description">فقط یک رنگ برای لینک‌ها، آیکن‌ها و حالت‌های فعال. بقیه صفحه مشکی و خنثی است.</p>
+				</td></tr>
+				<?php
+				?>
+				<tr><th scope="row">سبد و پرداخت به سبکِ دیجی‌کالا</th><td>
+					<label><input type="checkbox" name="<?php echo esc_attr( STLH_OPT ); ?>[co_skin]" value="1" <?php checked( '1', (string) $o['co_skin'] ); ?>> روشن</label>
+					&nbsp; رنگ دکمه‌ها: <input type="color" name="<?php echo esc_attr( STLH_OPT ); ?>[co_accent]" value="<?php echo esc_attr( (string) ( $o['co_accent'] ?: $o['accent'] ) ); ?>">
+					<p class="description">فقط ظاهرِ صفحه‌ی سبد خرید و پرداخت عوض می‌شود (کارت‌های سفید، دکمه‌ی یک‌رنگ). خاموش = طرحِ خودِ قالب.</p>
+				</td></tr>
+				<tr><th scope="row">سقفِ پرداختِ زرین‌پال (تومان)</th><td>
+					<input type="text" inputmode="numeric" dir="ltr" name="<?php echo esc_attr( STLH_OPT ); ?>[zp_cap]" value="<?php echo esc_attr( (string) $o['zp_cap'] ); ?>">
+					<p class="description">زرین‌پال تراکنشِ بالاتر از این مبلغ را رد می‌کند؛ مشتری به‌جای گیر کردن، پیامِ روشن می‌بیند و درگاهِ دیگر را انتخاب می‌کند. اگر زرین‌پال سقف را بالا برد این عدد را عوض کنید؛ ۰ = بی‌سقف.</p>
 				</td></tr>
 				<?php
 				stlh_row_check( 'نمایش خودکار در صفحه اصلی', 'takeover', (string) $o['takeover'], 'صفحه اصلی سایت را این افزونه می‌سازد', 'روشن: هدر و فوتر از قالب، محتوای وسط از این افزونه؛ نیازی به المنتور نیست. خاموش: فقط جایی که شورت‌کد [stl_home] گذاشته شود.' );
