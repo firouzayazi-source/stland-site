@@ -31,6 +31,11 @@ function stlh_checkout_probe( WP_REST_Request $req ): array {
 		}
 		return true;
 	} );
+	if ( ! empty( $req->get_param( 'gateways' ) ) ) {
+		$out['gateway_test'] = stlh_probe_gateways();
+		restore_error_handler();
+		return $out;
+	}
 	try {
 		if ( ! function_exists( 'wc_load_cart' ) ) {
 			throw new RuntimeException( 'woocommerce not loaded' );
@@ -87,4 +92,67 @@ function stlh_checkout_probe( WP_REST_Request $req ): array {
 		restore_error_handler();
 	}
 	return $out;
+}
+
+/**
+ * `?gateways=1` — مثلِ دکمه‌ی «تست اتصال»: یک درخواستِ پرداختِ ۱۰٬۰۰۰ ریالیِ پرداخت‌نشده به هر درگاه
+ * با همان تنظیماتِ افزونه، بی سفارش. مقدارِ ترمینال/مرچنت هرگز برنمی‌گردد، فقط شکلش.
+ */
+function stlh_probe_gateways(): array {
+	$res  = [];
+	$all  = function_exists( 'WC' ) ? WC()->payment_gateways()->payment_gateways() : [];
+	$back = home_url( '/' );
+	$shape = static function ( $v ): array {
+		$v = (string) $v;
+		return [ 'len' => strlen( $v ), 'ascii_digits_only' => (bool) preg_match( '/^[0-9]+$/', $v ), 'has_space' => (bool) preg_match( '/\s/', $v ), 'non_ascii' => (bool) preg_match( '/[^\x20-\x7e]/', $v ) ];
+	};
+	// زرین‌پال: همان کلاسِ خودِ افزونه
+	if ( isset( $all['WC_ZPal'] ) ) {
+		$g = $all['WC_ZPal'];
+		$r = [ 'merchant_shape' => $shape( $g->get_option( 'merchantcode' ) ) ];
+		try {
+			$auth          = $g->zarinpal->requestPayment( 10000, $back, 'stland connection test', [] );
+			$r['ok']        = true;
+			$r['authority'] = substr( (string) $auth, 0, 6 ) . '…';
+		} catch ( Throwable $e ) {
+			$r['ok']    = false;
+			$r['error'] = $e->getMessage();
+		}
+		$res['zarinpal'] = $r;
+	}
+	// سپ: همان آدرس از `.env` افزونه و همان بدنه‌ی `get_token`
+	if ( isset( $all['WC_Sep_Payment_Gateway'] ) ) {
+		$g    = $all['WC_Sep_Payment_Gateway'];
+		$term = (string) $g->get_option( 'merchantcode' );
+		$r    = [ 'terminal_shape' => $shape( $term ) ];
+		$env  = [];
+		$file = WP_PLUGIN_DIR . '/zhaket-woo-sep/.env';
+		foreach ( is_readable( $file ) ? (array) file( $file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES ) : [] as $l ) {
+			if ( str_contains( $l, '=' ) && ! str_starts_with( $l, '#' ) ) {
+				[ $k, $v ]   = explode( '=', $l, 2 );
+				$env[ $k ] = $v;
+			}
+		}
+		$r['env_keys']  = array_keys( $env );
+		$r['token_url'] = $env['TOKEN_URL'] ?? null;
+		if ( ! empty( $env['TOKEN_URL'] ) ) {
+			$resp = wp_remote_post( $env['TOKEN_URL'], [
+				'timeout' => 15,
+				'headers' => [ 'Content-Type' => 'application/json' ],
+				'body'    => wp_json_encode( [ 'action' => 'token', 'TerminalId' => $term, 'Amount' => 10000, 'ResNum' => 'probe' . time(), 'RedirectUrl' => $back, 'CellNumber' => '' ] ),
+			] );
+			if ( is_wp_error( $resp ) ) {
+				$r['error'] = $resp->get_error_message();
+			} else {
+				$body       = json_decode( (string) wp_remote_retrieve_body( $resp ), true );
+				$r['http']  = wp_remote_retrieve_response_code( $resp );
+				$r['status'] = $body['status'] ?? null;
+				$r['errorCode'] = $body['errorCode'] ?? null;
+				$r['errorDesc'] = $body['errorDesc'] ?? null;
+				$r['got_token'] = ! empty( $body['token'] );
+			}
+		}
+		$res['sep'] = $r;
+	}
+	return $res;
 }
