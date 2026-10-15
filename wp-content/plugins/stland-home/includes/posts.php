@@ -7,7 +7,8 @@
  * `assets/posts/`. هر مقاله یک بار ساخته می‌شود و هر بار که تعریف یا متنش عوض شد به‌روز می‌شود.
  *
  * • عکس‌ها یک بار به کتابخانه‌ی رسانه می‌روند (با اندازه‌های وردپرس)؛ شناسه‌شان در `stlh_post_media`.
- * • `{{img:کلید}}` → بلوکِ عکس، `{{cat:نامِ دسته‌ی محصول}}` → نشانیِ آن دسته.
+ * • `{{img:کلید}}` → بلوکِ عکس، `{{cat:نامِ دسته‌ی محصول}}` → نشانیِ آن دسته، `{{post:ID}}` → نشانیِ آن مقاله.
+ * • `post_id` = بازنویسیِ مقاله‌ای که از قبل در سایت هست (`keep_slug` نشانی‌اش را نگه می‌دارد).
  * • وضعیتِ اول از `status` است (`draft` تا صاحب فروشگاه ببیند)؛ بعد از آن وضعیت دست نمی‌خورد.
  * ⛔ اگر صاحب فروشگاه مقاله را در پیشخوان ویرایش کرده باشد، روی ویرایشش نوشته نمی‌شود.
  */
@@ -29,6 +30,26 @@ const STLH_POSTS = [
 		'images'   => [
 			'colors' => [ 'file' => 'iphone-duo-colors.webp', 'alt' => 'آیفون Duo در دو رنگ سفید و سرمه‌ای' ],
 			'fold'   => [ 'file' => 'iphone-duo-fold.webp', 'alt' => 'نمایشگر داخلی آیفون Duo در حالت باز' ],
+		],
+	],
+	// مقاله‌ی موجود (۹ شهریور، از پیشخوان): بازنویسی برای سئو، عکسِ شاخص و دو طرحِ داخلِ متن (صاحب فروشگاه، ۲۳ مهر)
+	'which-iphone-to-buy'    => [
+		'post_id'   => 44340,
+		'keep_slug' => true, // نشانیِ منتشرشده عوض نشود
+		'title'     => 'کدام آیفون ارزش خرید بیشتری دارد؟ مقایسه مدل‌های مختلف آیفون برای خرید',
+		'status'    => 'publish',
+		'excerpt'   => 'کدام آیفون بخریم؟ مقایسه ارزش خرید آیفون معمولی، Plus، Pro، Pro Max و آیفون کارکرده بر اساس نیاز و بودجه، با جدول مقایسه و چک‌لیست خرید آیفون کارکرده.',
+		'category'  => [ 'id' => 2968 ],
+		'tags'      => [ 'کدام آیفون بخریم', 'مقایسه آیفون', 'آیفون کارکرده', 'راهنمای خرید آیفون', 'آیفون Pro' ],
+		'seo'       => [
+			'title' => 'کدام آیفون بخریم؟ مقایسه ارزش خرید مدل‌های آیفون | استوک لند',
+			'desc'  => 'کدام آیفون بخریم؟ مقایسه ارزش خرید آیفون معمولی، Pro، Pro Max و کارکرده بر اساس نیاز و بودجه، با جدول مقایسه و چک‌لیست خرید آیفون کارکرده.',
+			'kw'    => 'کدام آیفون بخریم',
+		],
+		'thumb'     => [ 'file' => 'which-iphone-hero.webp', 'alt' => 'کدام آیفون ارزش خرید بیشتری دارد؟ مقایسه مدل‌های آیفون' ],
+		'images'    => [
+			'guide'     => [ 'file' => 'which-iphone-guide.webp', 'alt' => 'کدام آیفون بخریم؛ مقایسه آیفون معمولی، Pro، Pro Max و Pro کارکرده' ],
+			'checklist' => [ 'file' => 'which-iphone-checklist.webp', 'alt' => 'چک‌لیست خرید آیفون کارکرده در ۸ مرحله' ],
 		],
 	],
 ];
@@ -104,6 +125,12 @@ function stlh_post_upsert( string $slug, array $def, array $prev ): array {
 		if ( ! $post || 'trash' === $post->post_status ) {
 			return [ 'id' => (int) $prev['id'], 'skipped' => 'deleted in admin', 'modified' => $prev['modified'] ?? '' ];
 		}
+	} elseif ( ! empty( $def['post_id'] ) ) {
+		// مقاله‌ای که از قبل در سایت هست
+		$post = get_post( (int) $def['post_id'] );
+		if ( ! $post || 'post' !== $post->post_type || 'trash' === $post->post_status ) {
+			throw new RuntimeException( 'post ' . $def['post_id'] . ' not found' );
+		}
 	} else {
 		$found = $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE post_name = %s AND post_type = 'post' AND post_status NOT IN ('trash','auto-draft','inherit') ORDER BY ID LIMIT 1", $slug ) );
 		$post  = $found ? get_post( (int) $found ) : null;
@@ -135,8 +162,11 @@ function stlh_post_upsert( string $slug, array $def, array $prev ): array {
 		return esc_url( is_string( $link ) && $link ? $link : ( function_exists( 'wc_get_page_permalink' ) ? wc_get_page_permalink( 'shop' ) : home_url( '/' ) ) );
 	}, $html );
 
-	$cat = get_term_by( 'slug', $def['category']['slug'], 'category' );
-	if ( ! $cat ) {
+	$html = preg_replace_callback( '/\{\{post:(\d+)\}\}/', static fn( $m ) => esc_url( (string) get_permalink( (int) $m[1] ) ), $html );
+
+	$cat = ! empty( $def['category']['id'] ) ? get_term( (int) $def['category']['id'], 'category' ) : get_term_by( 'slug', $def['category']['slug'], 'category' );
+	$cat = $cat instanceof WP_Term ? $cat : null;
+	if ( ! $cat && ! empty( $def['category']['slug'] ) ) {
 		$made = wp_insert_term( $def['category']['name'], 'category', [ 'slug' => $def['category']['slug'] ] );
 		$cat  = is_wp_error( $made ) ? null : get_term( (int) $made['term_id'], 'category' );
 	}
@@ -145,7 +175,7 @@ function stlh_post_upsert( string $slug, array $def, array $prev ): array {
 	$r = wp_update_post( wp_slash( [
 		'ID'            => $id,
 		'post_title'    => $def['title'],
-		'post_name'     => $slug,
+		'post_name'     => ! empty( $def['keep_slug'] ) && $post ? $post->post_name : $slug,
 		'post_content'  => $html,
 		'post_excerpt'  => $def['excerpt'] ?? '',
 		// پیش‌نویس فقط با تعریفِ مخزن منتشر می‌شود؛ وضعیتی که در پیشخوان داده شده (منتشر/زمان‌بندی) دست نمی‌خورد
