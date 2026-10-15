@@ -94,7 +94,33 @@ const STLH_POSTS = [
 
 add_action( 'init', 'stlh_posts_apply', 40 );
 
+/**
+ * کشِ اشیا (memcached) بعد از نوشتن: درخواستی که هم‌زمان نسخه‌ی قدیم را از پایگاه داده خوانده بود (مثلاً گرم‌کنِ کش
+ * بعد از پاک‌سازیِ LiteSpeed) ممکن است بعد از `clean_post_cache` ما همان را دوباره در کش بگذارد — ۲۴ مهر مقاله‌ی ۴۴۳۴۱
+ * با متنِ قدیم ماند در حالی که پایگاه داده و نسخه‌ها متنِ تازه را داشتند. پس یک بار دیگر، کمی بعد، کش پاک می‌شود؛
+ * و با هر نسخه‌ی افزونه هم یک بار برای همه‌ی مقاله‌های این فایل.
+ */
+add_action( 'stlh_posts_recache', 'stlh_posts_recache' );
+function stlh_posts_recache( array $ids = [] ): void {
+	if ( ! $ids ) {
+		$ids = array_filter( array_map( static fn( $x ) => (int) ( $x['id'] ?? 0 ), (array) get_option( 'stlh_posts_state', [] ) ) );
+	}
+	foreach ( $ids as $id ) {
+		clean_post_cache( (int) $id );
+		wp_cache_delete( (int) $id, 'post_meta' );
+	}
+	if ( function_exists( 'litespeed_purge_all' ) ) {
+		litespeed_purge_all();
+	} else {
+		do_action( 'litespeed_purge_all' );
+	}
+}
+
 function stlh_posts_apply(): void {
+	if ( get_option( 'stlh_posts_recache_ver' ) !== STLH_VER ) {
+		update_option( 'stlh_posts_recache_ver', STLH_VER, false );
+		stlh_posts_recache();
+	}
 	$state = (array) get_option( 'stlh_posts_state', [] );
 	$todo  = [];
 	foreach ( STLH_POSTS as $slug => $def ) {
@@ -123,6 +149,10 @@ function stlh_posts_apply(): void {
 	}
 	update_option( 'stlh_posts_state', $state, false );
 	delete_option( 'stlh_posts_lock' );
+	$ids = array_values( array_filter( array_map( static fn( $slug ) => (int) ( $state[ $slug ]['id'] ?? 0 ), array_keys( $todo ) ) ) );
+	if ( $ids ) {
+		wp_schedule_single_event( time() + 90, 'stlh_posts_recache', [ $ids ] );
+	}
 }
 
 /** فایلِ `assets/posts/<file>` در کتابخانه‌ی رسانه (یک بار) → شناسه */
