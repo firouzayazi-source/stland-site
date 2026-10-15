@@ -231,7 +231,8 @@ function stlh_terms_off(): array {
 			? get_terms( [ 'taxonomy' => $tax, 'hide_empty' => false ] )
 			: array_filter( array_map( static fn( $id ) => get_term( (int) $id, $tax ), (array) $which ) );
 		foreach ( is_array( $terms ) ? $terms : [] as $t ) {
-			if ( $t instanceof WP_Term && 0 === (int) $t->count && ! is_wp_error( wp_delete_term( $t->term_id, $tax ) ) ) {
+			// `count` فقط نوشته‌های منتشرشده را می‌شمارد؛ برچسبِ پیش‌نویس‌ها (مقاله‌های `posts.php`) نباید برود
+			if ( $t instanceof WP_Term && 0 === (int) $t->count && ! get_objects_in_term( $t->term_id, $tax ) && ! is_wp_error( wp_delete_term( $t->term_id, $tax ) ) ) {
 				$done[] = $tax . ':' . $t->name;
 			}
 		}
