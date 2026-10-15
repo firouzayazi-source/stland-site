@@ -12,7 +12,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-const STLH_SITEFIX_REV = 1;
+const STLH_SITEFIX_REV = 2;
 
 add_action( 'init', 'stlh_sitefix_apply', 30 );
 
@@ -47,7 +47,8 @@ function stlh_sitefix_cat_image( int $term_id, int $skip = 0 ): int {
 }
 
 function stlh_sitefix_apply(): void {
-	if ( (int) get_option( 'stlh_sitefix_rev' ) >= STLH_SITEFIX_REV || ! function_exists( 'stlh_img_path' ) ) {
+	$rev = (int) get_option( 'stlh_sitefix_rev' );
+	if ( $rev >= STLH_SITEFIX_REV || ! function_exists( 'stlh_img_path' ) ) {
 		return;
 	}
 	if ( ! add_option( 'stlh_sitefix_lock', time(), '', false ) ) {
@@ -59,12 +60,19 @@ function stlh_sitefix_apply(): void {
 	@set_time_limit( 60 );
 	$log = [];
 	try {
-		$log['bakala']  = stlh_sitefix_bakala();
-		$log['widgets'] = stlh_sitefix_widgets();
-		$log['pages']   = stlh_sitefix_pages();
-		$log['thumbs']  = stlh_sitefix_thumbs();
-		$log['demo']    = stlh_sitefix_demo();
-		$log['cron']    = stlh_sitefix_cron();
+		if ( $rev >= 1 ) {
+			// دورِ ۲: سه مقاله‌ای که دورِ ۱ بی‌عکس گذاشت (آیفون‌های نو عکسِ سالم نداشتند) → عکسِ سالمِ هر محصولی
+			$log           = (array) get_option( 'stlh_sitefix_log', [] );
+			$log['posts2'] = stlh_sitefix_post_images( [ 44340, 44341, 44342 ] );
+		} else {
+			$log['bakala']  = stlh_sitefix_bakala();
+			$log['widgets'] = stlh_sitefix_widgets();
+			$log['pages']   = stlh_sitefix_pages();
+			$log['thumbs']  = stlh_sitefix_thumbs();
+			$log['demo']    = stlh_sitefix_demo();
+			$log['cron']    = stlh_sitefix_cron();
+			$log['posts2']  = stlh_sitefix_post_images( [ 44340, 44341, 44342 ] );
+		}
 	} catch ( Throwable $e ) {
 		$log['error'] = $e->getMessage();
 	}
@@ -263,6 +271,27 @@ function stlh_sitefix_thumbs(): array {
 			delete_post_thumbnail( $pid );
 		}
 		$done[] = 'post:' . $pid . ' ' . $aid . '→' . $new;
+	}
+	return $done;
+}
+
+/** مقاله‌های بی‌عکس → عکسِ شاخصِ سالمِ محصولاتِ اخیر، هر مقاله یکی */
+function stlh_sitefix_post_images( array $post_ids ): array {
+	$pool = [];
+	foreach ( get_posts( [ 'post_type' => 'product', 'post_status' => 'publish', 'posts_per_page' => 40, 'fields' => 'ids', 'meta_key' => '_thumbnail_id' ] ) as $pid ) { // phpcs:ignore WordPress.DB.SlowDBQuery
+		$aid = (int) get_post_thumbnail_id( $pid );
+		$f   = $aid ? get_attached_file( $aid ) : '';
+		if ( $f && file_exists( $f ) && ! in_array( $aid, $pool, true ) ) {
+			$pool[] = $aid;
+		}
+	}
+	$done = [];
+	foreach ( $post_ids as $i => $pid ) {
+		if ( get_post_thumbnail_id( $pid ) || ! get_post( $pid ) || ! isset( $pool[ $i ] ) ) {
+			continue;
+		}
+		set_post_thumbnail( $pid, $pool[ $i ] );
+		$done[] = $pid . '→' . $pool[ $i ];
 	}
 	return $done;
 }
