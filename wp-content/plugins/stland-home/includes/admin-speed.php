@@ -81,6 +81,25 @@ function stlh_db_tune_leftovers(): array {
 		'wc_pb_'             => 'woocommerce-product-bundles',
 		'dokan'              => 'dokan',
 		'litespeed'          => 'litespeed-cache',
+		// img-audit?db=1 (۲۳ مهر ۱۴۰۵): ~۱۵۰۰ گزینه‌ی دیگر از افزونه‌هایی که دیگر نیستند
+		'wcj_'               => 'woocommerce-jetpack',
+		'yith-'              => 'yith',
+		'ywmmq_'             => 'yith',
+		'ywpar_'             => 'yith',
+		'wsl_'               => 'wordpress-social-login',
+		'uap_'               => 'indeed-affiliate-pro',
+		'nabik_'             => 'nabik',
+		'dgwt_wcas'          => 'ajax-search-for-woocommerce',
+		'onesignal'          => 'onesignal',
+		'bigiseller'         => 'bigiseller',
+		'pnfpb'              => 'push-notification',
+		'dupli_opt'          => 'duplicator',
+		'tp_eg'              => 'essential-grid',
+		'wp-optimize'        => 'wp-optimize',
+		'wpo_'               => 'wp-optimize',
+		'sucuriscan'         => 'sucuri',
+		'pws_'               => 'persian-woocommerce-shipping',
+		'wcbloat'            => 'wc-bloat',
 	];
 }
 
