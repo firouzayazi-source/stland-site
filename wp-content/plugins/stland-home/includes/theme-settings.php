@@ -33,6 +33,28 @@ const STLH_BAKALA_SET = [
 	// سبدِ خریدِ شناورِ کناره‌ی صفحه (صاحب فروشگاه با عکس، ۲۱ مهر ۱۴۰۵: «پیدایش نکردم غیرفعالش کنم»)؛
 	// سبدِ سربرگ سرِ جایش است
 	'floating-cart'             => '0',
+	// ممیزیِ محتوای غیرِ استوک‌لند (صاحب فروشگاه، ۲۳ مهر ۱۴۰۵) — مانده‌های نسخه‌ی نمونه‌ی قالب:
+	// دکمه‌ی شناورِ واتس‌اپِ گوشی (روشن) مشتری را با متنِ «پشتیبانی واتس اپ قالب باکالا» به شماره‌ی دیگری می‌فرستاد؛
+	// همان شماره‌ی واتس‌اپی که خودِ سایت در `whatsapp_number` دارد
+	'whatsapp_chat_text'         => 'پشتیبانی واتس‌اپ استوک لند',
+	'whatsapp_chat_phone_number' => '9050323217',
+	// یادداشتِ پایینِ فاکتورِ سفارش
+	'f_note_footer'              => 'از خرید شما از استوک لند سپاسگزاریم.',
+	// ایمیلِ اطلاع‌رسانیِ «پرسش و پاسخ» به ایمیلِ ناشناسِ نسخه‌ی نمونه می‌رفت
+	'product_qa_email_admin_email' => 'info@stland.ir',
+	// نوار و جعبه‌های خاموشِ نسخه‌ی نمونه: عکس از دامنه‌ی سازنده، لینک به اپِ قالب، متنِ «تستی»
+	'top_bar_image'              => [ 'url' => '', 'id' => '', 'height' => '', 'width' => '', 'thumbnail' => '' ],
+	'top_bar_image_mobile'       => [ 'url' => '', 'id' => '', 'height' => '', 'width' => '', 'thumbnail' => '' ],
+	'top_bar_bgtext_text_mobile' => '',
+	'fixed_box_link'             => '',
+];
+
+/** برچسب‌هایی که پاک می‌شوند — فقط اگر به هیچ نوشته/محصولی وصل نباشند (count = 0) */
+const STLH_TERMS_OFF = [
+	// همه‌ی برچسب‌های نوشته‌ها از نسخه‌ی نمونه‌اند (tag1، fashion، wp sport، جام جهانی ۲۰۱۸…) و به هیچ نوشته‌ای وصل نیستند
+	'post_tag'    => '*',
+	// «بیگی کالا»، «من»، «منگنه»
+	'product_tag' => [ 2162, 2163, 2164 ],
 ];
 
 /**
@@ -85,7 +107,7 @@ add_action( 'init', static function (): void {
 add_action( 'init', 'stlh_bakala_apply', 20 );
 
 function stlh_bakala_apply(): void {
-	$hash = md5( (string) wp_json_encode( [ STLH_BAKALA_SET, STLH_COUPONS, STLH_SITE_OPTIONS, STLH_PLUGINS_OFF ] ) );
+	$hash = md5( (string) wp_json_encode( [ STLH_BAKALA_SET, STLH_COUPONS, STLH_SITE_OPTIONS, STLH_PLUGINS_OFF, STLH_TERMS_OFF ] ) );
 	if ( get_option( 'stlh_bakala_set_hash' ) === $hash ) {
 		return;
 	}
@@ -98,6 +120,7 @@ function stlh_bakala_apply(): void {
 	}
 	$coupons = stlh_coupons_ensure();
 	$plugins = stlh_plugins_off();
+	$terms   = stlh_terms_off();
 	global $wpdb;
 	// خامِ دیتابیس، نه `get_option`: نگهبانِ قالب (`theme-guard.php`) مقدارِ صفحه‌ی مشتری را دست می‌برد
 	$raw  = $wpdb->get_var( $wpdb->prepare( "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", 'bakala_options' ) );
@@ -148,14 +171,14 @@ function stlh_bakala_apply(): void {
 			delete_option( 'bakala_options-transients' );
 		}
 	}
-	if ( $changed || $coupons || $plugins ) {
+	if ( $changed || $coupons || $plugins || $terms ) {
 		if ( function_exists( 'litespeed_purge_all' ) ) {
 			litespeed_purge_all();
 		} else {
 			do_action( 'litespeed_purge_all' );
 		}
 	}
-	update_option( 'stlh_bakala_applied', [ 'at' => gmdate( 'c' ), 'ver' => STLH_VER, 'changed' => $changed, 'missing' => $missing, 'coupons' => $coupons, 'plugins_off' => $plugins ], false );
+	update_option( 'stlh_bakala_applied', [ 'at' => gmdate( 'c' ), 'ver' => STLH_VER, 'changed' => $changed, 'missing' => $missing, 'coupons' => $coupons, 'plugins_off' => $plugins, 'terms_off' => $terms ], false );
 	update_option( 'stlh_bakala_set_hash', $hash, false );
 	delete_option( 'stlh_bakala_lock' );
 }
@@ -195,4 +218,23 @@ function stlh_plugins_off(): array {
 		deactivate_plugins( $off, true );
 	}
 	return $off;
+}
+
+/** برچسب‌های `STLH_TERMS_OFF` که به هیچ چیز وصل نیستند را پاک می‌کند؛ نامِ پاک‌شده‌ها را برمی‌گرداند */
+function stlh_terms_off(): array {
+	$done = [];
+	foreach ( STLH_TERMS_OFF as $tax => $which ) {
+		if ( ! taxonomy_exists( $tax ) ) {
+			continue;
+		}
+		$terms = '*' === $which
+			? get_terms( [ 'taxonomy' => $tax, 'hide_empty' => false ] )
+			: array_filter( array_map( static fn( $id ) => get_term( (int) $id, $tax ), (array) $which ) );
+		foreach ( is_array( $terms ) ? $terms : [] as $t ) {
+			if ( $t instanceof WP_Term && 0 === (int) $t->count && ! is_wp_error( wp_delete_term( $t->term_id, $tax ) ) ) {
+				$done[] = $tax . ':' . $t->name;
+			}
+		}
+	}
+	return $done;
 }
