@@ -37,15 +37,16 @@ function stlh_app_list_receive( WP_REST_Request $req ): array {
 		}
 		$items = [];
 		foreach ( array_slice( (array) ( $s['items'] ?? [] ), 0, 300 ) as $it ) {
-			$id = is_array( $it ) ? absint( $it['id'] ?? 0 ) : 0;
-			if ( ! $id ) {
+			$id     = is_array( $it ) ? absint( $it['id'] ?? 0 ) : 0;
+			$inline = $id ? null : stlh_app_list_inline( is_array( $it ) ? ( $it['inline'] ?? null ) : null );
+			if ( ! $id && ! $inline ) {
 				continue;
 			}
 			$chips = array_values( array_filter( array_map(
 				static fn( $c ) => is_scalar( $c ) ? mb_substr( sanitize_text_field( (string) $c ), 0, 40 ) : '',
 				array_slice( (array) ( $it['chips'] ?? [] ), 0, 6 )
 			), 'strlen' ) );
-			$items[] = [ 'id' => $id, 'chips' => $chips ];
+			$items[] = $inline ? [ 'id' => 0, 'chips' => $chips, 'inline' => $inline ] : [ 'id' => $id, 'chips' => $chips ];
 		}
 		$sections[ $key ] = [ 'key' => $key, 'label' => sanitize_text_field( (string) ( $s['label'] ?? '' ) ), 'items' => $items ];
 	}
@@ -56,6 +57,30 @@ function stlh_app_list_receive( WP_REST_Request $req ): array {
 		stlh_app_list_seo_refresh( $page, $count );
 	}
 	return [ 'ok' => true, 'count' => $count, 'url' => stlh_app_list_url() ];
+}
+
+/**
+ * «فقط برای لیست (امانی / اعلام قیمت)» (۲۵ مهر ۱۴۰۵، `sthesabland/src/lib/list-only.ts`): کالایی که موجودیِ فروشگاه نیست
+ * و محصولِ ووکامرس ندارد — نام، قیمت (تومان)، برچسب و عکسش همین‌جا از حسابداری می‌آید، و کارتش به «تماس با ما» می‌رود.
+ */
+function stlh_app_list_inline( $in ): ?array {
+	if ( ! is_array( $in ) ) {
+		return null;
+	}
+	$name  = mb_substr( sanitize_text_field( (string) ( $in['name'] ?? '' ) ), 0, 120 );
+	$price = (int) round( (float) ( $in['price'] ?? 0 ) );
+	if ( '' === $name || $price <= 0 ) {
+		return null;
+	}
+	$img = esc_url_raw( (string) ( $in['image'] ?? '' ), [ 'https' ] );
+	$url = esc_url_raw( (string) ( $in['url'] ?? '' ), [ 'https', 'http' ] );
+	return [
+		'name'  => $name,
+		'price' => $price,
+		'tag'   => mb_substr( sanitize_text_field( (string) ( $in['tag'] ?? '' ) ), 0, 30 ),
+		'image' => $img,
+		'url'   => $url && wp_parse_url( $url, PHP_URL_HOST ) === wp_parse_url( home_url(), PHP_URL_HOST ) ? $url : home_url( '/contact/' ),
+	];
 }
 
 /** شناسه‌ی برگه‌ی `list`؛ با `$create` اگر نیست ساخته می‌شود */
@@ -134,6 +159,9 @@ function stlh_app_list_schema( array $sections ): string {
 	$irr   = function_exists( 'get_woocommerce_currency' ) && 'IRT' === get_woocommerce_currency() ? 10 : 1;
 	foreach ( $sections as $s ) {
 		foreach ( $s['cards'] as $c ) {
+			if ( empty( $c['p'] ) ) {
+				continue; // «فقط برای لیست» صفحه‌ی محصول ندارد
+			}
 			$p   = $c['p'];
 			$img = $p->get_image_id() ? wp_get_attachment_image_url( $p->get_image_id(), 'woocommerce_thumbnail' ) : '';
 			$items[] = [
@@ -216,6 +244,10 @@ function stlh_app_list_sections(): array {
 	foreach ( (array) ( $data['sections'] ?? [] ) as $s ) {
 		$cards = [];
 		foreach ( (array) ( $s['items'] ?? [] ) as $it ) {
+			if ( ! empty( $it['inline'] ) ) {
+				$cards[] = [ 'p' => null, 'inline' => $it['inline'], 'chips' => (array) ( $it['chips'] ?? [] ) ];
+				continue;
+			}
 			$p = function_exists( 'wc_get_product' ) ? wc_get_product( (int) $it['id'] ) : null;
 			if ( ! $p || 'publish' !== $p->get_status() || ! $p->is_in_stock() || ! $p->is_visible() ) {
 				continue;
@@ -241,6 +273,26 @@ function stlh_app_list_card( WC_Product $p, array $chips ): string {
 		esc_html( $p->get_name() ),
 		$chip_html ? '<span class="stlh-al-chips">' . $chip_html . '</span>' : '',
 		stlh_price( $p )
+	);
+}
+
+/** کارتِ «فقط برای لیست»: همان شکل، با قیمت و برچسب («امانی» / «تماس بگیرید») به‌جای دکمه‌ی خرید */
+function stlh_app_list_inline_card( array $c, array $chips ): string {
+	$chip_html = '';
+	foreach ( $chips as $ch ) {
+		$chip_html .= '<span class="stlh-al-chip">' . esc_html( stlh_fa( $ch ) ) . '</span>';
+	}
+	$img = $c['image']
+		? '<img src="' . esc_url( $c['image'] ) . '" alt="' . esc_attr( $c['name'] ) . '" loading="lazy" decoding="async">'
+		: '<span class="st-pr-noimg">' . stlh_cat_icon( 'phone-new' ) . '</span>';
+	return sprintf(
+		'<a class="stlh-al-card stlh-al-inline" href="%s"><span class="stlh-al-img">%s</span><span class="stlh-al-body"><span class="stlh-al-name">%s</span>%s</span><span class="stlh-al-price">%s%s</span></a>',
+		esc_url( $c['url'] ),
+		$img,
+		esc_html( $c['name'] ),
+		$chip_html ? '<span class="stlh-al-chips">' . $chip_html . '</span>' : '',
+		esc_html( stlh_fa( number_format( (int) $c['price'] ) ) . ' تومان' ),
+		$c['tag'] ? '<span class="stlh-al-tag">' . esc_html( $c['tag'] ) . '</span>' : ''
 	);
 }
 
@@ -274,7 +326,7 @@ function stlh_app_list_html(): string {
 	foreach ( $sections as $s ) {
 		$cards = '';
 		foreach ( $s['cards'] as $c ) {
-			$cards .= stlh_app_list_card( $c['p'], $c['chips'] );
+			$cards .= $c['p'] ? stlh_app_list_card( $c['p'], $c['chips'] ) : stlh_app_list_inline_card( $c['inline'], $c['chips'] );
 		}
 		$html .= sprintf(
 			'<section class="stlh-al-sec" id="list-%s"><h2>%s <span>%s</span></h2><div class="stlh-al-grid">%s</div></section>',

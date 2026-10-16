@@ -65,3 +65,4 @@
 .stlh-al-price .woocommerce-Price-amount { color: inherit; }
 .stlh-al-empty, .stlh-al-foot { text-align: center; color: #8e8e93; font-size: 14px; margin: 24px 0 0; }
 .stlh-al-empty a { color: #0a63ff; font-weight: 700; }
+.stlh-al-tag { align-self: center; background: #fff4e5; color: #b25e00; border-radius: 999px; padding: 1px 10px; font-size: 12px; font-weight: 700; }
