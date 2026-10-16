@@ -29,7 +29,7 @@ $res = stlh_app_list_receive( $req );
 $html = do_shortcode( '[stl_app_list]' );
 $dir  = WP_PLUGIN_DIR . '/stland-home/assets';
 $page = '<!doctype html><html dir="rtl" lang="fa"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-	. '<style>body{margin:0;font-family:Tahoma,sans-serif}' . stlh_inline_css() . file_get_contents( "$dir/css/home.css" ) . '</style></head>'
+	. '<style>body{margin:0;font-family:Tahoma,sans-serif}' . stlh_inline_css() . file_get_contents( "$dir/css/home.css" ) . file_get_contents( "$dir/css/app-list.css" ) . '</style></head>'
 	. '<body><main class="stlh-list">' . $html . '</main></body></html>';
 file_put_contents( getenv( 'OUT' ), $page );
 file_put_contents( getenv( 'OUT' ) . '.expect.json', wp_json_encode( [ 'received' => $res, 'warnings' => $warnings ], JSON_UNESCAPED_UNICODE ) );
