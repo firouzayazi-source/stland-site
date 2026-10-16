@@ -174,22 +174,51 @@ function stlh_arrow(): string {
 
 /** مجموعه آیکن خطی دسته‌بندی‌ها (هم‌خانواده با آیکن‌های نوار اعتماد) */
 function stlh_cat_icons(): array {
+	/*
+	 * دورنگ (صاحب فروشگاه، ۲۴ مهر ۱۴۰۵: «آیکون‌ها یکنواخت شده؛ متناسب، جذاب و حرفه‌ای»): خطِ اصلی + سطحِ کم‌رنگ
+	 * با همان `currentColor`، پس روی کاشیِ رنگی سفید و روی زمینه‌ی روشن رنگی دیده می‌شوند.
+	 */
 	return [
-		'phone-new'  => '<rect x="5.5" y="2.5" width="11" height="19" rx="3"/><path d="M9.5 5h3"/><path d="M20 3v3.5M18.25 4.75h3.5"/>',
-		'phone-used' => '<rect x="6.5" y="2.5" width="11" height="19" rx="3"/><path d="M10.5 5h3"/><path d="M14.6 12.4a2.6 2.6 0 1 1-.8-2.2"/><path d="M14.2 8.7v1.8h-1.8"/>',
-		'earbuds'    => '<path d="M8 4.5a3 3 0 0 0-3 3v1a3 3 0 0 0 3 3V19a1.5 1.5 0 0 0 3 0V7.5a3 3 0 0 0-3-3z"/><path d="M16 4.5a3 3 0 0 1 3 3v1a3 3 0 0 1-3 3V19a1.5 1.5 0 0 1-3 0V7.5a3 3 0 0 1 3-3z"/>',
-		'charger'    => '<rect x="6" y="8" width="12" height="13" rx="3"/><path d="M9.5 8V3.5M14.5 8V3.5"/><path d="M12.6 11l-2 3.4h3l-2 3.4"/>',
-		'cable'      => '<path d="M7 3v4M11 3v4"/><rect x="5.5" y="7" width="7" height="5" rx="1.5"/><path d="M9 12v3a4 4 0 0 0 4 4h2a3 3 0 0 0 3-3V9"/><rect x="16" y="4" width="4" height="5" rx="1"/>',
-		'camera'     => '<rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="9" cy="9" r="2.6"/><circle cx="9" cy="15.5" r="2.6"/><circle cx="15.5" cy="12.2" r="2.6"/><path d="M16 7h.01"/>',
-		'watch'      => '<rect x="6.5" y="6" width="11" height="12" rx="3"/><path d="M9 6l.7-3h4.6l.7 3M9 18l.7 3h4.6l.7-3"/><path d="M12 9.5V12l1.5 1"/>',
-		'headphones' => '<path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3.5" y="14" width="4" height="6.5" rx="1.5"/><rect x="16.5" y="14" width="4" height="6.5" rx="1.5"/>',
-		'powerbank'  => '<rect x="6" y="3" width="12" height="18" rx="3"/><path d="M10 6.5h4"/><path d="M12.6 10l-2 3.2h3l-2 3.3"/>',
-		'speaker'    => '<rect x="5.5" y="3" width="13" height="18" rx="3"/><circle cx="12" cy="14" r="3.2"/><path d="M12 7h.01"/>',
-		'case'       => '<rect x="6" y="2.5" width="12" height="19" rx="3.2"/><rect x="8.5" y="5" width="4.2" height="4.2" rx="1.3"/><path d="M10.6 7.1h.01"/>',
-		'tablet'     => '<rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M11 18h2"/>',
-		'laptop'     => '<rect x="5" y="5" width="14" height="10" rx="1.5"/><path d="M3 18.5h18"/>',
-		'tag'        => '<path d="M3.5 12.5V4.5a1 1 0 0 1 1-1h8l8 8-9 9z"/><circle cx="8" cy="8" r="1.5"/>',
+		'phone-new'  => '<rect x="5.5" y="2.5" width="11" height="19" rx="3" fill="currentColor" fill-opacity=".22"/><path d="M9.5 5h3"/><path d="M19.5 2.5v4M17.5 4.5h4"/><path d="M8.5 17.5h5"/>',
+		'phone-used' => '<rect x="5.5" y="2.5" width="11" height="19" rx="3" fill="currentColor" fill-opacity=".22"/><path d="M9.5 5h3"/><path d="M13.6 12.6a2.6 2.6 0 1 1-.8-2.3"/><path d="M13.3 8.8v1.7h-1.7"/><path d="M8.5 17.5h5"/>',
+		'earbuds'    => '<path d="M8 4.5a3 3 0 0 0-3 3v1a3 3 0 0 0 3 3V19a1.5 1.5 0 0 0 3 0V7.5a3 3 0 0 0-3-3z" fill="currentColor" fill-opacity=".22"/><path d="M16 4.5a3 3 0 0 1 3 3v1a3 3 0 0 1-3 3V19a1.5 1.5 0 0 1-3 0V7.5a3 3 0 0 1 3-3z" fill="currentColor" fill-opacity=".22"/>',
+		'charger'    => '<rect x="6" y="8" width="12" height="13" rx="3" fill="currentColor" fill-opacity=".22"/><path d="M9.5 8V3.5M14.5 8V3.5"/><path d="M12.6 11l-2 3.4h3l-2 3.4"/>',
+		'cable'      => '<rect x="4.5" y="3" width="6" height="6" rx="1.6" fill="currentColor" fill-opacity=".22"/><path d="M6.5 3V1.8M8.5 3V1.8"/><path d="M7.5 9v4a5 5 0 0 0 5 5h1a4 4 0 0 0 4-4V11"/><rect x="15" y="5" width="5" height="6" rx="1.6" fill="currentColor" fill-opacity=".22"/><path d="M16.8 13.2v0"/>',
+		'camera'     => '<rect x="3.5" y="3.5" width="17" height="17" rx="5" fill="currentColor" fill-opacity=".22"/><circle cx="9" cy="9" r="2.5"/><circle cx="9" cy="15.2" r="2.5"/><circle cx="15.3" cy="12.1" r="2.5"/><path d="M16 6.8h.01"/>',
+		'screen'     => '<rect x="5.5" y="2.5" width="11" height="19" rx="3"/><path d="M8 6l8 5.5V6.8A1.3 1.3 0 0 0 14.7 5.5H8.6" fill="currentColor" fill-opacity=".22"/><path d="M8.2 14.5l5.6-5.6M10.4 17.5l4.6-4.6"/>',
+		'fire'       => '<path d="M12 21.5c-3.9 0-6.5-2.7-6.5-6.2 0-3.2 2-5.1 3.6-7.1.4 1.8 1.4 2.9 2.6 3.2C11.5 8 12.4 5 15 2.5c.4 3.2 3.5 5.9 3.5 10.6 0 4.9-2.8 8.4-6.5 8.4z" fill="currentColor" fill-opacity=".22"/><path d="M12 21.5c-1.7 0-2.9-1.2-2.9-2.9 0-1.6 1.3-2.6 2.2-3.8.5 1.3 1.6 1.6 2.4 2.6.6.8.9 1.4.9 2 0 1.2-1.1 2.1-2.6 2.1z"/>',
+		'devices'    => '<rect x="2.5" y="5" width="13" height="10" rx="1.8" fill="currentColor" fill-opacity=".22"/><path d="M1.5 18h11"/><rect x="15.5" y="8.5" width="6" height="12" rx="1.8" fill="currentColor" fill-opacity=".22"/><path d="M17.8 18.2h1.4"/>',
+		'watch'      => '<rect x="6.5" y="6" width="11" height="12" rx="3" fill="currentColor" fill-opacity=".22"/><path d="M9 6l.7-3h4.6l.7 3M9 18l.7 3h4.6l.7-3"/><path d="M12 9.5V12l1.5 1"/>',
+		'headphones' => '<path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3.5" y="14" width="4" height="6.5" rx="1.5" fill="currentColor" fill-opacity=".22"/><rect x="16.5" y="14" width="4" height="6.5" rx="1.5" fill="currentColor" fill-opacity=".22"/>',
+		'powerbank'  => '<rect x="6" y="3" width="12" height="18" rx="3" fill="currentColor" fill-opacity=".22"/><path d="M10 6.5h4"/><path d="M12.6 10l-2 3.2h3l-2 3.3"/>',
+		'speaker'    => '<rect x="5.5" y="3" width="13" height="18" rx="3" fill="currentColor" fill-opacity=".22"/><circle cx="12" cy="14" r="3.2"/><path d="M12 7h.01"/>',
+		'case'       => '<rect x="6" y="2.5" width="12" height="19" rx="3.2" fill="currentColor" fill-opacity=".22"/><rect x="8.5" y="5" width="4.2" height="4.2" rx="1.3"/><path d="M10.6 7.1h.01"/>',
+		'tablet'     => '<rect x="4" y="3" width="16" height="18" rx="2.5" fill="currentColor" fill-opacity=".22"/><path d="M11 18h2"/>',
+		'laptop'     => '<rect x="5" y="5" width="14" height="10" rx="1.5" fill="currentColor" fill-opacity=".22"/><path d="M3 18.5h18"/>',
+		'tag'        => '<path d="M3.5 12.5V4.5a1 1 0 0 1 1-1h8l8 8-9 9z" fill="currentColor" fill-opacity=".22"/><circle cx="8" cy="8" r="1.5"/>',
 	];
+}
+
+/** رنگِ کاشیِ هر آیکن: [رنگِ اصلی، رنگِ دومِ گرادیان] — هر دسته رنگِ خودش، همه در یک خانواده */
+function stlh_cat_palette( string $key ): array {
+	return [
+		'phone-new'  => [ '#1f6fd6', '#4f9cf9' ],
+		'phone-used' => [ '#0e9f6e', '#34c38f' ],
+		'earbuds'    => [ '#7c3aed', '#a78bfa' ],
+		'charger'    => [ '#e08a00', '#f7b733' ],
+		'cable'      => [ '#0891b2', '#38bdf8' ],
+		'camera'     => [ '#d63384', '#f472b6' ],
+		'screen'     => [ '#4f46e5', '#818cf8' ],
+		'fire'       => [ '#e5383b', '#ff7a3d' ],
+		'devices'    => [ '#0f766e', '#2dd4bf' ],
+		'watch'      => [ '#334155', '#64748b' ],
+		'headphones' => [ '#9333ea', '#c084fc' ],
+		'powerbank'  => [ '#15803d', '#4ade80' ],
+		'speaker'    => [ '#ea580c', '#fb923c' ],
+		'case'       => [ '#be185d', '#f472b6' ],
+		'tablet'     => [ '#2563eb', '#60a5fa' ],
+		'laptop'     => [ '#475569', '#94a3b8' ],
+	][ $key ] ?? [ '#475569', '#94a3b8' ];
 }
 
 /** نامک (و نام) دسته ← کلید آیکن پیش‌فرض */
@@ -206,12 +235,12 @@ function stlh_cat_icon_key( string $slug, string $name = '' ): string {
 		return $map[ $slug ];
 	}
 	// نامک دسته‌هایی که حسابداری می‌سازد ممکن است فارسی باشد؛ پس از روی نام هم.
-	foreach ( [ 'کارکرده' => 'phone-used', 'استوک' => 'phone-used', 'ایرپاد' => 'earbuds', 'ایربادز' => 'earbuds', 'هندزفری' => 'earbuds', 'شارژر' => 'charger', 'آداپتور' => 'charger', 'کابل' => 'cable', 'قاب' => 'case', 'کاور' => 'case', 'ساعت' => 'watch', 'واچ' => 'watch', 'هدفون' => 'headphones', 'پاوربانک' => 'powerbank', 'اسپیکر' => 'speaker', 'آیپد' => 'tablet', 'تبلت' => 'tablet', 'مک‌بوک' => 'laptop', 'مکبوک' => 'laptop', 'لنز' => 'camera', 'آیفون' => 'phone-new', 'گوشی' => 'phone-new' ] as $needle => $key ) {
+	foreach ( [ 'پرفروش' => 'fire', 'محافظ صفحه' => 'screen', 'گلس' => 'screen', 'محافظ لنز' => 'camera', 'دیجیتال' => 'devices', 'لوازم جانبی' => 'cable', 'کارکرده' => 'phone-used', 'استوک' => 'phone-used', 'ایرپاد' => 'earbuds', 'ایربادز' => 'earbuds', 'هندزفری' => 'earbuds', 'شارژر' => 'charger', 'آداپتور' => 'charger', 'کابل' => 'cable', 'قاب' => 'case', 'کاور' => 'case', 'ساعت' => 'watch', 'واچ' => 'watch', 'هدفون' => 'headphones', 'پاوربانک' => 'powerbank', 'اسپیکر' => 'speaker', 'آیپد' => 'tablet', 'تبلت' => 'tablet', 'مک‌بوک' => 'laptop', 'مکبوک' => 'laptop', 'لنز' => 'camera', 'آیفون' => 'phone-new', 'گوشی' => 'phone-new' ] as $needle => $key ) {
 		if ( '' !== $name && str_contains( $name, $needle ) ) {
 			return $key;
 		}
 	}
-	foreach ( [ 'watch' => 'watch', 'head' => 'headphones', 'power' => 'powerbank', 'speak' => 'speaker', 'case' => 'case', 'cover' => 'case', 'ipad' => 'tablet', 'mac' => 'laptop', 'cable' => 'cable', 'lens' => 'camera', 'airpod' => 'earbuds', 'charg' => 'charger' ] as $needle => $key ) {
+	foreach ( [ 'best-sell' => 'fire', 'glass' => 'screen', 'screen' => 'screen', 'digital' => 'devices', 'watch' => 'watch', 'head' => 'headphones', 'power' => 'powerbank', 'speak' => 'speaker', 'case' => 'case', 'cover' => 'case', 'ipad' => 'tablet', 'mac' => 'laptop', 'cable' => 'cable', 'lens' => 'camera', 'airpod' => 'earbuds', 'charg' => 'charger' ] as $needle => $key ) {
 		if ( str_contains( $slug, $needle ) ) {
 			return $key;
 		}
