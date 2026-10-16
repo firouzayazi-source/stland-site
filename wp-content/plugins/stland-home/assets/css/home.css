@@ -1189,3 +1189,70 @@ body.home { overflow-x: clip; }
     .st-sb-card::before { width: 220px; height: 220px; top: -100px; inset-inline-end: -80px; }
     .st-sb-instagram .st-sb-icon-box { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #e1306c, 0 8px 18px rgba(214,41,118,.25); }
 }
+
+/* ---------- لیست آک و کارکرده (stland.ir/list، includes/app-list.php) — همان کارتِ مینی‌اپِ ربات ---------- */
+.stlh-list { background: #f2f2f7; padding: 16px 0 32px; }
+.stlh-al {
+    font-family: var(--st-font, inherit);
+    direction: rtl;
+    box-sizing: border-box;
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 16px;
+    color: #0b0b0f;
+}
+.stlh-al *, .stlh-al *::before, .stlh-al *::after { box-sizing: border-box; }
+.stlh-al-hero {
+    background: radial-gradient(120% 140% at 100% 0%, #1d2b4f 0%, #0b0b0f 60%);
+    color: #fff;
+    border-radius: 28px;
+    padding: 28px 24px 20px;
+    margin-bottom: 20px;
+}
+.stlh-al-hero h1 { margin: 0 0 6px; font-size: clamp(24px, 5vw, 34px); font-weight: 800; line-height: 1.3; color: #fff; }
+.stlh-al-hero p { margin: 0; color: rgba(255,255,255,.72); font-size: 14px; }
+.stlh-al-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.stlh-al-tab {
+    display: inline-flex; align-items: center; gap: 8px;
+    min-height: 40px; padding: 0 16px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.12);
+    color: #fff !important; text-decoration: none !important;
+    font-size: 14px; font-weight: 700;
+}
+.stlh-al-tab b { background: #0a63ff; border-radius: 999px; padding: 1px 9px; font-size: 12px; }
+.stlh-al-tab:hover { background: rgba(255,255,255,.2); }
+.stlh-al-sec { margin: 0 0 24px; scroll-margin-top: 90px; }
+.stlh-al-sec h2 { margin: 0 4px 12px; font-size: 20px; font-weight: 800; color: #0b0b0f; display: flex; align-items: baseline; gap: 10px; }
+.stlh-al-sec h2 span { font-size: 13px; font-weight: 600; color: #8e8e93; }
+.stlh-al-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 720px) { .stlh-al-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; } }
+@media (min-width: 1080px) { .stlh-al-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.stlh-al-card {
+    display: grid;
+    grid-template-columns: 76px minmax(0, 1fr);
+    grid-template-areas: "img body" "img price";
+    column-gap: 12px; row-gap: 6px;
+    align-items: center;
+    padding: 12px;
+    background: #fff;
+    border-radius: 22px;
+    box-shadow: 0 4px 18px rgba(0,0,0,.05);
+    color: #0b0b0f !important; text-decoration: none !important;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+.stlh-al-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(10,99,255,.12); }
+.stlh-al-img { grid-area: img; width: 76px; height: 76px; border-radius: 16px; overflow: hidden; background: #f2f2f7; display: flex; align-items: center; justify-content: center; }
+.stlh-al-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.stlh-al-img .st-pr-noimg { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: #8e8e93; }
+.stlh-al-img .st-pr-noimg svg { width: 34px; height: 34px; }
+.stlh-al-body { grid-area: body; min-width: 0; align-self: end; }
+.stlh-al-name { display: block; font-size: 15px; font-weight: 800; line-height: 1.5; overflow-wrap: anywhere; }
+.stlh-al-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.stlh-al-chip { background: #f2f2f7; border-radius: 999px; padding: 1px 10px; font-size: 12px; font-weight: 600; color: #3a3a3c; white-space: nowrap; }
+.stlh-al-price { grid-area: price; align-self: start; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; font-size: 16px; font-weight: 800; color: #0a63ff; }
+.stlh-al-price del { order: 2; color: #8e8e93; font-size: 12px; font-weight: 500; opacity: 1; }
+.stlh-al-price ins { text-decoration: none; background: none; color: #0a63ff; }
+.stlh-al-price .woocommerce-Price-amount { color: inherit; }
+.stlh-al-empty, .stlh-al-foot { text-align: center; color: #8e8e93; font-size: 14px; margin: 24px 0 0; }
+.stlh-al-empty a { color: #0a63ff; font-weight: 700; }
