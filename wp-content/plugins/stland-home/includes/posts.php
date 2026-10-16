@@ -312,3 +312,25 @@ add_filter( 'the_content', static function ( $content ) {
 		. '</aside>';
 }, 20 );
 
+
+/**
+ * پیش‌نویس‌هایی که به زباله‌دان می‌روند (برگشت‌پذیر، از «نوشته‌ها ← زباله‌دان»). فقط اگر هنوز پیش‌نویس‌اند.
+ * • ۴۴۸۴۶ «خرید اقساطی آیفون در قم»: همان موضوع و کلیدواژه‌ی «آیفون اقساطی در قم» (۴۴۸۴۹)؛ دو صفحه‌ی یک سایت
+ *   سرِ یک جست‌وجو با هم رقابت می‌کنند و هیچ‌کدام بالا نمی‌آید. رقیب‌ها را هم معرفی می‌کرد (صاحب فروشگاه، ۲۴ مهر:
+ *   «اگر از دیدِ کارشناسی اشکال دارد پاکش کن»).
+ */
+const STLH_POSTS_TRASH = [ 44846 ];
+
+add_action( 'init', static function (): void {
+	$hash = md5( implode( ',', STLH_POSTS_TRASH ) );
+	$prev = (array) get_option( 'stlh_posts_trash', [] );
+	if ( ( $prev['hash'] ?? '' ) === $hash ) {
+		return;
+	}
+	$done = [];
+	foreach ( STLH_POSTS_TRASH as $id ) {
+		$st          = get_post_status( $id );
+		$done[ $id ] = 'draft' === $st ? ( wp_trash_post( $id ) ? 'trashed' : 'failed' ) : (string) $st;
+	}
+	update_option( 'stlh_posts_trash', [ 'hash' => $hash, 'at' => gmdate( 'c' ), 'items' => $done ], false );
+}, 41 );
