@@ -96,6 +96,22 @@ add_filter( 'template_include', function ( string $template ): string {
 	return STLH_DIR . 'templates/app-list.php';
 }, 99 );
 
+/*
+ * CSSِ این صفحه داخلِ خودِ صفحه (۲۴ مهر ۱۴۰۵): صاحب فروشگاه (واردشده با حسابِ مدیر) صفحه را بی‌طرح دید در حالی که
+ * برای مهمان درست بود — فایلِ ترکیب‌شده‌ی LiteSpeed برای آن نسخه‌ی صفحه به‌روز نبود. حدودِ ۶ کیلوبایت است؛ داخلِ
+ * <head> هیچ‌وقت از فایلِ HTMLاش جدا نمی‌افتد.
+ */
+add_action( 'wp_head', static function (): void {
+	$id = stlh_app_list_page_id();
+	if ( ! $id || ! is_page( $id ) ) {
+		return;
+	}
+	$css = (string) @file_get_contents( STLH_DIR . 'assets/css/app-list.css' );
+	if ( '' !== $css ) {
+		echo '<style id="stlh-app-list-css">' . preg_replace( '/\s+/', ' ', $css ) . "</style>\n"; // phpcs:ignore WordPress.Security.EscapeOutput -- فایلِ خودِ افزونه
+	}
+}, 20 );
+
 add_filter( 'stlh_force_enqueue', static function ( bool $on ): bool {
 	$id = stlh_app_list_page_id();
 	return $on || ( $id && is_page( $id ) );
