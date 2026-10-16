@@ -269,3 +269,24 @@ function stlh_post_upsert( string $slug, array $def, array $prev ): array {
 	}
 	return [ 'id' => $id, 'status' => get_post_status( $id ), 'modified' => (string) get_post_field( 'post_modified_gmt', $id ) ];
 }
+
+/**
+ * کادرِ «ما را دنبال کنید» پایینِ هر مقاله (صاحب فروشگاه، ۲۴ مهر ۱۴۰۵: «برای تبلیغِ بهترِ کانالِ تلگرام و پیجِ
+ * اینستاگرام، با لینک، شلوغ نشود»). فقط صفحه‌ی خودِ مقاله، نه فهرست‌ها و خوراک؛ نشانی‌ها از `stlh_store_facts()`.
+ */
+add_filter( 'the_content', static function ( $content ) {
+	if ( ! is_singular( 'post' ) || ! in_the_loop() || ! is_main_query() || ! function_exists( 'stlh_store_facts' ) ) {
+		return $content;
+	}
+	$f  = stlh_store_facts();
+	$ig = 'https://instagram.com/' . rawurlencode( (string) $f['instagram'] );
+	$tg = 'https://t.me/' . rawurlencode( (string) $f['telegram'] );
+	$a  = 'display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;color:#fff;font-weight:700;font-size:14px;text-decoration:none;';
+	return $content
+		. '<aside class="stlh-follow" style="margin:28px 0 8px;padding:14px 16px;border:1px solid #e0e0e6;border-radius:12px;background:#fafbfc;text-align:center">'
+		. '<p style="margin:0 0 10px;font-size:14px;color:#3f4064">' . esc_html( stlh_label( 'follow' ) ) . '</p>'
+		. '<a href="' . esc_url( $ig ) . '" target="_blank" rel="noopener" style="' . $a . 'background:linear-gradient(45deg,#f09433,#dc2743,#bc1888);margin:4px">اینستاگرام ‎@' . esc_html( (string) $f['instagram'] ) . '</a>'
+		. '<a href="' . esc_url( $tg ) . '" target="_blank" rel="noopener" style="' . $a . 'background:#229ed9;margin:4px">کانال تلگرام ‎@' . esc_html( (string) $f['telegram'] ) . '</a>'
+		. '</aside>';
+}, 20 );
+
