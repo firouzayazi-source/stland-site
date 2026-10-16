@@ -147,7 +147,13 @@ function stlh_posts_apply(): void {
 	$todo  = [];
 	foreach ( STLH_POSTS as $slug => $def ) {
 		$file = STLH_DIR . 'content/posts/' . $slug . '.html';
-		$hash = md5( wp_json_encode( $def ) . ( is_readable( $file ) ? md5_file( $file ) : '' ) );
+		// عکس‌ها هم در نشانِ تغییر: عکسِ عوض‌شده با همان نام (۲۴ مهر، ویترینِ بی‌آدم) باید دوباره برود
+		$imgs = '';
+		foreach ( array_merge( [ $def['thumb'] ], array_values( $def['images'] ) ) as $img ) {
+			$f     = STLH_DIR . 'assets/posts/' . $img['file'];
+			$imgs .= is_readable( $f ) ? md5_file( $f ) : '';
+		}
+		$hash = md5( wp_json_encode( $def ) . ( is_readable( $file ) ? md5_file( $file ) : '' ) . $imgs );
 		if ( ( $state[ $slug ]['hash'] ?? '' ) !== $hash ) {
 			$todo[ $slug ] = $hash;
 		}
@@ -318,8 +324,10 @@ add_filter( 'the_content', static function ( $content ) {
  * • ۴۴۸۴۶ «خرید اقساطی آیفون در قم»: همان موضوع و کلیدواژه‌ی «آیفون اقساطی در قم» (۴۴۸۴۹)؛ دو صفحه‌ی یک سایت
  *   سرِ یک جست‌وجو با هم رقابت می‌کنند و هیچ‌کدام بالا نمی‌آید. رقیب‌ها را هم معرفی می‌کرد (صاحب فروشگاه، ۲۴ مهر:
  *   «اگر از دیدِ کارشناسی اشکال دارد پاکش کن»).
+ * • بقیه‌ی پیش‌نویس‌ها (۱۵ مهر): صاحب فروشگاه، ۲۴ مهر: «همه‌ی پیش‌نویس‌ها را پاک کن، نیازی نداریم». موضوع‌هایشان در
+ *   برنامه‌ی محتوا (`docs/seo-plan.md`) از نو و درست نوشته می‌شوند.
  */
-const STLH_POSTS_TRASH = [ 44846 ];
+const STLH_POSTS_TRASH = [ 44846, 44843, 44840, 44837, 44834, 44831 ];
 
 add_action( 'init', static function (): void {
 	$hash = md5( implode( ',', STLH_POSTS_TRASH ) );
