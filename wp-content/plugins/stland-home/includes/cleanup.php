@@ -43,7 +43,42 @@ const STLH_CLEANUP = [
 	'public_html/error_log',
 	'public_html/wp-admin/error_log',
 	'public_html/wp-includes/customize/error_log',
+	// فایلِ آزمایشیِ رله‌ی سپ — کارش تمام شده (صاحب فروشگاه، ۲۴ مهر ۱۴۰۵: «انجام بده»)
+	'public_html/sep-relay/probe.php',
 ];
+
+/**
+ * `.htaccess`ِ رله‌ی سپ جا مانده بود: `/sep-relay/OnlinePG/OnlinePG` به ۴۰۴ِ وردپرس می‌رسید و رله دیده نمی‌شد.
+ * متن عیناً از `stockland-bot/infra/sep-relay/.htaccess` (هیچ `RewriteBase`ی ننویسید — همان‌جا توضیح داده شده).
+ * فقط اگر پوشه هست و فایل نیست؛ هیچ‌وقت روی فایلِ موجود نمی‌نویسد.
+ */
+const STLH_SEP_RELAY_HTACCESS = <<<'HT'
+# همهٔ درخواست‌ها به index.php رله می‌روند؛ خودِ index.php مسیر را با فهرستِ سفید می‌سنجد.
+# ⛔ RewriteBase ننویسید: مقصدِ نسبیِ index.php آن‌وقت index.phpِ وردپرس می‌شود.
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [L,QSA]
+</IfModule>
+
+<FilesMatch "\.(md|log)$">
+  Require all denied
+</FilesMatch>
+HT;
+
+add_action( 'init', static function (): void {
+	if ( get_option( 'stlh_sep_htaccess' ) ) {
+		return;
+	}
+	$dir  = untrailingslashit( ABSPATH ) . '/sep-relay';
+	$file = $dir . '/.htaccess';
+	if ( ! is_dir( $dir ) || ! is_file( $dir . '/index.php' ) ) {
+		update_option( 'stlh_sep_htaccess', [ 'at' => gmdate( 'c' ), 'result' => 'no relay dir' ], false );
+		return;
+	}
+	$result = file_exists( $file ) ? 'exists, kept' : ( false !== @file_put_contents( $file, STLH_SEP_RELAY_HTACCESS . "\n" ) ? 'written' : 'write failed' );
+	update_option( 'stlh_sep_htaccess', [ 'at' => gmdate( 'c' ), 'result' => $result ], false );
+}, 31 );
 
 add_action( 'init', 'stlh_cleanup_run', 30 );
 
