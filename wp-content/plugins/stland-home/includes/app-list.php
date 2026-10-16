@@ -50,8 +50,11 @@ function stlh_app_list_receive( WP_REST_Request $req ): array {
 		$sections[ $key ] = [ 'key' => $key, 'label' => sanitize_text_field( (string) ( $s['label'] ?? '' ) ), 'items' => $items ];
 	}
 	update_option( STLH_APP_LIST_OPT, [ 'sections' => array_values( $sections ), 'at' => time() ], false );
-	stlh_app_list_page_id( true ); // نسل را `update_option_…` پایین بالا می‌برد
+	$page  = stlh_app_list_page_id( true ); // نسل را `update_option_…` پایین بالا می‌برد
 	$count = array_sum( array_map( static fn( $s ) => count( $s['items'] ), $sections ) );
+	if ( $page ) {
+		stlh_app_list_seo_refresh( $page, $count );
+	}
 	return [ 'ok' => true, 'count' => $count, 'url' => stlh_app_list_url() ];
 }
 
@@ -80,6 +83,82 @@ function stlh_app_list_page_id( bool $create = false ): int {
 		update_option( STLH_APP_LIST_PAGE, $id, false );
 	}
 	return $id;
+}
+
+/*
+ * ─── سئو (۲۵ مهر ۱۴۰۵، تصمیمِ کارشناسی با اجازه‌ی صاحب فروشگاه) ───
+ * **یک نشانیِ ثابت** (`/list/`) که هر بار لیست عوض شد همان‌جا تازه می‌شود — نه صفحه‌ی تازه برای هر روز. صفحه‌های روزانه
+ * محتوای تکراری و کم‌عمر می‌سازند و اعتبارِ جستجو بینشان پخش می‌شود؛ یک صفحه‌ی ماندگار با تاریخِ «به‌روزشده» همان
+ * چیزی است که گوگل برای «قیمتِ روز» بالا می‌آورد. پس با هر لیستِ تازه: تاریخِ ویرایشِ برگه (نقشه‌ی سایت و
+ * `dateModified`)، عنوان و توضیحِ یواست با تاریخ و تعداد، تاریخِ دیده‌شدنی زیرِ عنوان، و داده‌ی ساختاریافته‌ی `ItemList`.
+ * اگر روزی نامکِ برگه عوض شود، خودِ وردپرس از نشانیِ قبلی به تازه هدایت می‌کند (`_wp_old_slug`).
+ */
+function stlh_jalali( int $ts ): string {
+	$d = new DateTime( '@' . $ts );
+	$d->setTimezone( new DateTimeZone( 'Asia/Tehran' ) );
+	[ $gy, $gm, $gd ] = array_map( 'intval', explode( '-', $d->format( 'Y-n-j' ) ) );
+	$g_d_m = [ 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 ];
+	$gy2   = $gm > 2 ? $gy + 1 : $gy;
+	$days  = 355666 + 365 * $gy + intdiv( $gy2 + 3, 4 ) - intdiv( $gy2 + 99, 100 ) + intdiv( $gy2 + 399, 400 ) + $gd + $g_d_m[ $gm - 1 ];
+	$jy    = -1595 + 33 * intdiv( $days, 12053 );
+	$days %= 12053;
+	$jy   += 4 * intdiv( $days, 1461 );
+	$days %= 1461;
+	if ( $days > 365 ) {
+		$jy  += intdiv( $days - 1, 365 );
+		$days = ( $days - 1 ) % 365;
+	}
+	if ( $days < 186 ) {
+		$jm = 1 + intdiv( $days, 31 );
+		$jd = 1 + $days % 31;
+	} else {
+		$jm = 7 + intdiv( $days - 186, 30 );
+		$jd = 1 + ( $days - 186 ) % 30;
+	}
+	$months = [ 'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند' ];
+	return stlh_fa( $jd . ' ' . $months[ $jm - 1 ] . ' ' . $jy );
+}
+
+function stlh_app_list_seo_refresh( int $page, int $count ): void {
+	$vars = [ '{تاریخ}' => stlh_jalali( time() ), '{n}' => stlh_fa( $count ) ];
+	update_post_meta( $page, '_yoast_wpseo_title', stlh_label( 'list_seo_title', $vars ) . ' | %%sitename%%' );
+	update_post_meta( $page, '_yoast_wpseo_metadesc', stlh_label( 'list_seo_desc', $vars ) );
+	// تاریخِ ویرایشِ برگه = آخرین به‌روزرسانیِ لیست (نقشه‌ی سایت، `dateModified`)
+	wp_update_post( [ 'ID' => $page ] );
+}
+
+/** داده‌ی ساختاریافته: فهرستِ کالاها با قیمت و موجودی — برای نتیجه‌ی جستجو */
+function stlh_app_list_schema( array $sections ): string {
+	$items = [];
+	$pos   = 0;
+	$irr   = function_exists( 'get_woocommerce_currency' ) && 'IRT' === get_woocommerce_currency() ? 10 : 1;
+	foreach ( $sections as $s ) {
+		foreach ( $s['cards'] as $c ) {
+			$p   = $c['p'];
+			$img = $p->get_image_id() ? wp_get_attachment_image_url( $p->get_image_id(), 'woocommerce_thumbnail' ) : '';
+			$items[] = [
+				'@type'    => 'ListItem',
+				'position' => ++$pos,
+				'item'     => array_filter( [
+					'@type'  => 'Product',
+					'name'   => $p->get_name(),
+					'url'    => $p->get_permalink(),
+					'image'  => $img ?: null,
+					'offers' => [
+						'@type'         => 'Offer',
+						'price'         => (string) round( (float) $p->get_price() * $irr ),
+						'priceCurrency' => 'IRR',
+						'availability'  => 'https://schema.org/InStock',
+					],
+				] ),
+			];
+		}
+	}
+	if ( ! $items ) {
+		return '';
+	}
+	$schema = [ '@context' => 'https://schema.org', '@type' => 'ItemList', 'name' => stlh_label( 'list_title' ), 'numberOfItems' => $pos, 'itemListElement' => $items ];
+	return '<script type="application/ld+json">' . wp_json_encode( $schema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) . '</script>';
 }
 
 function stlh_app_list_url(): string {
@@ -167,6 +246,7 @@ function stlh_app_list_card( WC_Product $p, array $chips ): string {
 
 function stlh_app_list_html(): string {
 	$sections = stlh_app_list_sections();
+	$data     = (array) get_option( STLH_APP_LIST_OPT, [] );
 	$total    = array_sum( array_map( static fn( $s ) => count( $s['cards'] ), $sections ) );
 
 	$tabs = '';
@@ -181,6 +261,8 @@ function stlh_app_list_html(): string {
 	$html = '<div class="stlh-al">'
 		. '<header class="stlh-al-hero"><h1>' . esc_html( stlh_label( 'list_title' ) ) . '</h1>'
 		. '<p>' . esc_html( stlh_label( 'list_sub' ) ) . '</p>'
+		. ( ! empty( $data['at'] ) ? '<p class="stlh-al-upd"><time datetime="' . esc_attr( gmdate( 'c', (int) $data['at'] ) ) . '">'
+			. esc_html( stlh_label( 'list_updated', [ '{تاریخ}' => stlh_jalali( (int) $data['at'] ) ] ) ) . '</time></p>' : '' )
 		. ( $tabs ? '<nav class="stlh-al-tabs">' . $tabs . '</nav>' : '' )
 		. '</header>';
 
@@ -202,5 +284,5 @@ function stlh_app_list_html(): string {
 			$cards
 		);
 	}
-	return $html . '<p class="stlh-al-foot">' . esc_html( stlh_label( 'list_foot' ) ) . '</p></div>';
+	return $html . '<p class="stlh-al-foot">' . esc_html( stlh_label( 'list_foot' ) ) . '</p></div>' . stlh_app_list_schema( $sections );
 }

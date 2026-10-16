@@ -30,6 +30,11 @@ for (const [name, width, height] of [['mobile', 390, 844], ['desktop', 1280, 900
   check((await page.locator('.stlh-al-chip').count()) > 0, `list ${name}: چیپ نیست`)
   check((await page.locator('.stlh-al-price del').count()) >= 1, `list ${name}: قیمتِ پیش از حراج خط‌خورده نیست`)
   check(!(await page.content()).includes('<b>x</b>'), `list ${name}: بخشِ ناشناخته آمد`)
+  // سئو (۲۵ مهر ۱۴۰۵): تاریخِ به‌روزرسانیِ دیده‌شدنی و داده‌ی ساختاریافته‌ی ItemList
+  check(/آخرین به‌روزرسانی: [۰-۹]+ [آ-ی]+ [۰-۹]{4}/.test(await page.locator('.stlh-al-upd').innerText().catch(() => '')), `list ${name}: تاریخِ به‌روزرسانی نیست`)
+  const ld = await page.$$eval('script[type="application/ld+json"]', (els) => els.map((e) => JSON.parse(e.textContent)))
+  const list = ld.find((x) => x['@type'] === 'ItemList')
+  check(list && list.itemListElement.length === names.length && list.itemListElement[0].item.offers.priceCurrency === 'IRR', `list ${name}: ItemList درست نیست`)
   check(errors.length === 0, `list ${name}: خطای جاوااسکریپت: ${errors.join(' / ')}`)
   if (outDir) await page.screenshot({ path: `${outDir}/list-${name}.png`, fullPage: true })
   await page.close()

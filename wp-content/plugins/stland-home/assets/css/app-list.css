@@ -19,6 +19,7 @@
 }
 .stlh-al-hero h1 { margin: 0 0 6px; font-size: clamp(24px, 5vw, 34px); font-weight: 800; line-height: 1.3; color: #fff; }
 .stlh-al-hero p { margin: 0; color: rgba(255,255,255,.72); font-size: 14px; }
+.stlh-al-hero .stlh-al-upd { margin-top: 6px; font-size: 12.5px; color: rgba(255,255,255,.6); }
 .stlh-al-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
 .stlh-al-tab {
     display: inline-flex; align-items: center; gap: 8px;
