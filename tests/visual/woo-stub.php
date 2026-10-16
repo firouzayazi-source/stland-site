@@ -27,6 +27,7 @@ class WC_Product {
 	public function is_on_sale() { return (bool) get_post_meta( $this->p->ID, 'sale', true ); }
 	public function get_regular_price() { return (float) get_post_meta( $this->p->ID, 'price', true ); }
 	public function get_sale_price() { return (float) get_post_meta( $this->p->ID, 'sale', true ); }
+	public function get_price() { return $this->get_sale_price() ?: $this->get_regular_price(); }
 	public function get_price_html() {
 		$r = $this->get_regular_price();
 		$s = $this->get_sale_price();
