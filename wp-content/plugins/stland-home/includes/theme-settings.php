@@ -245,3 +245,45 @@ function stlh_terms_off(): array {
 	}
 	return $done;
 }
+
+/**
+ * لینکِ «لیست آک و کارکرده» در منوهای سایت (صاحب فروشگاه، ۲۴ مهر ۱۴۰۵: «به منو نیاز دارد»). یک بار، به ته
+ * هر منویی که در جایگاه‌های قالب نشسته (اصلی و گوشی)، فقط وقتی برگه‌اش ساخته شده و لینکی به آن نیست. بعد از آن
+ * منو مالِ صاحب فروشگاه است: جابه‌جا یا پاکش کرد، دوباره اضافه نمی‌شود.
+ */
+add_action( 'init', static function (): void {
+	if ( get_option( 'stlh_list_menu' ) || ! defined( 'STLH_APP_LIST_PAGE' ) ) {
+		return;
+	}
+	$pid = (int) get_option( STLH_APP_LIST_PAGE );
+	if ( ! $pid || 'publish' !== get_post_status( $pid ) ) {
+		return; // برگه هنوز ساخته نشده؛ دفعه‌ی بعد
+	}
+	$done = [];
+	foreach ( array_unique( array_filter( array_map( 'intval', (array) get_nav_menu_locations() ) ) ) as $menu ) {
+		$has = false;
+		foreach ( (array) wp_get_nav_menu_items( $menu ) as $item ) {
+			if ( is_object( $item ) && 'post_type' === $item->type && $pid === (int) $item->object_id ) {
+				$has = true;
+			}
+		}
+		if ( $has ) {
+			$done[ $menu ] = 'exists';
+			continue;
+		}
+		$r             = wp_update_nav_menu_item( $menu, 0, [
+			'menu-item-title'     => 'لیست آک و کارکرده',
+			'menu-item-object'    => 'page',
+			'menu-item-object-id' => $pid,
+			'menu-item-type'      => 'post_type',
+			'menu-item-status'    => 'publish',
+		] );
+		$done[ $menu ] = is_wp_error( $r ) ? $r->get_error_message() : 'added ' . $r;
+	}
+	update_option( 'stlh_list_menu', [ 'at' => gmdate( 'c' ), 'page' => $pid, 'menus' => $done ], false );
+	if ( function_exists( 'litespeed_purge_all' ) ) {
+		litespeed_purge_all();
+	} else {
+		do_action( 'litespeed_purge_all' );
+	}
+}, 40 );

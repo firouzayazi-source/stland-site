@@ -222,10 +222,12 @@ function stlh_categories(): string {
 		if ( $photo_mode && ( $tid = (int) get_term_meta( $term->term_id, 'thumbnail_id', true ) ) ) {
 			$media = wp_get_attachment_image( $tid, 'thumbnail', false, [ 'alt' => '', 'loading' => 'lazy', 'decoding' => 'async' ] );
 		}
-		$icon   = $media ?: stlh_cat_icon( $icon_key ?: stlh_cat_icon_key( rawurldecode( $term->slug ), $term->name ) );
-		$cards .= sprintf(
-			'<a class="st-category-card" href="%s"><span class="st-icon-box%s">%s</span><span class="st-cat-name">%s</span></a>',
-			esc_url( $link ), $media ? ' has-img' : '', $icon, esc_html( stlh_cat_name( $term ) )
+		$key          = $icon_key ?: stlh_cat_icon_key( rawurldecode( $term->slug ), $term->name );
+		[ $c1, $c2 ]  = stlh_cat_palette( $key );
+		$icon         = $media ?: stlh_cat_icon( $key );
+		$cards       .= sprintf(
+			'<a class="st-category-card" href="%s" style="--ci:%s;--ci2:%s"><span class="st-icon-box%s">%s</span><span class="st-cat-name">%s</span></a>',
+			esc_url( $link ), esc_attr( $c1 ), esc_attr( $c2 ), $media ? ' has-img' : '', $icon, esc_html( stlh_cat_name( $term ) )
 		);
 	}
 	if ( ! $cards ) {
