@@ -104,9 +104,9 @@ const STLH_POSTS = [
 			'desc'  => 'خرید آیفون اقساطی در قم از استوک لند: آیفون نو و کارکرده با اقساط ۱ تا ۱۲ ماهه، ضمانت طلا یا چک معتبر و اسنپ‌پی. مراحل خرید و نکات مهم را بخوانید.',
 			'kw'    => 'آیفون اقساطی در قم',
 		],
-		'thumb'    => [ 'file' => 'iphone-installment-qom-hero.webp', 'alt' => 'آیفون اقساطی در قم — فروشگاه استوک لند در بازار سلام' ],
+		'thumb'    => [ 'file' => 'iphone-installment-qom-hero.webp', 'alt' => 'آیفون اقساطی در قم؛ خرید قسطی آیفون نو و کارکرده از استوک لند' ],
 		'images'   => [
-			'store' => [ 'file' => 'stockland-store-qom.webp', 'alt' => 'فروشگاه استوک لند در مجتمع بازار سلام قم، واحد F11' ],
+			'models' => [ 'file' => 'iphone-installment-qom-models.webp', 'alt' => 'کدام آیفون را قسطی بخریم؛ آیفون نارنجی و نقره‌ای' ],
 			'steps' => [ 'file' => 'iphone-installment-qom-steps.webp', 'alt' => 'مراحل خرید آیفون اقساطی در استوک لند در ۵ قدم' ],
 			'boxes' => [ 'file' => 'stockland-iphone-boxes.webp', 'alt' => 'جعبه‌های آیفون نو در استوک لند قم' ],
 			'box'   => [ 'file' => 'stockland-iphone-box.webp', 'alt' => 'آیفون روی جعبه‌ی اصلی در استوک لند' ],
