@@ -151,12 +151,19 @@ function stlh_posts_recache( array $ids = [] ): void {
 	foreach ( $ids as $id ) {
 		clean_post_cache( (int) $id );
 		wp_cache_delete( (int) $id, 'post_meta' );
+		do_action( 'litespeed_purge_post', (int) $id );
 	}
-	if ( function_exists( 'litespeed_purge_all' ) ) {
-		litespeed_purge_all();
-	} else {
-		do_action( 'litespeed_purge_all' );
-	}
+	do_action( 'litespeed_purge_url', home_url( '/' ) );
+}
+
+/**
+ * مقاله‌ی تازه یا ویرایش‌شده فقط صفحه‌های وبلاگ (فهرستِ «تازه‌های خبری» در همه‌ی مقاله‌ها) و صفحه‌ی اصلی را کهنه می‌کند،
+ * نه محصول و فروشگاه. تا ۲۶ مهر ۱۴۰۵ هر نوشتن و هر نسخه‌ی افزونه **کلِ** کشِ LiteSpeed را پاک می‌کرد و صفحه‌ی بعدیِ
+ * هر مشتری ۲٫۵ تا ۳ ثانیه ساخته می‌شد (گرم‌کن روی این هاست عمداً خاموش است، `warm.php`) — صاحب فروشگاه: «سرعتِ لودِ سایت».
+ */
+function stlh_posts_purge_blog(): void {
+	do_action( 'litespeed_purge_posttype', 'post' );
+	do_action( 'litespeed_purge_url', home_url( '/' ) );
 }
 
 function stlh_posts_apply(): void {
@@ -316,11 +323,7 @@ function stlh_post_upsert( string $slug, array $def, array $prev ): array {
 	update_post_meta( $id, '_yoast_wpseo_metadesc', $def['seo']['desc'] );
 	update_post_meta( $id, '_yoast_wpseo_focuskw', $def['seo']['kw'] );
 	clean_post_cache( $id );
-	if ( function_exists( 'litespeed_purge_all' ) ) {
-		litespeed_purge_all();
-	} else {
-		do_action( 'litespeed_purge_all' );
-	}
+	stlh_posts_purge_blog();
 	return [ 'id' => $id, 'status' => get_post_status( $id ), 'modified' => (string) get_post_field( 'post_modified_gmt', $id ) ];
 }
 
