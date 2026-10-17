@@ -125,6 +125,8 @@ function stlh_perf_report(): array {
 		'profile_last'    => get_transient( 'stlh_prof_last' ) ?: null,
 		'slow_http'       => array_values( array_filter( (array) get_transient( 'stlh_slow_http' ) ) ),
 		'warm_last'       => get_option( 'stlh_warm_last', null ),
+		'purge_log'       => array_reverse( (array) get_option( 'stlh_purge_log', [] ) ),
+		'ls_purge'        => [ 'rev' => (int) get_option( 'stlh_ls_purge_rev', 0 ), 'backup' => get_option( 'stlh_ls_purge_backup', null ), 'dss_empty' => (bool) get_transient( 'stlh_dss_empty' ) ],
 		'store_content'   => array_diff_key( (array) get_option( 'stlh_store_content', [] ), [ 'stamp' => 1 ] ),
 		'auto_update'     => [ 'on' => '1' === get_option( 'stlu_auto' ), 'next' => wp_next_scheduled( 'stlu_auto_run' ) ? gmdate( 'c', (int) wp_next_scheduled( 'stlu_auto_run' ) ) : null, 'last' => get_option( 'stlu_auto_last', null ) ],
 		'page_cache'      => function_exists( 'stlh_pc_report' ) ? stlh_pc_report() + [ 'lsws' => stlh_pc_lsws(), 'server_software' => (string) ( $_SERVER['SERVER_SOFTWARE'] ?? '' ) ] : null,
