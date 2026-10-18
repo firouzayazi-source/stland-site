@@ -182,3 +182,16 @@ add_action( 'wp_head', static function (): void {
 		. '.stlh-ti__wa{display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:12px;background:#1fa855;color:#fff!important;font-weight:800;text-decoration:none!important;margin-top:12px}'
 		. "</style>\n"; // phpcs:ignore
 } );
+
+// برگه‌ها با به‌روزرسانی پاک نمی‌شوند (`cache-tune.php`)؛ پس یک بار همین صفحه دوباره ساخته شود تا سبکِ درست برسد (۱.۶۵.۰)
+add_action( 'init', static function (): void {
+	if ( (int) get_option( 'stlh_tradein_css_rev', 0 ) >= 1 || ! defined( 'LSCWP_V' ) ) {
+		return;
+	}
+	$id = stlh_tradein_page_id();
+	if ( ! $id ) {
+		return;
+	}
+	update_option( 'stlh_tradein_css_rev', 1, false );
+	do_action( 'litespeed_purge_post', $id );
+}, 45 );
