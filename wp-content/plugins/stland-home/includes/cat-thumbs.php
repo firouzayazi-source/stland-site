@@ -1,0 +1,80 @@
+<?php
+/**
+ * عکسِ دسته‌هایی که عکس ندارند.
+ *
+ * صاحب فروشگاه (۲۶ مهر ۱۴۰۵، با عکسِ صفحه‌ی «دسته‌بندی‌ها» از دکمه‌ی پایینِ گوشی): «آیکون رو نداره، آیکون خودشو بذار
+ * و خوشگل باشه، شکلکِ بدون شکل نباشه». ابزارکِ دسته‌های قالب (`/elementor-43744/`) عکسِ دسته را از متای `thumbnail_id`
+ * می‌خواند و اگر نباشد عکسِ جای‌خالیِ قالب را می‌گذارد؛ حسابداری عکسِ دسته نمی‌فرستد. این‌جا هر دسته‌ای که عکسِ درست
+ * ندارد همان آیکنِ صفحه‌ی اصلی (`stlh_cat_icon_key`) را به شکلِ کاشیِ رنگی می‌گیرد (`assets/cat-icons/<کلید>.webp`).
+ *
+ * عکسی که صاحب فروشگاه خودش گذاشته هیچ‌وقت عوض نمی‌شود — فقط جای خالی پر می‌شود.
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+const STLH_CAT_THUMBS_REV = 1;
+
+/** کاشیِ یک کلید در کتابخانه‌ی رسانه (یک بار) → شناسه */
+function stlh_cat_thumb_media( string $key ): int {
+	$src = STLH_DIR . 'assets/cat-icons/' . $key . '.webp';
+	if ( ! is_readable( $src ) ) {
+		$key = 'tag';
+		$src = STLH_DIR . 'assets/cat-icons/tag.webp';
+	}
+	$map = (array) get_option( 'stlh_cat_thumb_media', [] );
+	if ( ! empty( $map[ $key ] ) && get_post( (int) $map[ $key ] ) ) {
+		return (int) $map[ $key ];
+	}
+	$up = wp_upload_bits( 'stland-cat-' . $key . '.webp', null, (string) file_get_contents( $src ) );
+	if ( ! empty( $up['error'] ) ) {
+		return 0;
+	}
+	$id = wp_insert_attachment( [ 'post_mime_type' => 'image/webp', 'post_title' => 'آیکنِ دسته', 'post_status' => 'inherit' ], $up['file'], 0, true );
+	if ( is_wp_error( $id ) ) {
+		return 0;
+	}
+	require_once ABSPATH . 'wp-admin/includes/image.php';
+	wp_update_attachment_metadata( $id, wp_generate_attachment_metadata( $id, $up['file'] ) );
+	$map[ $key ] = $id;
+	update_option( 'stlh_cat_thumb_media', $map, false );
+	return $id;
+}
+
+/** اگر دسته عکسِ درست ندارد، کاشیِ آیکنش را بگیرد — true یعنی چیزی عوض شد */
+function stlh_cat_thumb_fill( WP_Term $term ): bool {
+	$cur = (int) get_term_meta( $term->term_id, 'thumbnail_id', true );
+	if ( $cur && wp_attachment_is_image( $cur ) ) {
+		return false;
+	}
+	$aid = stlh_cat_thumb_media( stlh_cat_icon_key( rawurldecode( $term->slug ), $term->name ) );
+	if ( ! $aid ) {
+		return false;
+	}
+	update_term_meta( $term->term_id, 'thumbnail_id', $aid );
+	return true;
+}
+
+// یک بار برای دسته‌های فعلی
+add_action( 'init', static function (): void {
+	if ( (int) get_option( 'stlh_cat_thumbs_rev', 0 ) >= STLH_CAT_THUMBS_REV || ! taxonomy_exists( 'product_cat' ) ) {
+		return;
+	}
+	update_option( 'stlh_cat_thumbs_rev', STLH_CAT_THUMBS_REV, false );
+	$terms = get_terms( [ 'taxonomy' => 'product_cat', 'hide_empty' => false ] );
+	$done  = 0;
+	foreach ( is_array( $terms ) ? $terms : [] as $t ) {
+		$done += (int) stlh_cat_thumb_fill( $t );
+	}
+	update_option( 'stlh_cat_thumbs_done', $done, false );
+	if ( $done ) {
+		do_action( 'litespeed_purge_url', '/elementor-43744/' );
+	}
+}, 45 );
+
+// دسته‌ی تازه‌ای که حسابداری می‌سازد هم بی‌عکس نماند
+add_action( 'created_product_cat', static function ( int $term_id ): void {
+	$t = get_term( $term_id, 'product_cat' );
+	if ( $t instanceof WP_Term ) {
+		stlh_cat_thumb_fill( $t );
+	}
+} );
