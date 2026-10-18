@@ -110,7 +110,7 @@ function stlh_health_css(): string {
 .stl-hc{--hc-ok:#0fa08a;--hc-bad:#e0244d;--hc-mid:#e8a317;--hc-line:#eef0f3;--hc-soft:#f6f7f9;direction:rtl;margin:16px 0 8px;padding:16px;border:1px solid var(--hc-line);border-radius:16px;background:#fff;box-sizing:border-box;width:100%;max-width:100%;font-size:13px;line-height:1.7;color:#3f4064}
 .stl-hc *{box-sizing:border-box}
 .stl-hc__head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-.stl-hc__icon{flex:0 0 40px;height:40px;border-radius:12px;display:grid;place-items:center;color:#fff;background:linear-gradient(140deg,#34c38f,#0e9f6e);box-shadow:0 6px 14px -8px #0e9f6e}
+.stl-hc__icon{flex:0 0 40px;height:40px;border-radius:12px;display:grid;place-items:center;color:#fff;background:#0e9f6e}
 .stl-hc__title{flex:1;min-width:0}
 .stl-hc__title h3{margin:0;font-size:15px;font-weight:800;color:#23254e;line-height:1.5}
 .stl-hc__title p{margin:0;font-size:11.5px;color:#81858b}

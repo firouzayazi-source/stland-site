@@ -36,8 +36,8 @@ function stlh_mm_icon_svg( string $key ): string {
 }
 
 function stlh_mm_icons_css(): string {
-	// همه‌ی کاشی‌های سطحِ اول: یک اندازه، گرادیان، آیکنِ سفید
-	$css = '#bk-mm-root>.bk-mm-list>li>.bk-mm-link .bk-mm-ico{--g1:#1f6fd6;--g2:#4f9cf9;background:linear-gradient(140deg,var(--g2),var(--g1))!important;color:#fff!important;box-shadow:0 6px 14px -8px var(--g1);position:relative}'
+	// همه‌ی کاشی‌های سطحِ اول: یک اندازه، تخت با رنگِ زنده، آیکنِ سفید (بی گرادیان و سایه — ۲۷ مهر)
+	$css = '#bk-mm-root>.bk-mm-list>li>.bk-mm-link .bk-mm-ico{--g1:#1f6fd6;--g2:#4f9cf9;background:var(--g1)!important;color:#fff!important;box-shadow:none!important;position:relative}'
 		. '#bk-mm-root>.bk-mm-list>li>.bk-mm-link .bk-mm-ico i::before{color:#fff}';
 	foreach ( stlh_mm_icon_rules() as [ $sel, $key, $c1, $c2 ] ) {
 		$svg  = rawurlencode( stlh_mm_icon_svg( $key ) );
