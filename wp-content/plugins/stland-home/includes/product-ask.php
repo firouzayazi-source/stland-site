@@ -54,13 +54,10 @@ add_action( 'woocommerce_single_product_end', static function (): void {
 	$phone = stlh_is_phone_product( $p->get_id() );
 	$extra = '';
 	if ( $phone && function_exists( 'stlh_tradein_url' ) ) {
-		$extra .= '<a class="stlh-ask__ti" href="' . esc_url( stlh_tradein_url() ) . '"><span class="stlh-ask__ti-ico" aria-hidden="true">'
-			. '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a3 3 0 0 1 3-3h15"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a3 3 0 0 1-3 3H3"/></svg>'
-			. '</span><span class="stlh-ask__ti-txt"><b>' . esc_html( stlh_label( 'ask_tradein' ) ) . '</b><small>' . esc_html( stlh_label( 'ask_tradein_sub' ) ) . '</small></span>'
-			. '<span class="stlh-ask__ti-go" aria-hidden="true">‹</span></a>';
+		$extra .= stlh_ask_card( 'ti', stlh_tradein_url(), 'ask_tradein', 'ask_tradein_sub', '<path d="M17 2.5l3.5 3.5L17 9.5"/><path d="M3.5 11V9.5A3.5 3.5 0 0 1 7 6h13.5"/><path d="M7 21.5 3.5 18 7 14.5"/><path d="M20.5 13v1.5A3.5 3.5 0 0 1 17 18H3.5"/>' );
 	}
 	if ( $phone && '' !== get_post_meta( $p->get_id(), 'condition', true ) && function_exists( 'stlh_compare_url' ) ) {
-		$extra .= '<p class="stlh-ask__links"><a href="' . esc_url( stlh_compare_url( $p->get_id() ) ) . '">' . esc_html( stlh_label( 'ask_compare' ) ) . '</a></p>';
+		$extra .= stlh_ask_card( 'cmp', stlh_compare_url( $p->get_id() ), 'ask_compare', 'ask_compare_sub', '<rect x="3" y="4" width="7" height="16" rx="2"/><rect x="14" y="4" width="7" height="16" rx="2"/><path d="M6.5 8h0M17.5 8h0M5.5 16h2M16.5 16h2"/>' );
 	}
 	printf(
 		'<section class="stlh-ask" aria-label="%1$s"><h3>%1$s</h3><div class="stlh-ask__btns"><a class="stlh-ask__wa" href="%2$s" target="_blank" rel="noopener">%3$s</a><a class="stlh-ask__call" href="tel:%4$s">%5$s</a></div>%6$s</section>',
@@ -72,6 +69,15 @@ add_action( 'woocommerce_single_product_end', static function (): void {
 		$extra // phpcs:ignore — بخش‌ها escape شده‌اند
 	);
 }, 98 );
+
+/** دکمه‌ی کارتیِ زیرِ کادرِ «بپرسید» — همان کاشیِ گرادیان و آیکنِ سفیدِ بقیه‌ی سایت، با فلشِ «برو» */
+function stlh_ask_card( string $mod, string $url, string $title, string $sub, string $path ): string {
+	return '<a class="stlh-ask__card stlh-ask__card--' . esc_attr( $mod ) . '" href="' . esc_url( $url ) . '">'
+		. '<span class="stlh-ask__card-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' . $path . '</svg></span>'
+		. '<span class="stlh-ask__card-txt"><b>' . esc_html( stlh_label( $title ) ) . '</b><small>' . esc_html( stlh_label( $sub ) ) . '</small></span>'
+		// فلشِ «برو» در راست‌به‌چپ رو به چپ؛ SVG، نه نویسه‌ی «‹» که صاحب فروشگاه آن را باگ دید (۲۷ مهر)
+		. '<span class="stlh-ask__card-go" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 6 8.5 12l6 6"/></svg></span></a>';
+}
 
 add_action( 'wp_enqueue_scripts', static function (): void {
 	if ( ! function_exists( 'is_product' ) || ! is_product() ) {
@@ -86,14 +92,17 @@ function stlh_ask_css(): string {
 		. '.stlh-ask__btns{display:flex;gap:8px;flex-wrap:wrap}'
 		. '.stlh-ask__btns a{flex:1 1 140px;display:flex;align-items:center;justify-content:center;min-height:44px;border-radius:12px;font-weight:800;font-size:14px;text-decoration:none!important}'
 		. '.stlh-ask__wa{background:#1fa855;color:#fff!important}.stlh-ask__call{background:#f2f3f7;color:#1f2133!important}'
-		// شماره در `<span dir="ltr">` (`phone-ltr.php`) فاصله‌ی پیش از خود را می‌خورد: «تماس۰۹۱۲»
-		. '.stlh-ask__call .stlh-tel{margin-inline-start:.35em}'
-		. '.stlh-ask__links{margin:10px 0 0;font-size:13px;display:flex;gap:8px;flex-wrap:wrap;color:#8e8e93}.stlh-ask__links a{color:#0a63ff;font-weight:700}'
-		. '.stlh-ask__ti{display:flex;align-items:center;gap:12px;margin:10px 0 0;padding:12px 14px;border-radius:14px;background:linear-gradient(135deg,#eef4ff,#f5f0ff);border:1px solid #dfe8ff;color:#1f2133!important;text-decoration:none!important;transition:transform .15s,box-shadow .15s}'
-		. '.stlh-ask__ti:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(10,99,255,.12)}'
-		. '.stlh-ask__ti-ico{flex:0 0 40px;width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0a63ff,#7c3aed);color:#fff}.stlh-ask__ti-ico svg{width:22px;height:22px}'
-		. '.stlh-ask__ti-txt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}.stlh-ask__ti-txt b{font-size:14px;font-weight:800}.stlh-ask__ti-txt small{font-size:12px;color:#5b5f6b;line-height:1.6}'
+		// دکمه `flex` است و فاصله‌ی «تماس» و `<span dir="ltr">`ِ شماره (`phone-ltr.php`) را می‌خورد: «تماس۰۹۱۲»
+		. '.stlh-ask__btns a{gap:.35em}'
+		. '.stlh-ask__card{--g1:#7c3aed;--g2:#a78bfa;--tint:#f5f1ff;--line:#e9e1ff;display:flex;align-items:center;gap:12px;margin:10px 0 0;padding:12px 14px;border-radius:14px;background:var(--tint);border:1px solid var(--line);color:#1f2133!important;text-decoration:none!important;transition:transform .15s,box-shadow .15s}'
+		. '.stlh-ask__card--cmp{--g1:#0f766e;--g2:#2dd4bf;--tint:#ecfbf8;--line:#cdf3ec}'
+		. '.stlh-ask__card:hover{transform:translateY(-1px);box-shadow:0 8px 20px -10px var(--g1)}'
+		. '.stlh-ask__card-ico{flex:0 0 42px;width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(140deg,var(--g2),var(--g1));color:#fff;box-shadow:0 6px 14px -8px var(--g1)}.stlh-ask__card-ico svg{width:22px;height:22px}'
+		. '.stlh-ask__card-txt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}.stlh-ask__card-txt b{font-size:14px;font-weight:800}.stlh-ask__card-txt small{font-size:12px;color:#5b5f6b;line-height:1.6}'
+		. '.stlh-ask__card-go{flex:0 0 28px;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fff;color:var(--g1)}.stlh-ask__card-go svg{width:16px;height:16px}'
+		// کادرِ هشدارِ همتا با آیکنِ کاشی (`product-alert.php`)
+		. '.stlh-alert .alert-box-wrap{display:flex;align-items:center;gap:12px}.stlh-alert-ico{flex:0 0 36px;width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(140deg,#34c38f,#0e9f6e);box-shadow:0 6px 14px -8px #0e9f6e}.stlh-alert-ico svg{width:20px;height:20px}'
+		. '.stlh-alert-ico.is-warn{background:linear-gradient(140deg,#f7b733,#e08a00);box-shadow:0 6px 14px -8px #e08a00}'
 		// کادرِ «تیمِ پشتیبانی»ِ قالب: فقط عکس، بی نام و شماره — جایش همین کادر است (`product-alert.php`)
-		. '#bakala-support-widget{display:none!important}'
-		. '.stlh-ask__ti-go{flex:0 0 auto;font-size:22px;color:#0a63ff;font-weight:800}';
+		. '#bakala-support-widget{display:none!important}';
 }
