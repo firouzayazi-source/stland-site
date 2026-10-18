@@ -176,7 +176,8 @@ add_action( 'wp_head', static function (): void {
 		. '.stlh-ti__row{display:block;margin:0 0 12px}.stlh-ti__row span{display:block;font-weight:700;margin:0 0 4px}'
 		. '.stlh-ti input[type=text],.stlh-ti textarea{width:100%;box-sizing:border-box;border:1px solid #dfe1e6;border-radius:12px;padding:10px 12px;font:inherit;background:#fff}'
 		. '.stlh-ti button{width:100%;min-height:48px;border:0;border-radius:12px;background:#0a63ff;color:#fff;font-weight:800;font-size:15px;cursor:pointer}'
-		. '.stlh-ti__hp{position:absolute!important;left:-9999px!important;width:1px;height:1px;opacity:0}'
+		// ⛔ نه `left:-9999px`: در صفحه‌ی راست‌به‌چپ همان ۹۹۹۹ پیکسل اسکرولِ افقی می‌ساخت و کلِ صفحه کج می‌شد (۲۶ مهر)
+		. '.stlh-ti__hp{position:absolute!important;right:0!important;width:1px!important;height:1px!important;padding:0!important;border:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;opacity:0}'
 		. '.stlh-ti__done{background:#eafaf1;border-radius:12px;padding:12px 14px;line-height:1.9}.stlh-ti__err{background:#fdecef;border-radius:12px;padding:10px 14px}'
 		. '.stlh-ti__wa{display:flex;align-items:center;justify-content:center;min-height:48px;border-radius:12px;background:#1fa855;color:#fff!important;font-weight:800;text-decoration:none!important;margin-top:12px}'
 		. "</style>\n"; // phpcs:ignore

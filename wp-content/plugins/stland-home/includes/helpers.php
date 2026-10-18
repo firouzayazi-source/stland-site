@@ -250,7 +250,7 @@ function stlh_cat_icon_key( string $slug, string $name = '' ): string {
 		return $map[ $slug ];
 	}
 	// نامک دسته‌هایی که حسابداری می‌سازد ممکن است فارسی باشد؛ پس از روی نام هم.
-	foreach ( [ 'پرفروش' => 'fire', 'محافظ صفحه' => 'screen', 'گلس' => 'screen', 'محافظ لنز' => 'camera', 'دیجیتال' => 'devices', 'لوازم جانبی' => 'cable', 'کارکرده' => 'phone-used', 'استوک' => 'phone-used', 'ایرپاد' => 'earbuds', 'ایربادز' => 'earbuds', 'هندزفری' => 'earbuds', 'شارژر' => 'charger', 'آداپتور' => 'charger', 'کابل' => 'cable', 'قاب' => 'case', 'کاور' => 'case', 'ساعت' => 'watch', 'واچ' => 'watch', 'هدفون' => 'headphones', 'پاوربانک' => 'powerbank', 'اسپیکر' => 'speaker', 'آیپد' => 'tablet', 'تبلت' => 'tablet', 'مک‌بوک' => 'laptop', 'مکبوک' => 'laptop', 'لنز' => 'camera', 'آیفون' => 'phone-new', 'گوشی' => 'phone-new' ] as $needle => $key ) {
+	foreach ( [ 'پرفروش' => 'fire', 'محافظ صفحه' => 'screen', 'گلس' => 'screen', 'محافظ لنز' => 'camera', 'دیجیتال' => 'devices', 'لوازم جانبی' => 'cable', 'کارکرده' => 'phone-used', 'استوک' => 'phone-used', 'ایرپاد' => 'earbuds', 'ایربادز' => 'earbuds', 'هندزفری' => 'earbuds', 'شارژر' => 'charger', 'آداپتور' => 'charger', 'کابل' => 'cable', 'قاب' => 'case', 'کاور' => 'case', 'ساعت' => 'watch', 'واچ' => 'watch', 'هدفون' => 'headphones', 'پاوربانک' => 'powerbank', 'اسپیکر' => 'speaker', 'آیپد' => 'tablet', 'تبلت' => 'tablet', 'مک‌بوک' => 'laptop', 'مکبوک' => 'laptop', 'لنز' => 'camera', 'آیفون' => 'phone-new', 'گوشی' => 'phone-new', 'تلفن' => 'phone-new', 'موبایل' => 'phone-new' ] as $needle => $key ) {
 		if ( '' !== $name && str_contains( $name, $needle ) ) {
 			return $key;
 		}
