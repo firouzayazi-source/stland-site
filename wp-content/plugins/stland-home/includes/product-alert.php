@@ -39,7 +39,12 @@ function stlh_product_alert( $html ) {
 			if ( '' === $text || ! stlh_is_phone_product( $id ) ) {
 				return '';
 			}
-			return '<div class="bakala-alert-box"><div class="alert-box-wrap">' . $m[1] . '<p class="alert-box-text">' . esc_html( $text ) . '</p></div></div>';
+			// آیکن به زبانِ مشترکِ سایت (کاشیِ گرادیان، آیکنِ سفید): سبزِ سپر برای رجیسترشده، کهربایی برای رجیسترنشده
+			$ok   = false === mb_strpos( $reg, 'نشده' );
+			$path = $ok ? '<path d="M12 3l7 2.8v5.4c0 4.5-3 7.9-7 9.8-4-1.9-7-5.3-7-9.8V5.8z"/><path d="m8.8 12.2 2.2 2.2 4.4-4.6"/>'
+				: '<path d="M12 3.5 21 19.5H3z"/><path d="M12 10v4.2M12 16.9v.01"/>';
+			$ico  = '<span class="stlh-alert-ico' . ( $ok ? '' : ' is-warn' ) . '" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' . $path . '</svg></span>';
+			return '<div class="bakala-alert-box stlh-alert"><div class="alert-box-wrap">' . $ico . '<p class="alert-box-text">' . esc_html( $text ) . '</p></div></div>';
 		},
 		$html
 	);
@@ -48,9 +53,9 @@ function stlh_product_alert( $html ) {
 
 // صفحه‌های محصول با به‌روزرسانیِ افزونه پاک نمی‌شوند؛ یک بار دوباره ساخته شوند تا کادرها درست برسند
 add_action( 'init', static function (): void {
-	if ( (int) get_option( 'stlh_product_alert_rev', 0 ) >= 2 || ! defined( 'LSCWP_V' ) ) {
+	if ( (int) get_option( 'stlh_product_alert_rev', 0 ) >= 3 || ! defined( 'LSCWP_V' ) ) {
 		return;
 	}
-	update_option( 'stlh_product_alert_rev', 2, false );
+	update_option( 'stlh_product_alert_rev', 3, false );
 	do_action( 'litespeed_purge_posttype', 'product' );
 }, 45 );

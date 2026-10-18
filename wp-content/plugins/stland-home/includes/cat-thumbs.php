@@ -78,3 +78,42 @@ add_action( 'created_product_cat', static function ( int $term_id ): void {
 		stlh_cat_thumb_fill( $t );
 	}
 } );
+
+/*
+ * «بدون دسته بندی» در صفحه‌ی دسته‌بندی‌ها و هر فهرستِ دسته‌ی سایت پنهان است (صاحب فروشگاه، ۲۷ مهر ۱۴۰۵: «نباید بیاید و
+ * پنهان باشد، اما در Novo باید اعلان داشته باشد که تعیین تکلیف شود» — هشدارش در حسابداری، `woo/uncategorized.ts`).
+ * دسته‌ی پیش‌فرضِ ووکامرس پاک‌شدنی نیست، پس فقط از فهرست‌های **صفحه‌ی مشتری** کنار می‌رود: پیشخوان، رابطِ برنامه‌نویسی
+ * (حسابداری با آن کار می‌کند)، دسته‌های خودِ یک محصول (`object_ids`) و جست‌وجوی یک دسته با نامک یا شناسه دست نمی‌خورند. پیش‌فرض فقط وقتی کنار می‌رود که
+ * واقعاً «بی‌دسته» است (`stlh_is_bucket`)، نه دسته‌ای مثلِ «تلفن همراه» که یک بار پیش‌فرض شده بود.
+ */
+add_filter( 'get_terms_args', static function ( $args, $taxonomies ) {
+	if ( is_admin() || wp_doing_ajax() || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) || ! empty( $args['object_ids'] ) || ! empty( $args['slug'] ) || ! empty( $args['include'] ) || ! empty( $args['term_taxonomy_id'] ) || ! in_array( 'product_cat', (array) $taxonomies, true ) ) {
+		return $args;
+	}
+	$def = (int) get_option( 'default_product_cat', 0 );
+	if ( ! $def || ! stlh_cat_is_hidden_bucket( $def ) ) {
+		return $args;
+	}
+	$ex              = $args['exclude'] ?? [];
+	$args['exclude'] = array_merge( is_array( $ex ) ? $ex : wp_parse_id_list( $ex ), [ $def ] );
+	return $args;
+}, 10, 2 );
+
+function stlh_cat_is_hidden_bucket( int $id ): bool {
+	static $memo = [];
+	if ( ! isset( $memo[ $id ] ) ) {
+		// `get_term` و `get_term_children` از `get_terms` نمی‌گذرند، پس این‌جا دوباره به همین فیلتر نمی‌رسیم
+		$t           = get_term( $id, 'product_cat' );
+		$memo[ $id ] = $t instanceof WP_Term && stlh_is_bucket( $t, [ $id => (array) get_term_children( $id, 'product_cat' ) ] );
+	}
+	return $memo[ $id ];
+}
+
+// یک بار: صفحه‌ی دسته‌بندی‌ها بی «بدون دسته بندی» دوباره ساخته شود
+add_action( 'init', static function (): void {
+	if ( (int) get_option( 'stlh_cat_bucket_hidden_rev', 0 ) >= 1 || ! defined( 'LSCWP_V' ) ) {
+		return;
+	}
+	update_option( 'stlh_cat_bucket_hidden_rev', 1, false );
+	do_action( 'litespeed_purge_url', '/elementor-43744/' );
+}, 46 );
