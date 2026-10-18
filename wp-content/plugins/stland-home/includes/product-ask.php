@@ -24,7 +24,7 @@ function stlh_wa_link( string $text ): string {
 /** قیمت به شکلِ «۱۰۵٬۰۰۰٬۰۰۰ تومان»، یا «تماس بگیرید» */
 function stlh_price_text( WC_Product $p ): string {
 	$price = (float) $p->get_price();
-	return $price > 0 ? stlh_fa( number_format( $price ) ) . ' تومان' : stlh_label( 'call' );
+	return $price > 0 ? stlh_fa( number_format( $price, 0, '.', '٬' ) ) . ' تومان' : stlh_label( 'call' );
 }
 
 add_action( 'woocommerce_single_product_end', static function (): void {
