@@ -171,7 +171,7 @@ add_action( 'wp_head', static function (): void {
 		return;
 	}
 	echo '<style id="stlh-ti-css">'
-		. '.stlh-ti{direction:rtl;max-width:560px;margin:0 auto 32px;font-size:14px}'
+		. '.stlh-ti{direction:rtl;max-width:560px;margin:0 auto 32px;padding:0 16px;box-sizing:border-box;font-size:14px}'
 		. '.stlh-ti__sub{color:#555;margin:0 0 16px;line-height:1.9}'
 		. '.stlh-ti__row{display:block;margin:0 0 12px}.stlh-ti__row span{display:block;font-weight:700;margin:0 0 4px}'
 		. '.stlh-ti input[type=text],.stlh-ti textarea{width:100%;box-sizing:border-box;border:1px solid #dfe1e6;border-radius:12px;padding:10px 12px;font:inherit;background:#fff}'
@@ -183,15 +183,17 @@ add_action( 'wp_head', static function (): void {
 		. "</style>\n"; // phpcs:ignore
 } );
 
-// برگه‌ها با به‌روزرسانی پاک نمی‌شوند (`cache-tune.php`)؛ پس یک بار همین صفحه دوباره ساخته شود تا سبکِ درست برسد (۱.۶۵.۰)
+// برگه‌ها با به‌روزرسانی پاک نمی‌شوند (`cache-tune.php`)؛ پس با هر تغییرِ سبکِ این صفحه، `STLH_TRADEIN_CSS_REV` یکی بالا
+// می‌رود تا همین صفحه یک بار دوباره ساخته شود (۱.۶۵.۰: پنهان‌کردنِ درست؛ ۱.۶۶.۰: فاصله از لبه‌ی گوشی)
+const STLH_TRADEIN_CSS_REV = 2;
 add_action( 'init', static function (): void {
-	if ( (int) get_option( 'stlh_tradein_css_rev', 0 ) >= 1 || ! defined( 'LSCWP_V' ) ) {
+	if ( (int) get_option( 'stlh_tradein_css_rev', 0 ) >= STLH_TRADEIN_CSS_REV || ! defined( 'LSCWP_V' ) ) {
 		return;
 	}
 	$id = stlh_tradein_page_id();
 	if ( ! $id ) {
 		return;
 	}
-	update_option( 'stlh_tradein_css_rev', 1, false );
+	update_option( 'stlh_tradein_css_rev', STLH_TRADEIN_CSS_REV, false );
 	do_action( 'litespeed_purge_post', $id );
 }, 45 );
