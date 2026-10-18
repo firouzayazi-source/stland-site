@@ -86,6 +86,8 @@ function stlh_ask_css(): string {
 		. '.stlh-ask__btns{display:flex;gap:8px;flex-wrap:wrap}'
 		. '.stlh-ask__btns a{flex:1 1 140px;display:flex;align-items:center;justify-content:center;min-height:44px;border-radius:12px;font-weight:800;font-size:14px;text-decoration:none!important}'
 		. '.stlh-ask__wa{background:#1fa855;color:#fff!important}.stlh-ask__call{background:#f2f3f7;color:#1f2133!important}'
+		// شماره در `<span dir="ltr">` (`phone-ltr.php`) فاصله‌ی پیش از خود را می‌خورد: «تماس۰۹۱۲»
+		. '.stlh-ask__call .stlh-tel{margin-inline-start:.35em}'
 		. '.stlh-ask__links{margin:10px 0 0;font-size:13px;display:flex;gap:8px;flex-wrap:wrap;color:#8e8e93}.stlh-ask__links a{color:#0a63ff;font-weight:700}'
 		. '.stlh-ask__ti{display:flex;align-items:center;gap:12px;margin:10px 0 0;padding:12px 14px;border-radius:14px;background:linear-gradient(135deg,#eef4ff,#f5f0ff);border:1px solid #dfe8ff;color:#1f2133!important;text-decoration:none!important;transition:transform .15s,box-shadow .15s}'
 		. '.stlh-ask__ti:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(10,99,255,.12)}'
