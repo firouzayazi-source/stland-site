@@ -291,7 +291,7 @@ function stlh_app_list_inline_card( array $c, array $chips ): string {
 		$img,
 		esc_html( $c['name'] ),
 		$chip_html ? '<span class="stlh-al-chips">' . $chip_html . '</span>' : '',
-		esc_html( stlh_fa( number_format( (int) $c['price'] ) ) . ' تومان' ),
+		esc_html( stlh_fa( number_format( (int) $c['price'], 0, '.', '٬' ) ) . ' تومان' ),
 		$c['tag'] ? '<span class="stlh-al-tag">' . esc_html( $c['tag'] ) . '</span>' : ''
 	);
 }
