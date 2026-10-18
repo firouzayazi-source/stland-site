@@ -48,9 +48,9 @@ function stlh_product_alert( $html ) {
 
 // صفحه‌های محصول با به‌روزرسانیِ افزونه پاک نمی‌شوند؛ یک بار دوباره ساخته شوند تا کادرها درست برسند
 add_action( 'init', static function (): void {
-	if ( (int) get_option( 'stlh_product_alert_rev', 0 ) >= 1 || ! defined( 'LSCWP_V' ) ) {
+	if ( (int) get_option( 'stlh_product_alert_rev', 0 ) >= 2 || ! defined( 'LSCWP_V' ) ) {
 		return;
 	}
-	update_option( 'stlh_product_alert_rev', 1, false );
+	update_option( 'stlh_product_alert_rev', 2, false );
 	do_action( 'litespeed_purge_posttype', 'product' );
 }, 45 );
