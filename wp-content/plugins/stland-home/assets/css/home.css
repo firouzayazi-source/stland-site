@@ -122,17 +122,12 @@ body.home { overflow-x: clip; }
     flex-shrink: 0;
 }
 .st-icon-box svg { width: 46px; height: 46px; color: var(--st-accent); transition: color .3s ease; }
-/* هر دسته رنگِ خودش (`--ci`/`--ci2` از `stlh_cat_palette`): کاشیِ گرادیان با آیکنِ سفیدِ دورنگ */
+/* هر دسته رنگِ خودش (`--ci` از `stlh_cat_palette`): کاشیِ تخت با رنگِ زنده و آیکنِ سفید —
+   صاحب فروشگاه (۲۷ مهر ۱۴۰۵): «همه تک‌بعدی، رنگ‌های زنده، شکل و رنگِ همگون»؛ بی گرادیان، بی سایه، بی برق */
 .st-category-card[style*="--ci"] .st-icon-box:not(.has-img) {
-    background: linear-gradient(140deg, var(--ci2), var(--ci));
-    box-shadow: 0 8px 18px -8px var(--ci), inset 0 1px 0 rgba(255,255,255,.35);
+    background: var(--ci);
     position: relative;
     overflow: hidden;
-}
-.st-category-card[style*="--ci"] .st-icon-box:not(.has-img)::after {
-    content: ''; position: absolute; inset: 0;
-    background: radial-gradient(120% 70% at 25% 0%, rgba(255,255,255,.35), transparent 60%);
-    pointer-events: none;
 }
 .st-category-card[style*="--ci"] .st-icon-box:not(.has-img) svg { color: #fff; position: relative; z-index: 1; }
 .st-category-card[style*="--ci"]::before { background: var(--ci); }
@@ -154,7 +149,7 @@ body.home { overflow-x: clip; }
     .st-category-card:hover .st-cat-name { color: var(--st-accent); }
     .st-category-card:hover .st-icon-box.has-img { background: var(--st-accent-soft); }
     .st-category-card[style*="--ci"]:hover { box-shadow: 0 12px 30px -10px var(--ci); border-color: var(--ci2); }
-    .st-category-card[style*="--ci"]:hover .st-icon-box:not(.has-img) { background: linear-gradient(140deg, var(--ci2), var(--ci)); }
+    .st-category-card[style*="--ci"]:hover .st-icon-box:not(.has-img) { background: var(--ci); }
     .st-category-card[style*="--ci"]:hover .st-cat-name { color: var(--ci); }
 }
 

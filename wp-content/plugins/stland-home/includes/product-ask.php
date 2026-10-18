@@ -70,7 +70,7 @@ add_action( 'woocommerce_single_product_end', static function (): void {
 	);
 }, 98 );
 
-/** دکمه‌ی کارتیِ زیرِ کادرِ «بپرسید» — همان کاشیِ گرادیان و آیکنِ سفیدِ بقیه‌ی سایت، با فلشِ «برو» */
+/** دکمه‌ی کارتیِ زیرِ کادرِ «بپرسید» — همان کاشیِ تخت با رنگِ زنده و آیکنِ سفیدِ بقیه‌ی سایت، با فلشِ «برو» */
 function stlh_ask_card( string $mod, string $url, string $title, string $sub, string $path ): string {
 	return '<a class="stlh-ask__card stlh-ask__card--' . esc_attr( $mod ) . '" href="' . esc_url( $url ) . '">'
 		. '<span class="stlh-ask__card-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' . $path . '</svg></span>'
@@ -96,13 +96,13 @@ function stlh_ask_css(): string {
 		. '.stlh-ask__btns a{gap:.35em}'
 		. '.stlh-ask__card{--g1:#7c3aed;--g2:#a78bfa;--tint:#f5f1ff;--line:#e9e1ff;display:flex;align-items:center;gap:12px;margin:10px 0 0;padding:12px 14px;border-radius:14px;background:var(--tint);border:1px solid var(--line);color:#1f2133!important;text-decoration:none!important;transition:transform .15s,box-shadow .15s}'
 		. '.stlh-ask__card--cmp{--g1:#0f766e;--g2:#2dd4bf;--tint:#ecfbf8;--line:#cdf3ec}'
-		. '.stlh-ask__card:hover{transform:translateY(-1px);box-shadow:0 8px 20px -10px var(--g1)}'
-		. '.stlh-ask__card-ico{flex:0 0 42px;width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(140deg,var(--g2),var(--g1));color:#fff;box-shadow:0 6px 14px -8px var(--g1)}.stlh-ask__card-ico svg{width:22px;height:22px}'
+		. '.stlh-ask__card:hover{border-color:var(--g1)}'
+		. '.stlh-ask__card-ico{flex:0 0 42px;width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--g1);color:#fff}.stlh-ask__card-ico svg{width:22px;height:22px}'
 		. '.stlh-ask__card-txt{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}.stlh-ask__card-txt b{font-size:14px;font-weight:800}.stlh-ask__card-txt small{font-size:12px;color:#5b5f6b;line-height:1.6}'
 		. '.stlh-ask__card-go{flex:0 0 28px;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#fff;color:var(--g1)}.stlh-ask__card-go svg{width:16px;height:16px}'
 		// کادرِ هشدارِ همتا با آیکنِ کاشی (`product-alert.php`)
-		. '.stlh-alert .alert-box-wrap{display:flex;align-items:center;gap:12px}.stlh-alert-ico{flex:0 0 36px;width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(140deg,#34c38f,#0e9f6e);box-shadow:0 6px 14px -8px #0e9f6e}.stlh-alert-ico svg{width:20px;height:20px}'
-		. '.stlh-alert-ico.is-warn{background:linear-gradient(140deg,#f7b733,#e08a00);box-shadow:0 6px 14px -8px #e08a00}'
+		. '.stlh-alert .alert-box-wrap{display:flex;align-items:center;gap:12px}.stlh-alert-ico{flex:0 0 36px;width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;color:#fff;background:#0e9f6e}.stlh-alert-ico svg{width:20px;height:20px}'
+		. '.stlh-alert-ico.is-warn{background:#e08a00}'
 		// کادرِ «تیمِ پشتیبانی»ِ قالب: فقط عکس، بی نام و شماره — جایش همین کادر است (`product-alert.php`)
 		. '#bakala-support-widget{display:none!important}';
 }

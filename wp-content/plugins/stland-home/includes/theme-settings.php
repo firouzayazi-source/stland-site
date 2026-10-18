@@ -55,17 +55,18 @@ const STLH_BAKALA_SET = [
 	'top_bar_image_mobile'       => [ 'url' => '', 'id' => '', 'height' => '', 'width' => '', 'thumbnail' => '' ],
 	'top_bar_bgtext_text_mobile' => '',
 	'fixed_box_link'             => '',
-	// زبانِ مشترکِ آیکون‌ها (صاحب فروشگاه، ۲۷ مهر ۱۴۰۵، با عکسِ صفحه‌ی محصول: «این آیکون‌ها با طراحیِ سایت هماهنگ نیستند؛
-	// همه‌ی آیکون‌ها باید زبانِ طراحیِ مشترک داشته باشند»): همان کاشیِ گرادیان و آیکنِ خطیِ سفیدِ دسته‌بندی‌ها و منوی گوشی
-	// (`assets/img/tile-*.svg`)، به‌جای دایره‌ی کرم با آیکنِ مشکیِ نسخه‌ی نمونه و نشان‌های تک‌رنگِ قبلی
-	'img_Express_Shipping'       => [ 'url' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/tile-delivery.svg', 'id' => '', 'height' => '96', 'width' => '96', 'thumbnail' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/tile-delivery.svg' ],
-	'img_back_guarantee'         => [ 'url' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/tile-return.svg', 'id' => '', 'height' => '96', 'width' => '96', 'thumbnail' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/tile-return.svg' ],
-	'img_Guarantee_of_Origin'    => [ 'url' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/tile-verify.svg', 'id' => '', 'height' => '96', 'width' => '96', 'thumbnail' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/tile-verify.svg' ],
-	'special_box_icon'           => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/tile-percent.svg',
-	'free_shipping_icon'         => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/tile-delivery.svg',
-	'product_description_image'  => [ 'url' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/tile-headset.svg', 'id' => '', 'height' => '96', 'width' => '96', 'thumbnail' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/tile-headset.svg' ],
-	'extra_btn_product_icon'     => [ 'url' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/tile-whatsapp.svg', 'id' => '', 'height' => '96', 'width' => '96', 'thumbnail' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/tile-whatsapp.svg' ],
-	'fixed_box_img'              => [ 'url' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/tile-phone.svg', 'id' => '', 'height' => '96', 'width' => '96', 'thumbnail' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/tile-phone.svg' ],
+	// آیکون‌های صفحه‌ی محصول (صاحب فروشگاه، ۲۷ مهر ۱۴۰۵): اول «با طراحیِ سایت هماهنگ نیستند» → کاشیِ گرادیان؛ بعد «قبلی‌ها
+	// بهتر بود، شرایط ارسال کالا و این‌ها؛ تک‌بعدی، رنگ‌های زنده، شکل و رنگِ همگون». پس همان نشان‌های تخت و تک‌رنگِ قبلی
+	// (`badge.svg`…) سرِ جایشان، و سه نشانِ «ارسال سریع / ضمانت بازگشت / ضمانت اصالت» به همان زبان: دایره‌ی تخت با رنگِ زنده
+	// و آیکنِ سفیدِ پررنگ (`feat-*.svg`)، به‌جای دایره‌ی کرم با آیکنِ مشکیِ نسخه‌ی نمونه
+	'img_Express_Shipping'       => [ 'url' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/feat-delivery.svg', 'id' => '', 'height' => '96', 'width' => '96', 'thumbnail' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/feat-delivery.svg' ],
+	'img_back_guarantee'         => [ 'url' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/feat-return.svg', 'id' => '', 'height' => '96', 'width' => '96', 'thumbnail' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/feat-return.svg' ],
+	'img_Guarantee_of_Origin'    => [ 'url' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/feat-verify.svg', 'id' => '', 'height' => '96', 'width' => '96', 'thumbnail' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/feat-verify.svg' ],
+	'special_box_icon'           => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/badge.svg',
+	'free_shipping_icon'         => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/truck.svg',
+	'product_description_image'  => [ 'url' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/headset.svg', 'id' => '', 'height' => '96', 'width' => '96', 'thumbnail' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/headset.svg' ],
+	'extra_btn_product_icon'     => [ 'url' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/whatsapp.svg', 'id' => '', 'height' => '96', 'width' => '96', 'thumbnail' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/whatsapp.svg' ],
+	'fixed_box_img'              => [ 'url' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/phone.svg', 'id' => '', 'height' => '96', 'width' => '96', 'thumbnail' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/phone.svg' ],
 ];
 
 /** برچسب‌هایی که پاک می‌شوند — فقط اگر به هیچ نوشته/محصولی وصل نباشند (count = 0) */

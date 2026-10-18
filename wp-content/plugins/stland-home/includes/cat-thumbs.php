@@ -12,7 +12,9 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const STLH_CAT_THUMBS_REV = 1;
+// ۲: کاشیِ تخت با رنگِ زنده به‌جای گرادیان (صاحب فروشگاه، ۲۷ مهر: «همه تک‌بعدی، رنگ‌های زنده»)؛ با هر نسخه‌ی تازه‌ی
+// کاشی‌ها، عکسِ قبلیِ خودِ افزونه عوض می‌شود — عکسی که صاحب فروشگاه گذاشته هرگز
+const STLH_CAT_THUMBS_REV = 2;
 
 /** کاشیِ یک کلید در کتابخانه‌ی رسانه (یک بار) → شناسه */
 function stlh_cat_thumb_media( string $key ): int {
@@ -21,11 +23,12 @@ function stlh_cat_thumb_media( string $key ): int {
 		$key = 'tag';
 		$src = STLH_DIR . 'assets/cat-icons/tag.webp';
 	}
-	$map = (array) get_option( 'stlh_cat_thumb_media', [] );
-	if ( ! empty( $map[ $key ] ) && get_post( (int) $map[ $key ] ) ) {
-		return (int) $map[ $key ];
+	$map  = (array) get_option( 'stlh_cat_thumb_media', [] );
+	$slot = 'v' . STLH_CAT_THUMBS_REV . ':' . $key;
+	if ( ! empty( $map[ $slot ] ) && get_post( (int) $map[ $slot ] ) ) {
+		return (int) $map[ $slot ];
 	}
-	$up = wp_upload_bits( 'stland-cat-' . $key . '.webp', null, (string) file_get_contents( $src ) );
+	$up = wp_upload_bits( 'stland-cat-' . $key . '-v' . STLH_CAT_THUMBS_REV . '.webp', null, (string) file_get_contents( $src ) );
 	if ( ! empty( $up['error'] ) ) {
 		return 0;
 	}
@@ -35,19 +38,20 @@ function stlh_cat_thumb_media( string $key ): int {
 	}
 	require_once ABSPATH . 'wp-admin/includes/image.php';
 	wp_update_attachment_metadata( $id, wp_generate_attachment_metadata( $id, $up['file'] ) );
-	$map[ $key ] = $id;
+	$map[ $slot ] = $id;
 	update_option( 'stlh_cat_thumb_media', $map, false );
 	return $id;
 }
 
 /** اگر دسته عکسِ درست ندارد، کاشیِ آیکنش را بگیرد — true یعنی چیزی عوض شد */
 function stlh_cat_thumb_fill( WP_Term $term ): bool {
-	$cur = (int) get_term_meta( $term->term_id, 'thumbnail_id', true );
-	if ( $cur && wp_attachment_is_image( $cur ) ) {
-		return false;
+	$cur  = (int) get_term_meta( $term->term_id, 'thumbnail_id', true );
+	$ours = array_map( 'intval', array_values( (array) get_option( 'stlh_cat_thumb_media', [] ) ) );
+	if ( $cur && wp_attachment_is_image( $cur ) && ! in_array( $cur, $ours, true ) ) {
+		return false; // عکسِ خودِ صاحب فروشگاه
 	}
 	$aid = stlh_cat_thumb_media( stlh_cat_icon_key( rawurldecode( $term->slug ), $term->name ) );
-	if ( ! $aid ) {
+	if ( ! $aid || $aid === $cur ) {
 		return false;
 	}
 	update_term_meta( $term->term_id, 'thumbnail_id', $aid );
@@ -117,3 +121,13 @@ add_action( 'init', static function (): void {
 	update_option( 'stlh_cat_bucket_hidden_rev', 1, false );
 	do_action( 'litespeed_purge_url', '/elementor-43744/' );
 }, 46 );
+
+// یک بار (۱.۶۹.۰): آیکون‌های تخت در CSSِ درون‌خطیِ همه‌ی صفحه‌ها (منوی گوشی، صفحه‌ی محصول) و عکسِ قالب‌اند؛ برگه‌ها و
+// محصول‌ها با به‌روزرسانیِ افزونه پاک نمی‌شوند، پس کلِ حافظه‌ی موقت یک بار
+add_action( 'init', static function (): void {
+	if ( (int) get_option( 'stlh_flat_icons_rev', 0 ) >= 1 || ! defined( 'LSCWP_V' ) ) {
+		return;
+	}
+	update_option( 'stlh_flat_icons_rev', 1, false );
+	do_action( 'litespeed_purge_all' );
+}, 47 );
