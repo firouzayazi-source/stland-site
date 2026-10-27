@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       StockLand Updater
  * Description:       افزونه‌های استوک لند را از گیت‌هاب به‌روز می‌کند — مثل آپدیت معمولی افزونه‌ها، بدون FTP.
- * Version:           1.1.0
+ * Version:           1.2.0
  * Requires at least: 6.3
  * Requires PHP:      8.1
  * Text Domain:       stland-updater
@@ -132,19 +132,100 @@ add_filter( 'auto_update_plugin', function ( $update, $item ) {
 	return ( $manifest && isset( $manifest['plugins'][ $item->slug ] ) ) ? true : $update;
 }, 10, 2 );
 
-// بعد از آپدیتِ افزونه‌های ما کش صفحه‌ها پاک شود، وگرنه مشتری نسخه‌ی قبلی را می‌بیند.
+/*
+ * ─── بعد از آپدیتِ افزونه‌های ما: پاک کردنِ کلِ حافظه‌ی موقت فقط وقتی کد عوض شده ───
+ * پیش‌تر هر نسخه کلِ حافظه‌ی موقتِ صفحه‌ها را پاک می‌کرد (و المنتور هم با هر آپدیتِ هر افزونه‌ای، جدا یک بارِ دیگر).
+ * برنامه‌ی محتوا تقریباً هر روز یک نسخه می‌دهد که فقط مقاله دارد؛ پس سایت هر روز «سرد» می‌شد و هر صفحه را اولین
+ * بازدیدکننده ۲٫۵ تا ۴٫۵ ثانیه از نو می‌ساخت (`/perf`، ۵ آبان ۱۴۰۵). حالا اثرِ انگشتِ فایل‌های هر افزونه پیش و پس از
+ * نصب سنجیده می‌شود، بی فایل‌های محتوا (`STLU_CONTENT_ONLY`) و بی سطرهای نسخه در فایلِ اصلی؛ اگر یکی بود، فقط محتوا
+ * عوض شده و کلِ حافظه دست نمی‌خورد — خودِ `stland-home` مقاله‌ی تغییرکرده، وبلاگ و صفحه‌ی اصلی را پاک می‌کند.
+ * ⛔ هر فایلِ تازه‌ای که روی ظاهرِ صفحه اثر دارد نباید به `STLU_CONTENT_ONLY` برود. شک = پاک کردنِ کامل.
+ * پاک کردنِ فایل‌های CSSِ المنتور ربطی به افزونه‌های ما ندارد و برای آپدیتِ فقط-افزونه‌های-ما برداشته می‌شود.
+ */
+const STLU_CONTENT_ONLY = [ 'content/', 'assets/posts/', 'includes/posts.php' ];
+
+/** اثرِ انگشتِ کد و ظاهرِ یک افزونه (بی محتوای مقاله‌ها و بی سطرِ نسخه) */
+function stlu_fingerprint( string $file ): string {
+	$dir = WP_PLUGIN_DIR . '/' . dirname( $file );
+	if ( ! is_dir( $dir ) ) {
+		return '';
+	}
+	$files = [];
+	$it    = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $dir, FilesystemIterator::SKIP_DOTS ) );
+	foreach ( $it as $f ) {
+		$rel = str_replace( '\\', '/', substr( $f->getPathname(), strlen( $dir ) + 1 ) );
+		foreach ( STLU_CONTENT_ONLY as $skip ) {
+			if ( str_starts_with( $rel, $skip ) ) {
+				continue 2;
+			}
+		}
+		$files[ $rel ] = $f->getPathname();
+	}
+	ksort( $files );
+	$h = hash_init( 'md5' );
+	foreach ( $files as $rel => $path ) {
+		$body = (string) file_get_contents( $path );
+		if ( basename( $file ) === $rel ) {
+			$body = (string) preg_replace( '/^.*(?:\* Version:|_VER\b).*$/m', '', $body );
+		}
+		hash_update( $h, $rel . "\0" . $body . "\0" );
+	}
+	return hash_final( $h );
+}
+
+/** افزونه‌های ما در این آپدیت */
+function stlu_ours_in( array $extra ): array {
+	$ours = array_map( 'stlu_file', array_keys( ( stlu_manifest() ?? [ 'plugins' => [] ] )['plugins'] ) );
+	$up   = array_merge( (array) ( $extra['plugins'] ?? [] ), isset( $extra['plugin'] ) ? [ $extra['plugin'] ] : [] );
+	return array_values( array_intersect( $up, $ours ) );
+}
+
+add_filter( 'upgrader_pre_install', static function ( $response, $extra ) {
+	$file = (string) ( $extra['plugin'] ?? '' );
+	if ( '' !== $file && ! isset( $GLOBALS['stlu_fp_before'][ $file ] ) ) {
+		$GLOBALS['stlu_fp_before'][ $file ] = stlu_fingerprint( $file );
+	}
+	return $response;
+}, 10, 2 );
+
+/** کدِ یکی از این افزونه‌ها عوض شده؟ (اثرِ انگشتِ پیش از نصب نبود = بله) */
+function stlu_code_changed( array $files ): bool {
+	foreach ( $files as $file ) {
+		$before = (string) ( $GLOBALS['stlu_fp_before'][ $file ] ?? '' );
+		if ( '' === $before || stlu_fingerprint( $file ) !== $before ) {
+			return true;
+		}
+	}
+	return false;
+}
+
 add_action( 'upgrader_process_complete', function ( $upgrader, array $extra ): void {
 	if ( ( $extra['type'] ?? '' ) !== 'plugin' ) {
 		return;
 	}
-	$ours = array_map( 'stlu_file', array_keys( ( stlu_manifest() ?? [ 'plugins' => [] ] )['plugins'] ) );
-	if ( ! array_intersect( (array) ( $extra['plugins'] ?? [] ), $ours ) ) {
+	$ours = stlu_ours_in( $extra );
+	if ( ! $ours ) {
 		return;
 	}
-	stlu_purge_caches();
-}, 10, 2 );
+	$all = array_merge( (array) ( $extra['plugins'] ?? [] ), isset( $extra['plugin'] ) ? [ $extra['plugin'] ] : [] );
+	if ( count( array_unique( $all ) ) === count( $ours ) && class_exists( '\\Elementor\\Plugin' ) && isset( \Elementor\Plugin::$instance->files_manager ) ) {
+		$cb = [ \Elementor\Plugin::$instance->files_manager, 'on_upgrader_process_complete' ];
+		$p  = has_action( 'upgrader_process_complete', $cb );
+		if ( false !== $p ) {
+			remove_action( 'upgrader_process_complete', $cb, $p );
+		}
+	}
+	if ( stlu_code_changed( $ours ) ) {
+		stlu_purge_caches();
+	}
+}, 1, 2 );
 
 function stlu_purge_caches(): void {
+	static $done = false;
+	if ( $done ) {
+		return;
+	}
+	$done = true;
 	wp_cache_flush();
 	do_action( 'litespeed_purge_all' );
 	if ( function_exists( 'rocket_clean_domain' ) ) {
@@ -223,7 +304,11 @@ add_action( 'stlu_auto_run', static function (): void {
 			$log['result'][] = $file . ' ' . $from . ' → ' . $to . ': ' . ( $ok ? 'ok' : ( is_wp_error( $res ) ? $res->get_error_message() : wp_strip_all_tags( implode( ' ', (array) $up->skin->get_upgrade_messages() ) ) ) );
 		}
 		wp_clean_plugins_cache( false );
-		stlu_purge_caches();
+		if ( stlu_code_changed( array_keys( $todo ) ) ) {
+			stlu_purge_caches();
+		} else {
+			$log['result'][] = 'content only: no full purge';
+		}
 		delete_transient( 'stlu_auto_lock' );
 		update_option( 'stlu_auto_last', $log, false );
 	} else {

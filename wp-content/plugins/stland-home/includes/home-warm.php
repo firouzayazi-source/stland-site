@@ -9,6 +9,10 @@
  *   • فقط صفحه‌ی اصلی، گوشی و رایانه — دو درخواست، پشتِ سرِ هم، هر کدام حداکثر ۲۰ ثانیه؛
  *   • ۹۰ ثانیه بعد از پاک شدن (چند پاک شدنِ پشتِ سرِ هم = یک بار)، و حداکثر هر ۱۰ دقیقه یک بار؛
  *   • نتیجه در `/perf` → `home_warm_last`؛ کلیدِ `home_warm` در گزینه‌ها = «0» خاموشش می‌کند.
+ *
+ * ۵ آبان ۱۴۰۵ (بررسیِ سرعت): بعد از صفحه‌ی اصلی، سه صفحه‌ی پربازدیدِ دیگر هم — «لیست»، پرکالاترین دسته‌ی برگ (الان
+ * آیفون کارکرده) و فروشگاه — **هر کدام یک دقیقه بعد از قبلی**، باز هم دو درخواست در هر نوبت (`stlh_home_warm_more`).
+ * سرعتِ صفحه‌ی سرد ۲٫۵ تا ۳ ثانیه بود و ربات‌ها هم‌زمان ده‌ها صفحه‌ی سرد را باز می‌کردند. بیشتر از این گرم نکنید.
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -47,4 +51,43 @@ add_action( STLH_HOME_WARM_HOOK, static function (): void {
 		$rows[]     = $r;
 	}
 	update_option( 'stlh_home_warm_last', [ 'at' => gmdate( 'c' ), 'rows' => $rows ], false );
+	wp_schedule_single_event( time() + 60, 'stlh_home_warm_more', [ 0 ] );
+} );
+
+/** صفحه‌هایی که بعد از صفحه‌ی اصلی گرم می‌شوند — کم و ثابت */
+function stlh_home_warm_more_urls(): array {
+	$urls = [];
+	if ( function_exists( 'stlh_app_list_url' ) ) {
+		$urls[] = stlh_app_list_url();
+	}
+	if ( function_exists( 'stlh_leaf_categories' ) ) {
+		$leaves = stlh_leaf_categories( false );
+		usort( $leaves, static fn( $a, $b ) => (int) $b->count <=> (int) $a->count );
+		$link = $leaves ? get_term_link( $leaves[0] ) : '';
+		if ( is_string( $link ) && $link ) {
+			$urls[] = $link;
+		}
+	}
+	if ( function_exists( 'wc_get_page_permalink' ) ) {
+		$urls[] = wc_get_page_permalink( 'shop' );
+	}
+	return array_values( array_unique( array_filter( $urls ) ) );
+}
+
+add_action( 'stlh_home_warm_more', static function ( $i = 0 ): void {
+	$urls = stlh_home_warm_more_urls();
+	$i    = (int) $i;
+	if ( PHP_SAPI === 'cli' || ! isset( $urls[ $i ] ) || ! function_exists( 'stlh_warm_fetch' ) ) {
+		return;
+	}
+	$last = (array) get_option( 'stlh_home_warm_last', [] );
+	foreach ( stlh_warm_uas() as $dev => $ua ) {
+		$r                = stlh_warm_fetch( $urls[ $i ], $ua );
+		$r['dev']         = $dev;
+		$last['rows'][]   = $r;
+	}
+	update_option( 'stlh_home_warm_last', $last, false );
+	if ( isset( $urls[ $i + 1 ] ) ) {
+		wp_schedule_single_event( time() + 60, 'stlh_home_warm_more', [ $i + 1 ] );
+	}
 } );
