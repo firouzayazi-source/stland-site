@@ -25,15 +25,13 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const STLH_CONTENT_VER = '3';
+const STLH_CONTENT_VER = '4'; // ۴ (۵ آبان ۱۴۰۵): صاحب فروشگاه — «تمام شماره‌های سایت بشه ۰۹۱۲۷۴۸۸۴۳۴»؛ شماره‌ی دوم از بلوکِ تماس رفت
 
 /** اطلاعاتِ واقعیِ فروشگاه — یک جا، برای همه‌ی صفحه‌ها (صاحب فروشگاه، مهر ۱۴۰۵) */
 function stlh_store_facts(): array {
 	return [
 		'phone'      => '09127488434',
 		'phone_fa'   => '۰۹۱۲ ۷۴۸ ۸۴۳۴',
-		'phone2'     => '09050323217',
-		'phone2_fa'  => '۰۹۰۵ ۰۳۲ ۳۲۱۷',
 		'address'    => 'قم، ۵۵ متری عمار یاسر، مجتمع تجاری بازار سلام، طبقه اول، واحد F11',
 		'map'        => 'https://maps.app.goo.gl/yHqYRPdBMHctQYB1A',
 		'instagram'  => 'stock_land.ir',
@@ -51,7 +49,7 @@ function stlh_store_contact_block(): string {
 	$f = stlh_store_facts();
 	return '<h2>ارتباط با استوک لند</h2>'
 		. '<ul>'
-		. '<li><strong>تلفن:</strong> <a href="tel:' . $f['phone'] . '">' . $f['phone_fa'] . '</a> (شماره‌ی دوم: <a href="tel:' . $f['phone2'] . '">' . $f['phone2_fa'] . '</a>)</li>'
+		. '<li><strong>تلفن:</strong> <a href="tel:' . $f['phone'] . '">' . $f['phone_fa'] . '</a></li>'
 		. '<li><strong>اینستاگرام:</strong> <a href="https://instagram.com/' . $f['instagram'] . '" target="_blank" rel="noopener">@' . $f['instagram'] . '</a> — ویدیوی واقعیِ گوشی‌ها، تست‌ها و موجودیِ روز</li>'
 		. '<li><strong>کانال تلگرام:</strong> <a href="https://t.me/' . $f['telegram'] . '" target="_blank" rel="noopener">t.me/' . $f['telegram'] . '</a></li>'
 		. '<li><strong>آدرس فروشگاه:</strong> ' . $f['address'] . ' — <a href="' . $f['map'] . '" target="_blank" rel="noopener">مسیریابی روی نقشه</a></li>'
@@ -252,7 +250,7 @@ function stlh_store_content_apply(): array {
 		$norm = static fn( $v ) => is_string( $v ) ? trim( str_replace( "\r", '', $v ) ) : $v;
 		$olds = array_map( $norm, $old_values );
 		// پرسش‌های قدیمی با شماره‌ی قدیمیِ اقساط (۰۹۰۵…) هم «قدیمی» حساب می‌شوند
-		$stale = 'faq' === $k && is_string( $cur ) && str_contains( $cur, '۰۹۰۵۰۳۲۳۲۱۷' );
+		$stale = 'faq' === $k && is_string( $cur ) && ( str_contains( $cur, '۰۹۰۵۰۳۲۳۲۱۷' ) || str_contains( $cur, '09050323217' ) );
 		if ( null === $cur || '' === $cur || $stale || in_array( $norm( $cur ), $olds, true ) ) {
 			$opts[ $k ]           = $v;
 			$log['settings'][]    = $k;
