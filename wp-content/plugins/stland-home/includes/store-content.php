@@ -334,3 +334,54 @@ add_action( 'wp', static function (): void {
 		add_shortcode( 'bakala-comments', '__return_empty_string' );
 	}
 } );
+
+/*
+ * شماره‌ی قدیمی در متنِ المنتوریِ صفحه‌ی اصلی (۵ آبان ۱۴۰۵). صاحب فروشگاه: «تمام شماره‌های سایت بشه ۰۹۱۲۷۴۸۸۴۳۴» و
+ * «پاک کن». صفحه‌ی اصلی را افزونه می‌سازد و این متن دیده نمی‌شد، ولی در پایگاه داده و REST بود. فقط همین شماره
+ * عوض می‌شود (همه‌ی شکل‌هایش، با ارقامِ فارسی و یونی‌کدِ JSON)، یک بار؛ نسخه‌ی قبلی در `stlh_bak_phone_*` می‌ماند.
+ * نتیجه در گزینه‌ی `stlh_phone_fix` (`site-options?prefix=stlh`).
+ */
+function stlh_phone_fix_map(): array {
+	$map = [
+		'09050323217'    => '09127488434',
+		'0905 032 3217'  => '0912 748 8434',
+		'+989050323217'  => '+989127488434',
+		'989050323217'   => '989127488434',
+		'۰۹۰۵۰۳۲۳۲۱۷'    => '۰۹۱۲۷۴۸۸۴۳۴',
+		'۰۹۰۵ ۰۳۲ ۳۲۱۷'  => '۰۹۱۲ ۷۴۸ ۸۴۳۴',
+	];
+	foreach ( [ '۰۹۰۵۰۳۲۳۲۱۷', '۰۹۰۵ ۰۳۲ ۳۲۱۷' ] as $fa ) {
+		$map[ trim( (string) wp_json_encode( $fa ), '"' ) ] = trim( (string) wp_json_encode( $map[ $fa ] ), '"' );
+	}
+	return $map;
+}
+
+add_action( 'init', static function (): void {
+	if ( get_option( 'stlh_phone_fix' ) || wp_doing_ajax() || get_transient( 'stlh_phone_fix_lock' ) ) {
+		return;
+	}
+	set_transient( 'stlh_phone_fix_lock', 1, 5 * MINUTE_IN_SECONDS );
+	$id   = (int) get_option( 'page_on_front' );
+	$post = $id ? get_post( $id ) : null;
+	$log  = [ 'at' => gmdate( 'c' ), 'id' => $id, 'content' => 0, 'elementor' => 0 ];
+	if ( $post ) {
+		$map  = stlh_phone_fix_map();
+		$data = (string) get_post_meta( $id, '_elementor_data', true );
+		$new  = strtr( $data, $map );
+		if ( $new !== $data ) {
+			add_post_meta( $id, 'stlh_bak_phone_elementor', wp_slash( $data ), true );
+			update_post_meta( $id, '_elementor_data', wp_slash( $new ) );
+			delete_post_meta( $id, '_elementor_element_cache' );
+			$log['elementor'] = 1;
+		}
+		$content = strtr( $post->post_content, $map );
+		if ( $content !== $post->post_content ) {
+			add_post_meta( $id, 'stlh_bak_phone_content', wp_slash( $post->post_content ), true );
+			wp_update_post( wp_slash( [ 'ID' => $id, 'post_content' => $content ] ) );
+			$log['content'] = 1;
+		}
+		clean_post_cache( $id );
+	}
+	update_option( 'stlh_phone_fix', $log, false );
+	delete_transient( 'stlh_phone_fix_lock' );
+}, 100 );
