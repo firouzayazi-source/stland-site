@@ -27,6 +27,11 @@ defined( 'ABSPATH' ) || exit;
 function stlh_diet_lists(): array {
 	// در هیچ صفحه‌ی فروشگاهی استفاده نمی‌شود (markup هیچ‌کدام را صدا نمی‌زند)
 	$never_css = [ 'mega-theme-icon', 'pDate-style', 'bakala-story-style', 'bakala-wallet-frontend' ];
+	// ۵ آبان ۱۴۰۵: `megatheme-font` (پوشه‌ی megatheme در المنتور پرو) با `@import` فایلِ ۱۴۴ کیلوبایتیِ ۷۹۲ قلمِ تجاری را
+	// می‌آورد (انجمن، آریا، دانا، پیدا…) که هیچ‌جا به کار نمی‌روند؛ قلمِ سایت IRANYekanX از `custom-elementor-editor-font` می‌آید
+	// و می‌ماند. `bk-gsap-style` فقط کلاس‌های `bk-gsap-*`/`lenis` است که GSAP و Lenisشان پایین‌تر کنار رفته‌اند. هر دو با
+	// مسدود کردن در مرورگر (`?LSCWP_CTRL=before_optm`) روی صفحه‌ی اصلی، محصول و دسته در گوشی آزموده شد: بی خطا، بی فرقِ ظاهر.
+	$never_css = array_merge( $never_css, [ 'megatheme-font', 'bk-gsap-style' ] );
 	// vanilla-tilt می‌ماند: قالب روی دسکتاپ `VanillaTilt` را همه‌جا صدا می‌زند
 	$never_js  = [ 'pDate', 'pDatepicker', 'pDatepickerLoader', 'bakala-story-script', 'bakala-wallet-frontend', 'jquery-flipclock', 'jquery-lif', 'matrix-wolfoffer-countdown', 'matrix-wolfoffer-easing', 'flipdown' ];
 	// GSAP + Lenis (~۲۴۵ کیلوبایت، ۵ فایل): فقط اسکرولِ نرم، نوارِ پیشرفتِ اسکرول و «دکمه‌ی مغناطیسی». هر
