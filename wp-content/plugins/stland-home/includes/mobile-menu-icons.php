@@ -6,8 +6,8 @@
  * صاحب فروشگاه (۷ آبان ۱۴۰۵): «گزینه‌ای برای بلاگ یا اخبار نداریم… ترتیبِ منوها را اوکی کن… لیست آک و کارکرده آیکونِ
  * متناسب ندارد… زیرمنوها هم آیکون… آیفون نو و کارکرده و لوازم جانبی فقط اسم‌اند… لوازم جانبی را باز می‌کنم یک صفحه‌ی کاملاً
  * مشکی باز می‌شود». پس:
- *   • منو روشن شد، هم‌رنگِ سربرگِ سفیدِ سایت (قالب با `darkmode`ِ باکالا آن را `bk-mm--dark` می‌کند؛ فقط متغیرهای رنگِ
- *     همین منو عوض می‌شوند، `darkmode` دست نمی‌خورد چون جاهای دیگر را هم تیره می‌کند).
+ *   • رنگِ منو پیروِ `darkmode`ِ باکالاست (`stlh_menu_palette`): قالب تیره، منو تیره؛ روشن، روشن. فقط متغیرهای رنگِ
+ *     همین منو عوض می‌شوند و `darkmode` فقط خوانده می‌شود.
  *   • هر موردِ سطحِ اول یک کاشیِ رنگیِ تخت با آیکنِ خطیِ سفید (از روی نشانی‌اش)؛ «لیست» برچسبِ قیمت، «مجله» روزنامه.
  *   • هر زیرمنو آیکن و رنگِ همان دسته را از مجموعه‌ی آیکنِ دسته‌های صفحه‌ی اصلی می‌گیرد (`stlh_cat_icon_key`) — دسته‌ی تازه
  *     خودکار آیکن دارد؛ «مشاهده‌ی همه» بالای هر زیرمنو، دکمه‌ی پرِ رنگیِ همان دسته.
@@ -110,11 +110,26 @@ function stlh_mm_sub_rules(): array {
 	return $out;
 }
 
+/**
+ * رنگِ منوها پیروِ حالتِ قالب (صاحب فروشگاه، ۸ آبان: «تم سفید کردیم سفید باز بشه، مشکی کردیم مشکی») — `darkmode`ِ باکالا
+ * فقط خوانده می‌شود. تیره همان `--darkmode_background`ِ قالب است.
+ */
+function stlh_menu_palette(): array {
+	$o = get_option( 'bakala_options' );
+	if ( is_array( $o ) && '1' === (string) ( $o['darkmode'] ?? '' ) ) {
+		return [ 'bg' => 'var(--darkmode_background,#262626)', 'ink' => '#fff', 'text' => '#e4e6eb', 'muted' => '#9aa1ad',
+			'line' => 'rgb(255 255 255 / .09)', 'soft' => 'rgb(255 255 255 / .07)', 'mix' => '#262626', 'shadow' => '0 24px 50px -16px rgb(0 0 0 / .7)' ];
+	}
+	return [ 'bg' => '#fff', 'ink' => '#1f2430', 'text' => '#3d4456', 'muted' => '#7d8597',
+		'line' => '#eef0f4', 'soft' => '#f4f5f8', 'mix' => '#fff', 'shadow' => '0 24px 50px -16px rgb(15 18 25 / .35)' ];
+}
+
 function stlh_mm_icons_css(): string {
 	$m = '#off-canvas_menu';
-	// ۱) روشن، هم‌رنگِ سربرگ — فقط متغیرهای همین منو
-	$css = $m . '.bk-mm{--mm-bg:#fff;--mm-ink:#1f2430;--mm-text:#3d4456;--mm-muted:#7d8597;--mm-line:#eef0f4;--mm-soft:#f4f5f8;'
-		. '--mm-accent-soft:color-mix(in srgb,var(--mm-accent) 11%,#fff);--mm-accent2-soft:color-mix(in srgb,var(--mm-accent2) 12%,#fff);--mm-shadow:0 24px 60px -12px rgb(15 18 25 / .35)}'
+	$p = stlh_menu_palette();
+	// ۱) رنگ‌ها هم‌حالتِ قالب — فقط متغیرهای همین منو
+	$css = $m . '.bk-mm{--mm-bg:' . $p['bg'] . ';--mm-ink:' . $p['ink'] . ';--mm-text:' . $p['text'] . ';--mm-muted:' . $p['muted'] . ';--mm-line:' . $p['line'] . ';--mm-soft:' . $p['soft'] . ';'
+		. '--mm-accent-soft:color-mix(in srgb,var(--mm-accent) 14%,' . $p['mix'] . ');--mm-accent2-soft:color-mix(in srgb,var(--mm-accent2) 16%,' . $p['mix'] . ');--mm-shadow:' . $p['shadow'] . '}'
 		. $m . ' .bk-mm-socials a{color:var(--mm-accent2)}'
 		// ۲) کاشیِ سطحِ اول و زیرمنو: یک اندازه، تخت با رنگِ زنده، آیکنِ سفید
 		. $m . ' .bk-mm-link .bk-mm-ico,' . $m . ' .bk-mm-panel:not(#bk-mm-root) .bk-mm-link[data-stlh-ico]::before{background:var(--g1,#1f6fd6)!important;color:#fff!important;box-shadow:none!important}'
@@ -146,9 +161,10 @@ function stlh_mm_icons_css(): string {
 /**
  * منوی بالای سایت در رایانه (`.bk_menu`، «منوی شیشه‌ای»ِ باکالا) — صاحب فروشگاه با دو عکس (۷ آبان): «لیست» و «مجله»
  * آیکن ندارند و زیرمنو «صفحه‌ی بزرگِ کلاً مشکی» است. زیرمنوهای ما سطحِ سوم ندارند، پس به‌جای پرده‌ی تمام‌عرضِ تیره، یک
- * کارتِ روشنِ کوچک زیرِ همان مورد با همان کاشی‌های رنگیِ منوی گوشی؛ آیکنِ «لیست» و «مجله» هم‌اندازه‌ی آیکن‌های قالب.
+ * کارتِ کوچک (روشن یا تیره، هم‌حالتِ قالب) زیرِ همان مورد با همان کاشی‌های رنگیِ منوی گوشی؛ آیکنِ «لیست» و «مجله» هم‌اندازه‌ی آیکن‌های قالب.
  */
 function stlh_dm_css(): string {
+	$p    = stlh_menu_palette();
 	$nav  = 'html body .main-menu-div .bk_menu>.bakala>ul>li';
 	// کلاسِ تکراری برای اینکه از قاعده‌ی پنج‌کلاسیِ قالب (.bk_menu.bk_vertical_menu.level …) جلو بزند
 	$drop = $nav . '>.bakala-tab-menu-items.bakala-tab-menu-items.bakala-tab-menu-items';
@@ -156,16 +172,16 @@ function stlh_dm_css(): string {
 		. $nav . ':focus-within>.bakala-tab-menu-items.bakala-tab-menu-items.bakala-tab-menu-items';
 	// بسته: حالتِ پنهانِ قالب دست نمی‌خورد، فقط پهنای ۱۳۲۰ پیکسلی کنار می‌رود
 	$css  = $nav . ':has(>.bakala-tab-menu-items){position:relative!important}'
-		. $drop . '{left:auto!important;right:0!important;width:290px!important;min-width:0!important;max-width:none!important;background:#fff!important;backdrop-filter:none!important}'
+		. $drop . '{left:auto!important;right:0!important;width:290px!important;min-width:0!important;max-width:none!important;background:' . $p['bg'] . '!important;backdrop-filter:none!important}'
 		. $open . '{height:auto!important;max-height:none!important;min-height:0!important;opacity:1!important;display:block!important;overflow:visible!important;padding:10px!important;'
-		. 'border:1px solid #eef0f4!important;border-radius:18px!important;box-shadow:0 24px 50px -16px rgb(15 18 25 / .35)!important}'
+		. 'border:1px solid ' . $p['line'] . '!important;border-radius:18px!important;box-shadow:' . $p['shadow'] . '!important}'
 		. $drop . '::before,' . $drop . '::after{display:none!important}'
 		. $drop . '>ul,' . $drop . '>ul.level{position:static!important;width:100%!important;float:none!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;border:0!important;padding:0!important;margin:0!important;background:transparent!important;box-shadow:none!important}'
 		. $drop . '>ul>li{width:100%!important;height:auto!important;float:none!important;margin:0!important;padding:0!important;background:transparent!important;border:0!important;border-radius:14px!important}'
-		. $drop . '>ul>li:hover{background:#f4f5f8!important}'
+		. $drop . '>ul>li:hover{background:' . $p['soft'] . '!important}'
 		. $drop . '>ul>li>:not(.title2){display:none!important}'
 		. $drop . ' .title2{width:100%!important;height:auto!important;padding:0!important;margin:0!important;background:transparent!important;border:0!important}'
-		. $drop . ' .title2 a{position:relative;display:flex!important;align-items:center;gap:12px;width:100%!important;min-height:52px;padding:7px 8px!important;color:#1f2430!important;background:transparent!important;font-size:14px!important;font-weight:700!important;line-height:1.5!important;border-radius:14px;white-space:nowrap}'
+		. $drop . ' .title2 a{position:relative;display:flex!important;align-items:center;gap:12px;width:100%!important;min-height:52px;padding:7px 8px!important;color:' . $p['ink'] . '!important;background:transparent!important;font-size:14px!important;font-weight:700!important;line-height:1.5!important;border-radius:14px;white-space:nowrap}'
 		. $drop . ' .title2 a::before{content:""!important;flex:none;width:36px;height:36px;border-radius:11px;background:var(--g1,#94a3b8)!important;margin:0!important;font-size:0!important}'
 		. $drop . ' .title2 a::after{content:"";position:absolute;right:15.5px;top:50%;transform:translateY(-50%);width:20px;height:20px;background:#fff;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}';
 	foreach ( stlh_mm_sub_rules() as [ $url, $key, $c1, $all ] ) {
