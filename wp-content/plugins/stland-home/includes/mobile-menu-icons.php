@@ -143,11 +143,52 @@ function stlh_mm_icons_css(): string {
 	return $css;
 }
 
+/**
+ * منوی بالای سایت در رایانه (`.bk_menu`، «منوی شیشه‌ای»ِ باکالا) — صاحب فروشگاه با دو عکس (۷ آبان): «لیست» و «مجله»
+ * آیکن ندارند و زیرمنو «صفحه‌ی بزرگِ کلاً مشکی» است. زیرمنوهای ما سطحِ سوم ندارند، پس به‌جای پرده‌ی تمام‌عرضِ تیره، یک
+ * کارتِ روشنِ کوچک زیرِ همان مورد با همان کاشی‌های رنگیِ منوی گوشی؛ آیکنِ «لیست» و «مجله» هم‌اندازه‌ی آیکن‌های قالب.
+ */
+function stlh_dm_css(): string {
+	$nav  = 'html body .main-menu-div .bk_menu>.bakala>ul>li';
+	// کلاسِ تکراری برای اینکه از قاعده‌ی پنج‌کلاسیِ قالب (.bk_menu.bk_vertical_menu.level …) جلو بزند
+	$drop = $nav . '>.bakala-tab-menu-items.bakala-tab-menu-items.bakala-tab-menu-items';
+	$open = $nav . ':hover>.bakala-tab-menu-items.bakala-tab-menu-items.bakala-tab-menu-items,'
+		. $nav . ':focus-within>.bakala-tab-menu-items.bakala-tab-menu-items.bakala-tab-menu-items';
+	// بسته: حالتِ پنهانِ قالب دست نمی‌خورد، فقط پهنای ۱۳۲۰ پیکسلی کنار می‌رود
+	$css  = $nav . ':has(>.bakala-tab-menu-items){position:relative!important}'
+		. $drop . '{left:auto!important;right:0!important;width:290px!important;min-width:0!important;max-width:none!important;background:#fff!important;backdrop-filter:none!important}'
+		. $open . '{height:auto!important;max-height:none!important;min-height:0!important;opacity:1!important;display:block!important;overflow:visible!important;padding:10px!important;'
+		. 'border:1px solid #eef0f4!important;border-radius:18px!important;box-shadow:0 24px 50px -16px rgb(15 18 25 / .35)!important}'
+		. $drop . '::before,' . $drop . '::after{display:none!important}'
+		. $drop . '>ul,' . $drop . '>ul.level{position:static!important;width:100%!important;float:none!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;border:0!important;padding:0!important;margin:0!important;background:transparent!important;box-shadow:none!important}'
+		. $drop . '>ul>li{width:100%!important;height:auto!important;float:none!important;margin:0!important;padding:0!important;background:transparent!important;border:0!important;border-radius:14px!important}'
+		. $drop . '>ul>li:hover{background:#f4f5f8!important}'
+		. $drop . '>ul>li>:not(.title2){display:none!important}'
+		. $drop . ' .title2{width:100%!important;height:auto!important;padding:0!important;margin:0!important;background:transparent!important;border:0!important}'
+		. $drop . ' .title2 a{position:relative;display:flex!important;align-items:center;gap:12px;width:100%!important;min-height:52px;padding:7px 8px!important;color:#1f2430!important;background:transparent!important;font-size:14px!important;font-weight:700!important;line-height:1.5!important;border-radius:14px;white-space:nowrap}'
+		. $drop . ' .title2 a::before{content:""!important;flex:none;width:36px;height:36px;border-radius:11px;background:var(--g1,#94a3b8)!important;margin:0!important;font-size:0!important}'
+		. $drop . ' .title2 a::after{content:"";position:absolute;right:15.5px;top:50%;transform:translateY(-50%);width:20px;height:20px;background:#fff;-webkit-mask:var(--ic) center/contain no-repeat;mask:var(--ic) center/contain no-repeat}';
+	foreach ( stlh_mm_sub_rules() as [ $url, $key, $c1, $all ] ) {
+		$a    = $drop . ' .title2 a[href="' . esc_attr( $url ) . '"]';
+		$css .= $a . '{--g1:' . $c1 . ';--ic:' . stlh_mm_mask( $key ) . '}';
+		if ( $all ) {
+			$css .= $a . '{background:' . $c1 . '!important;color:#fff!important;margin-bottom:6px}' . $a . '::before{background:rgb(255 255 255 / .2)!important}';
+		}
+	}
+	// آیکنِ «لیست» و «مجله» در نوارِ منو، کنارِ آیکن‌های قالب
+	$blog = untrailingslashit( stlh_menu_blog_url() );
+	foreach ( [ 'a[href*="/list/"]' => 'pricetag', 'a[href^="' . $blog . '"]' => 'news' ] as $sel => $key ) {
+		$css .= $nav . '>.title>' . $sel . '::before{content:"";display:inline-block;width:17px;height:17px;margin-inline-end:6px;vertical-align:-3px;background:currentColor;'
+			. '-webkit-mask:' . stlh_mm_mask( $key ) . ' center/contain no-repeat;mask:' . stlh_mm_mask( $key ) . ' center/contain no-repeat}';
+	}
+	return $css;
+}
+
 add_action( 'wp_head', static function (): void {
 	if ( is_admin() ) {
 		return;
 	}
-	echo '<style id="stlh-mm-icons">' . stlh_mm_icons_css() . "</style>\n"; // phpcs:ignore WordPress.Security.EscapeOutput -- CSSِ ساخته‌ی خودمان
+	echo '<style id="stlh-mm-icons">' . stlh_mm_icons_css() . stlh_dm_css() . "</style>\n"; // phpcs:ignore WordPress.Security.EscapeOutput -- CSSِ ساخته‌ی خودمان
 }, 30 );
 
 /*
