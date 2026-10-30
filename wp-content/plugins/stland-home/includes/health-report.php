@@ -57,6 +57,16 @@ add_action( 'init', static function (): void {
 	if ( ! get_option( STLH_HR_PAGE ) && post_type_exists( 'page' ) && add_option( 'stlh_hr_page_lock', time(), '', false ) ) {
 		stlh_hr_page_id( true );
 	}
+	// ۱.۷۷.۰ برگه را ساخت ولی عنوانِ گوگل خالی ماند (یواست پیش‌فرضِ «عنوان - نامِ سایت» را گذاشت) — یک بار، فقط اگر خالی است
+	$id = (int) get_option( STLH_HR_PAGE, 0 );
+	if ( $id && ! get_option( 'stlh_hr_seo_set' ) ) {
+		foreach ( [ '_yoast_wpseo_title' => stlh_label( 'hr_seo_title' ), '_yoast_wpseo_metadesc' => stlh_label( 'hr_seo_desc' ), '_yoast_wpseo_focuskw' => 'سلامت باتری آیفون کارکرده' ] as $k => $v ) {
+			if ( '' === (string) get_post_meta( $id, $k, true ) ) {
+				update_post_meta( $id, $k, $v );
+			}
+		}
+		update_option( 'stlh_hr_seo_set', 1, false );
+	}
 }, 60 );
 
 function stlh_hr_url(): string {
