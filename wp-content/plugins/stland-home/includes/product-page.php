@@ -46,7 +46,30 @@ function stlh_health_data( int $product_id ): ?array {
 		'checked' => (string) ( $data['checked'] ?? '' ),
 		'battery' => isset( $data['battery'] ) ? (int) $data['battery'] : null,
 		'cycles'  => isset( $data['cycles'] ) ? (int) $data['cycles'] : null,
+		'note'    => stlh_health_note( $product_id, (string) ( $data['note'] ?? '' ) ),
 	];
+}
+
+/**
+ * «توضیحِ فروشنده» زیرِ دفترچه (صاحب فروشگاه، ۸ آبان ۱۴۰۵: «یک گزینه برای توضیحاتِ اضافه — مثلاً خط و خش دارد — که برای
+ * مشتری واضح باشد؛ خیلی کوچک، جاگیر نباشد»). دو منبع، هر دو فقط خواندنی از نگاهِ صفحه:
+ *   • متای `stlh_health_note` — مالِ خودِ سایت، از کادرِ کوچکِ کنارِ ویرایشِ محصول در پیشخوان (حسابداری هرگز رویش نمی‌نویسد)؛
+ *   • کلیدِ اختیاریِ `note` در `stl_health`، اگر حسابداری روزی بفرستد.
+ * نوشته‌ی پیشخوان مقدم است.
+ */
+function stlh_health_note( int $product_id, string $from_booklet = '' ): string {
+	$note = trim( (string) get_post_meta( $product_id, 'stlh_health_note', true ) );
+	return mb_substr( '' !== $note ? $note : trim( $from_booklet ), 0, 300 );
+}
+
+/** کادرِ یادداشت — فقط وقتی هست که چیزی نوشته شده */
+function stlh_health_note_html( string $note ): string {
+	if ( '' === $note ) {
+		return '';
+	}
+	$e = static fn( $s ) => htmlspecialchars( (string) $s, ENT_QUOTES, 'UTF-8' );
+	return '<p class="stl-hc__note"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/></svg>'
+		. '<b>' . $e( stlh_label( 'health_note_title' ) ) . '</b> ' . nl2br( $e( $note ), false ) . '</p>';
 }
 
 /** HTMLِ کارت — جدا از هوک تا آزمون و پیش‌نمایش بی‌وردپرس هم بسازندش */
@@ -96,6 +119,8 @@ function stlh_health_card( array $h ): string {
 		return '<li class="is-' . $i['t'] . '"><span>' . $e( $i['l'] ) . '</span><b>' . $mark . $e( $i['v'] ) . '</b></li>';
 	};
 
+	$out .= stlh_health_note_html( (string) ( $h['note'] ?? '' ) );
+
 	$first = 6;
 	$out  .= '<ul class="stl-hc__grid">' . implode( '', array_map( $li, array_slice( $sorted, 0, $first ) ) ) . '</ul>';
 	if ( count( $sorted ) > $first ) {
@@ -138,6 +163,10 @@ function stlh_health_css(): string {
 .stl-hc__close,.stl-hc__more[open] .stl-hc__open{display:none}.stl-hc__more[open] .stl-hc__close{display:inline}
 .stl-hc__more[open]{display:flex;flex-direction:column}
 @media (max-width:767px){.stl-hc{margin:12px 10px;width:auto;padding:14px;border-radius:14px}.stl-hc__grid{grid-template-columns:1fr 1fr}}
+.stl-hc__note{display:flex;align-items:flex-start;gap:6px;flex-wrap:wrap;margin:0 0 8px;padding:8px 12px;border-radius:12px;background:#f1f6fe;color:#3f4064;font-size:12.5px;line-height:1.8}
+.stl-hc__note svg{flex:0 0 auto;margin-top:4px;color:#1f6fd6}.stl-hc__note b{color:#23254e;font-weight:800}
+.stl-hc--solo{padding:0;border:0;margin:12px 0 4px}.stl-hc--solo .stl-hc__note{margin:0}
+@media (max-width:767px){.stl-hc--solo{margin:10px 10px 4px}}
 .single-product .posted_in:not(:has(a)){display:none}
 CSS;
 }
@@ -151,8 +180,32 @@ add_action( 'woocommerce_single_product_end', static function (): void {
 	$h  = $id ? stlh_health_data( (int) $id ) : null;
 	if ( $h ) {
 		echo stlh_health_card( $h ); // phpcs:ignore — مقادیر داخلِ تابع escape شده‌اند
+	} elseif ( $id && '' !== ( $note = stlh_health_note( (int) $id ) ) ) {
+		echo '<section class="stl-hc stl-hc--solo">' . stlh_health_note_html( $note ) . '</section>'; // phpcs:ignore
 	}
 }, 99 );
+
+/*
+ * کادرِ کوچکِ «توضیحِ فروشنده» در ستونِ کناریِ ویرایشِ محصول — فقط برای کسی که حقِ ویرایشِ همان محصول را دارد.
+ * متنِ آزاد است چون چیزی برای انتخاب نیست؛ حداکثر ۳۰۰ نویسه.
+ */
+add_action( 'add_meta_boxes_product', static function (): void {
+	add_meta_box( 'stlh_health_note', stlh_label( 'health_note_title' ), static function ( WP_Post $post ): void {
+		wp_nonce_field( 'stlh_health_note', 'stlh_health_note_nonce' );
+		echo '<textarea name="stlh_health_note" rows="3" maxlength="300" style="width:100%" placeholder="' . esc_attr( stlh_label( 'health_note_hint' ) ) . '">'
+			. esc_textarea( (string) get_post_meta( $post->ID, 'stlh_health_note', true ) ) . '</textarea>'
+			. '<p class="description">' . esc_html( stlh_label( 'health_note_help' ) ) . '</p>';
+	}, 'product', 'side', 'default' );
+} );
+
+add_action( 'save_post_product', static function ( int $post_id ): void {
+	if ( ! isset( $_POST['stlh_health_note_nonce'] ) || ! wp_verify_nonce( sanitize_key( $_POST['stlh_health_note_nonce'] ), 'stlh_health_note' )
+		|| ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) || ! current_user_can( 'edit_post', $post_id ) ) {
+		return;
+	}
+	$note = mb_substr( trim( sanitize_textarea_field( wp_unslash( (string) ( $_POST['stlh_health_note'] ?? '' ) ) ) ), 0, 300 );
+	'' === $note ? delete_post_meta( $post_id, 'stlh_health_note' ) : update_post_meta( $post_id, 'stlh_health_note', $note );
+} );
 
 add_action( 'wp_enqueue_scripts', static function (): void {
 	if ( ! function_exists( 'is_product' ) || ! is_product() ) {
