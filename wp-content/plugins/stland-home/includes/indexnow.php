@@ -11,14 +11,15 @@
  *   • هر تغییر فقط نشانی را در صف (`stlh_indexnow_queue`) می‌گذارد؛ یک رویدادِ زمان‌بندی ۵ دقیقه بعد همه را در **یک** درخواست
  *     می‌فرستد — همگام‌سازیِ حسابداری که ده‌ها محصول را پشتِ هم عوض می‌کند، یک درخواست می‌شود، نه ده‌ها.
  *   • نشانی‌ای که در ۶ ساعتِ گذشته فرستاده شده، دوباره فرستاده نمی‌شود.
- *   • یک بار (با `STLH_INDEXNOW_SEED_REV`) همه‌ی نوشته‌ها، محصولات، برگه‌ها و دسته‌های عمومی هم فرستاده می‌شوند.
+ *   • یک بار (با `STLH_INDEXNOW_SEED_REV`) همه‌ی نوشته‌ها، محصولات، برگه‌ها و دسته‌های عمومی هم فرستاده می‌شوند — در رویدادِ
+ *     جدای خودش (`stlh_indexnow_seed_urls`)، نه در صفِ مشترک که درخواست‌های هم‌زمان رویش می‌نویسند.
  *   • نتیجه‌ی ۲۰ ارسالِ آخر در `stlh_indexnow_log` (پل: `site-options?prefix=stlh_indexnow`).
  * فقط نشانیِ صفحه‌های عمومی می‌رود؛ چیزی از پایگاه داده‌ی دیگران نوشته یا خوانده نمی‌شود.
  */
 
 defined( 'ABSPATH' ) || exit;
 
-const STLH_INDEXNOW_SEED_REV = 1;
+const STLH_INDEXNOW_SEED_REV = 2; // ۲: ارسالِ اولیه جدا از صف (در ۱ صفِ مشترک با درخواست‌های هم‌زمان رونویسی شد)
 const STLH_INDEXNOW_HOOK     = 'stlh_indexnow_flush';
 
 function stlh_indexnow_key(): string {
@@ -109,7 +110,14 @@ function stlh_indexnow_flush(): void {
 		update_option( 'stlh_indexnow_sent', $sent, false );
 		return;
 	}
-	$urls = array_slice( $urls, 0, 10000 ); // سقفِ هر درخواستِ IndexNow
+	stlh_indexnow_send( $urls, $sent );
+}
+
+/** یک درخواست به IndexNow؛ ناموفق → دوباره در صف، یک ساعتِ دیگر */
+function stlh_indexnow_send( array $urls, ?array $sent = null ): void {
+	$now  = time();
+	$sent = $sent ?? array_filter( (array) get_option( 'stlh_indexnow_sent', [] ), static fn( $t ) => $now - (int) $t < 6 * HOUR_IN_SECONDS );
+	$urls = array_slice( array_values( array_unique( $urls ) ), 0, 10000 ); // سقفِ هر درخواستِ IndexNow
 	$key  = stlh_indexnow_key();
 	$res  = wp_remote_post( 'https://api.indexnow.org/indexnow', [
 		'timeout' => 15,
@@ -128,7 +136,7 @@ function stlh_indexnow_flush(): void {
 		}
 	} else {
 		// بی‌پاسخ یا رد شد: صف برمی‌گردد و یک ساعتِ دیگر دوباره (بی‌تکرارِ پشتِ هم)
-		update_option( 'stlh_indexnow_queue', array_fill_keys( $urls, 1 ), false );
+		update_option( 'stlh_indexnow_queue', (array) get_option( 'stlh_indexnow_queue', [] ) + array_fill_keys( $urls, 1 ), false );
 		if ( ! wp_next_scheduled( STLH_INDEXNOW_HOOK ) ) {
 			wp_schedule_single_event( $now + HOUR_IN_SECONDS, STLH_INDEXNOW_HOOK );
 		}
@@ -170,7 +178,16 @@ add_action( 'init', static function (): void {
 			}
 		}
 	}
-	stlh_indexnow_queue( $urls );
+	update_option( 'stlh_indexnow_seed_urls', array_values( array_unique( array_filter( $urls ) ) ), false );
 	update_option( 'stlh_indexnow_seed', STLH_INDEXNOW_SEED_REV, false );
 	delete_option( 'stlh_indexnow_seed_lock' );
+	wp_schedule_single_event( time() + MINUTE_IN_SECONDS, 'stlh_indexnow_seed_send' );
 }, 50 );
+
+add_action( 'stlh_indexnow_seed_send', static function (): void {
+	$urls = (array) get_option( 'stlh_indexnow_seed_urls', [] );
+	delete_option( 'stlh_indexnow_seed_urls' );
+	if ( $urls ) {
+		stlh_indexnow_send( $urls );
+	}
+} );
