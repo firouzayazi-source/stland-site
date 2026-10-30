@@ -479,6 +479,40 @@ function stlh_ai_strip_spam( string $html ): string {
 add_filter( 'the_content', 'stlh_ai_strip_spam', 999 );
 add_filter( 'elementor/frontend/the_content', 'stlh_ai_strip_spam', 999 );
 
+/* ───────────────────── ۵ب. متنِ جایگزینِ خالیِ عکس‌ها ───────────────────── */
+
+/**
+ * بازرسیِ زنده‌ی بینگ (۸ آبان ۱۴۰۵) روی «پرو یا پرو مکس؟» چهار عکسِ بی‌alt شمرد: عکسِ شاخصِ مقاله‌ای که در پیشخوان
+ * عوض شده بود، لوگوی پنجره‌ی ورودِ قالب و نمادِ اعتماد. فقط alt‌ِ **خالی** پر می‌شود — نامِ خودِ پیوست، وگرنه عنوانِ نوشته‌ای
+ * که به آن چسبیده؛ چیزی در پایگاه داده نوشته نمی‌شود.
+ */
+add_filter( 'wp_get_attachment_image_attributes', static function ( array $attr, $attachment ): array {
+	if ( '' !== trim( (string) ( $attr['alt'] ?? '' ) ) || ! $attachment instanceof WP_Post ) {
+		return $attr;
+	}
+	$alt = trim( (string) $attachment->post_title );
+	if ( '' === $alt || preg_match( '/^[\w\-. ]+$/', $alt ) ) { // نامِ فایلِ لاتین («Bearded-Tech-…») توضیح نیست
+		$alt = $attachment->post_parent ? trim( (string) get_the_title( $attachment->post_parent ) ) : '';
+	}
+	if ( '' === $alt && in_the_loop() ) {
+		$alt = trim( (string) get_the_title() );
+	}
+	if ( '' !== $alt ) {
+		$attr['alt'] = $alt;
+	}
+	return $attr;
+}, 20, 2 );
+
+/** نمادِ اعتمادِ الکترونیکی (ابزارکِ پانویس) */
+$stlh_enamad_alt = static function ( $html ) {
+	return is_string( $html ) && str_contains( $html, 'trustseal.enamad.ir' )
+		? preg_replace( "/(<img\\b[^>]*trustseal\\.enamad\\.ir[^>]*?)\\salt=(['\"])\\2/i", '$1 alt=$2نماد اعتماد الکترونیکی$2', $html )
+		: $html;
+};
+add_filter( 'widget_text', $stlh_enamad_alt, 99 );
+add_filter( 'widget_custom_html_content', $stlh_enamad_alt, 99 );
+add_filter( 'widget_block_content', $stlh_enamad_alt, 99 );
+
 /* ───────────────────── ۶. تأییدِ مالکیت در Bing Webmaster ───────────────────── */
 
 /**
