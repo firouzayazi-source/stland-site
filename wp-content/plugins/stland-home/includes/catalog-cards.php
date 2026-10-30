@@ -69,3 +69,30 @@ add_filter( 'woocommerce_placeholder_img_src', function ( $src ) {
 	}
 	return STLH_URL . 'assets/img/placeholder.svg';
 } );
+
+/*
+ * فیلترِ قیمتِ دوتایی (صاحب فروشگاه با عکس، ۹ آبان ۱۴۰۵: «دو بار قیمت تکرار شده، پایینی لاتین و اضافه است»). ستونِ فیلترِ
+ * فروشگاه دو ابزارکِ «فیلتر قیمت» دارد (`woocommerce_price_filter-10` با اعدادِ فارسی و نوار، و `-9` بی‌نوار با اعدادِ لاتین).
+ * فقط در خروجیِ سایت، از هر ناحیه‌ی ابزارک اولین فیلترِ قیمت می‌ماند؛ تنظیمِ ابزارک‌ها در پیشخوان دست نمی‌خورد.
+ */
+add_filter( 'sidebars_widgets', static function ( $areas ) {
+	if ( is_admin() || ! is_array( $areas ) || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
+		return $areas;
+	}
+	foreach ( $areas as $area => $widgets ) {
+		if ( ! is_array( $widgets ) || 'wp_inactive_widgets' === $area ) {
+			continue;
+		}
+		$seen = false;
+		foreach ( $widgets as $i => $w ) {
+			if ( is_string( $w ) && str_starts_with( $w, 'woocommerce_price_filter-' ) ) {
+				if ( $seen ) {
+					unset( $areas[ $area ][ $i ] );
+				}
+				$seen = true;
+			}
+		}
+		$areas[ $area ] = array_values( (array) $areas[ $area ] );
+	}
+	return $areas;
+} );
