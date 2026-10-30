@@ -326,6 +326,7 @@ function stlh_hr_css(): string {
 		. '.stl-hr__note{font-size:12.5px;color:#81858b;margin:8px 0 0}'
 		. '.stl-hr__links{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:0;padding:0}.stl-hr__links li{margin:0}'
 		. '.stl-hr__links a{display:inline-block;padding:8px 14px;border-radius:999px;background:#f1f6fe;color:#1f6fd6;font-weight:700;font-size:13.5px;text-decoration:none}'
+		. '@media (max-width:767px){.stl-hr{padding:0 16px}}'
 		. '@media (max-width:640px){.stl-hr{font-size:14.5px}.stl-hr__tiles{grid-template-columns:repeat(2,minmax(0,1fr))}.stl-hr__tile b{font-size:22px}.stl-hr__bars li{grid-template-columns:minmax(0,7rem) minmax(0,1fr) auto;gap:8px}.stl-hr__table{font-size:13px}.stl-hr__table th,.stl-hr__table td{padding:8px 4px}}'
 		. '';
 }
