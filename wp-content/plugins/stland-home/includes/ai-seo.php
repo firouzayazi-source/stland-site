@@ -346,6 +346,7 @@ function stlh_ai_llms_txt(): string {
 	foreach ( stlh_lines( (string) stlh_opt( 'store_facts' ) ) as $fact ) {
 		$out[] = '- ' . $fact;
 	}
+	$out = array_merge( $out, (array) apply_filters( 'stlh_llms_extra', [] ) ); // گزارشِ سلامت و…
 	$out[] = '';
 
 	// سؤالات متداول از همان تنظیماتِ صفحه‌ی اصلی
