@@ -1222,10 +1222,10 @@ body.home { overflow-x: clip; }
 .st-sale { font-size: 11px !important; background: #dc2626 !important; }
 .st-cbs { top: auto; bottom: 6px; right: 6px; left: auto; flex-direction: column; align-items: flex-start; gap: 4px; }
 .st-cb { height: 22px; font-size: 11px; padding: 0 7px 0 6px; border-radius: 8px; }
-/* صاحب فروشگاه (۹ آبان): منتهی‌الیهِ راستِ عکس، پایین، بالای نام — اول «عکس از خودِ محصول»، بعد رجیستر، بعد باتری */
-.st-cb--photo { order: 1; }
+/* صاحب فروشگاه (۹ آبان): منتهی‌الیهِ راستِ عکس، پایین، بالای نام — از پایین به بالا: «عکس از خودِ محصول»، رجیستر، باتری */
+.st-cb--battery { order: 1; }
 .st-cb--registry { order: 2; }
-.st-cb--battery { order: 3; }
+.st-cb--photo { order: 3; }
 .st-cb--other { order: 4; }
 .st-section-header p { font-size: 12.5px; color: #5b616e; }
 @media (max-width: 576px) {
