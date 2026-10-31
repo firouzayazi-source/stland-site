@@ -264,8 +264,27 @@ function stlh_spec_line( WC_Product $p ): string {
 	if ( $digits && preg_match( '/(?<!\d)' . $digits . '(?!\d)/', $name ) ) {
 		$storage = '';
 	}
-	$bits = array_filter( [ $get( 'condition' ), $storage, $get( 'color' ) ], 'strlen' );
+	$bits = array_filter( [ $get( 'condition' ), $storage, stlh_color_fa( $get( 'color' ) ) ], 'strlen' );
 	return $bits ? stlh_fa( implode( ' · ', $bits ) ) : '';
+}
+
+/**
+ * نامِ رنگِ اپل به فارسی، فقط برای نمایش در خطِ مشخصاتِ کارت (بازبینیِ ظاهر، ۹ آبان ۱۴۰۵: «کارکرده · Green» کنارِ متنِ فارسی).
+ * متای `color` مالِ حسابداری است و دست نمی‌خورد؛ رنگِ ناشناخته همان‌طور که آمده نشان داده می‌شود.
+ */
+function stlh_color_fa( string $c ): string {
+	static $map = [
+		'black' => 'مشکی', 'white' => 'سفید', 'blue' => 'آبی', 'green' => 'سبز', 'pink' => 'صورتی', 'red' => 'قرمز', 'yellow' => 'زرد',
+		'purple' => 'بنفش', 'gold' => 'طلایی', 'silver' => 'نقره‌ای', 'graphite' => 'گرافیتی', 'midnight' => 'سرمه‌ای', 'starlight' => 'کرم',
+		'space black' => 'مشکی', 'space gray' => 'خاکستری', 'space grey' => 'خاکستری', 'deep purple' => 'بنفش تیره', 'sierra blue' => 'آبی سیرا',
+		'pacific blue' => 'آبی اقیانوسی', 'alpine green' => 'سبز آلپاین', 'product red' => 'قرمز', '(product)red' => 'قرمز',
+		'black titanium' => 'تیتانیوم مشکی', 'white titanium' => 'تیتانیوم سفید', 'natural titanium' => 'تیتانیوم طبیعی', 'blue titanium' => 'تیتانیوم آبی',
+		'desert titanium' => 'تیتانیوم صحرایی', 'cosmic orange' => 'نارنجی', 'deep blue' => 'آبی تیره', 'lavender' => 'اسطوخودوسی', 'sage' => 'سبز مریمی',
+		'mist blue' => 'آبی مه‌آلود', 'ultramarine' => 'لاجوردی', 'teal' => 'سبزآبی', 'coral' => 'مرجانی', 'light gold' => 'طلایی روشن', 'sky blue' => 'آبی آسمانی',
+		'cloud white' => 'سفید ابری',
+	];
+	$k = strtolower( trim( preg_replace( '/\s+/', ' ', $c ) ) );
+	return $map[ $k ] ?? $c;
 }
 
 function stlh_card( WC_Product $p ): string {

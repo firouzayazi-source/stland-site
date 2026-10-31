@@ -1201,3 +1201,34 @@ body.home { overflow-x: clip; }
     .st-sb-card::before { width: 220px; height: 220px; top: -100px; inset-inline-end: -80px; }
     .st-sb-instagram .st-sb-icon-box { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #e1306c, 0 8px 18px rgba(214,41,118,.25); }
 }
+
+/* ==============================
+   1.78 — یک‌دستی (بازبینیِ ۹ آبان ۱۴۰۵، docs/design-audit.md؛ متغیرها در includes/design-system.php)
+   کارت‌درکارت ← بخشِ خاکستریِ نرم با کارت‌های سفید؛ دو گردی (۱۲ کاشی/دکمه، ۲۰ بخش)؛ متنِ کمینه ۱۲؛ قیمتِ قبلی خوانا؛
+   نشان‌های کارت در یک ردیف و «عکس واقعی» فقط آیکن؛ دکمه‌ها ۴۴ پیکسل.
+============================== */
+.st-pr-container { background: #f6f7f9; border-color: transparent; border-radius: var(--sl-r-lg, 20px); }
+.st-pr-row .st-pr-card,
+.st-grp-row .st-pr-card { border-radius: var(--sl-r-sm, 12px); border-color: #e9ecf1; }
+.st-pr-row .st-pr-img { border-radius: 10px; }
+.st-pr-container .st-sec-more,
+.st-pr-container .st-grp-block .st-sec-more { min-height: 40px; display: inline-flex; align-items: center; padding: 0 16px; border-radius: var(--sl-r-sm, 12px); background: #fff; font-size: 12.5px; }
+.st-subcat { min-height: 40px; display: inline-flex; align-items: center; font-size: 13px; }
+.st-articles-more-btn { min-height: 44px; }
+.st-pr-name, .st-pr-row .st-pr-name { color: #23262f; }
+.st-pr-spec, .st-pr-row .st-pr-spec { font-size: 12px; color: #5b616e; }
+.st-pr-price del, .st-pr-row .st-pr-price del { font-size: 12px; color: #64748b; font-weight: 600; }
+.st-pr-price .woocommerce-Price-currencySymbol { font-size: 11.5px; }
+.st-sale { font-size: 11px !important; background: #dc2626 !important; }
+.st-cbs { flex-direction: row; flex-wrap: wrap; align-items: center; left: 6px; gap: 4px; }
+.st-cb { height: 22px; font-size: 11px; padding: 0 7px 0 6px; border-radius: 8px; }
+.st-cb.is-info { padding: 0; width: 22px; justify-content: center; }
+.st-cb.is-info span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+.st-section-header p { font-size: 12.5px; color: #5b616e; }
+@media (max-width: 576px) {
+    .st-pr-spec, .st-pr-row .st-pr-spec { font-size: 12px; }
+}
+@media (min-width: 768px) {
+    .st-cb { height: 24px; font-size: 11.5px; }
+    .st-cb.is-info { width: 24px; }
+}
