@@ -84,3 +84,32 @@ function stlh_card_badges_html( WC_Product $p ): string {
 	}
 	return '<span class="st-cbs">' . $html . '</span>';
 }
+
+/*
+ * همین نشان‌ها روی عکسِ صفحه‌ی محصول — صاحب فروشگاه (۹ آبان ۱۴۰۵، با عکسِ صفحه‌ی آیفون ۱۴ پرو): «داخلِ خودِ محصول هم همین تگ‌ها
+ * بیاید یا پایین بیاید که کاربر بداند چه می‌خواهد بخرد». کادرِ قالب برای این نیست، پس مثلِ دفترچه‌ی سلامت روی
+ * `woocommerce_single_product_end` چاپ می‌شود (یک ردیفِ کوچک) و یک تکه‌اسکریپت آن را به گوشه‌ی راست‌وپایینِ عکسِ اصلی می‌برد
+ * (گوشی: اسلایدرِ عکس، رایانه: عکسِ اول). بی اسکریپت همان ردیف بالای دفترچه می‌ماند. ترتیب مثلِ کارت: از پایین «عکس از خودِ
+ * محصول»، رجیستر، باتری.
+ */
+add_action( 'woocommerce_single_product_end', static function (): void {
+	$p = function_exists( 'wc_get_product' ) ? wc_get_product( get_the_ID() ) : null;
+	$html = $p instanceof WC_Product ? stlh_card_badges_html( $p ) : '';
+	if ( '' === $html ) {
+		return;
+	}
+	echo '<style>'
+		. '.st-cbs--pdp{display:flex;flex-wrap:wrap;gap:6px;direction:rtl;margin:12px 0 4px;pointer-events:none}'
+		. '.st-cbs--pdp.is-on{position:absolute;z-index:5;bottom:12px;right:12px;margin:0;flex-direction:column;align-items:flex-start;gap:5px}'
+		. '.st-cbs--pdp .st-cb{display:inline-flex;align-items:center;gap:4px;height:26px;padding:0 9px 0 8px;border-radius:9px;background:rgba(255,255,255,.92);'
+		. 'box-shadow:0 1px 2px rgba(15,23,42,.08),0 0 0 1px rgba(15,23,42,.06);color:#334155;font-size:12px;font-weight:700;line-height:1;white-space:nowrap;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}'
+		. '.st-cbs--pdp .st-cb svg{width:14px;height:14px;flex:0 0 auto}'
+		. '.st-cbs--pdp .is-good svg{color:#0f9f6e}.st-cbs--pdp .is-mid svg{color:#d98b06}.st-cbs--pdp .is-mid span{color:#92590a}.st-cbs--pdp .is-low svg{color:#e0244d}.st-cbs--pdp .is-info svg{color:#2563eb}'
+		. '.st-cbs--pdp .st-cb--battery{order:1}.st-cbs--pdp .st-cb--registry{order:2}.st-cbs--pdp .st-cb--photo{order:3}.st-cbs--pdp .st-cb--other{order:4}'
+		. '@media (max-width:767px){.st-cbs--pdp{margin:10px 10px 4px}.st-cbs--pdp.is-on{bottom:8px;right:10px}}'
+		. '</style>';
+	echo str_replace( '<span class="st-cbs">', '<span class="st-cbs st-cbs--pdp" id="stlh-pdp-badges">', $html ); // phpcs:ignore — داخلِ تابع escape شده
+	echo "<script>(function(){var b=document.getElementById('stlh-pdp-badges');if(!b)return;"
+		. "var t=document.querySelector('.swiper-responsive-product-slider')||document.querySelector('.woocommerce-product-gallery__image');"
+		. "if(!t||!t.offsetWidth)return;if(getComputedStyle(t).position==='static')t.style.position='relative';t.appendChild(b);b.classList.add('is-on');})();</script>";
+}, 98 );
