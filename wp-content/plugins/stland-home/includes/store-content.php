@@ -191,12 +191,23 @@ const STLH_PAGES_TRASH = [
 add_action( 'init', static function (): void {
 	$hash = md5( wp_json_encode( STLH_PAGES_TRASH ) );
 	$prev = (array) get_option( 'stlh_pages_trash', [] );
-	if ( ( $prev['hash'] ?? '' ) === $hash || ! add_option( 'stlh_pages_trash_lock', time(), '', false ) ) {
+	if ( ( $prev['hash'] ?? '' ) === $hash ) {
 		return;
 	}
+	// ۱.۷۸.۴: درخواست پیش از آخرین برگه تمام شد و قفل ماند (هر حذف حافظه‌ی موقت و «خبرِ فوری» را هم راه می‌اندازد) — قفلِ کهنه‌تر
+	// از ۵ دقیقه کنار می‌رود و هر برگه‌ی ماندن جداگانه سنجیده می‌شود («already» برای حذف‌شده‌ها)
+	$lock = (int) get_option( 'stlh_pages_trash_lock', 0 );
+	if ( $lock && time() - $lock < 5 * MINUTE_IN_SECONDS ) {
+		return;
+	}
+	update_option( 'stlh_pages_trash_lock', time(), false );
 	$done = [];
 	foreach ( STLH_PAGES_TRASH as $id => $slug ) {
 		$post = get_post( $id );
+		if ( $post && 'trash' === $post->post_status ) {
+			$done[ $id ] = 'already';
+			continue;
+		}
 		if ( ! $post || 'page' !== $post->post_type || rawurldecode( $post->post_name ) !== $slug ) {
 			$done[ $id ] = 'skip: ' . ( $post ? $post->post_type . '/' . $post->post_name : 'missing' );
 			continue;
@@ -213,6 +224,10 @@ function stlh_store_content_apply(): array {
 
 	foreach ( stlh_store_pages() as $slug => [ $id, $title, $desc, $html ] ) {
 		$post = get_post( $id );
+		if ( $post && 'trash' === $post->post_status ) {
+			$done[ $id ] = 'already';
+			continue;
+		}
 		if ( ! $post || 'page' !== $post->post_type || rawurldecode( $post->post_name ) !== $slug ) {
 			$log['pages'][ $slug ] = 'skip: not found';
 			continue;
