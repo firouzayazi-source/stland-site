@@ -50,9 +50,24 @@ ul.products .woocommerce-Price-currencySymbol::after{display:none!important}
 CSS;
 }
 
+/**
+ * سربرگِ تمام‌عرض در رایانه (صاحب فروشگاه، ۹ آبان، با عکسِ صفحه‌ی محصول در مانیتور: «بالا بریده است… صفحه را کامل پر کند بی آن‌که
+ * ترکیبِ کلی به هم بریزد»). قالب کلِ صفحه را در جعبه‌ی ۱۷۰۰ پیکسلی می‌گذارد و نوارِ تیره‌ی بالا در صفحه‌ی پهن دو حاشیه‌ی سفید
+ * می‌گیرد. زمینه‌ی خودِ صفحه (`html`) در همان ۱۱۶ پیکسلِ بالا هم‌رنگِ سربرگ می‌شود؛ `body` سفید است و حاشیه‌های بیرونِ جعبه همان
+ * زمینه‌ی `html` را نشان می‌دهند — پس نوار تا لبه‌ها می‌رود و محتوا سرِ جای خودش می‌ماند (سایه‌ی بلند را `overflow`ِ قالب می‌برید).
+ * فقط در حالتِ تیره‌ی قالب — در حالتِ روشن سربرگ و حاشیه هر دو سفیدند.
+ */
+function stlh_design_header_css(): string {
+	$p = function_exists( 'stlh_menu_palette' ) ? stlh_menu_palette() : [ 'mix' => '#fff' ];
+	if ( '#fff' === ( $p['mix'] ?? '#fff' ) ) {
+		return '';
+	}
+	return '@media (min-width:1700px){html{background:linear-gradient(var(--darkmode_background,#262626) 0 116px,#fff 116px)!important}body{background-color:#fff}}';
+}
+
 add_action( 'wp_head', static function (): void {
 	if ( is_admin() ) {
 		return;
 	}
-	echo '<style id="stlh-design">' . stlh_design_css() . "</style>\n"; // phpcs:ignore WordPress.Security.EscapeOutput -- CSSِ ثابتِ خودمان
+	echo '<style id="stlh-design">' . stlh_design_css() . stlh_design_header_css() . "</style>\n"; // phpcs:ignore WordPress.Security.EscapeOutput -- CSSِ ثابتِ خودمان
 }, 40 );

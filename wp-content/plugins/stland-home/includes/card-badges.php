@@ -25,7 +25,7 @@ function stlh_card_badge_items( WC_Product $p, int $max = 3 ): array {
 			$keys[ $key ] = [ $label, $suffix ];
 		}
 	}
-	$keys += [ 'real_photo' => [ 'عکس واقعی', '' ] ];
+	$keys += [ 'real_photo' => [ 'عکس از خودِ محصول', '' ] ]; // صاحب فروشگاه (۹ آبان): «اول بنویسد عکس از خودِ محصول»
 
 	$out = [];
 	foreach ( $keys as $key => [ $label, $suffix ] ) {
@@ -80,7 +80,7 @@ function stlh_card_badges_html( WC_Product $p ): string {
 	}
 	$html = '';
 	foreach ( $items as $b ) {
-		$html .= '<span class="st-cb is-' . esc_attr( $b['tone'] ) . '" title="' . esc_attr( $b['title'] ) . '">' . stlh_card_badge_icon( $b ) . '<span>' . esc_html( $b['text'] ) . '</span></span>';
+		$html .= '<span class="st-cb st-cb--' . esc_attr( $b['key'] ?? 'other' ) . ' is-' . esc_attr( $b['tone'] ) . '" title="' . esc_attr( $b['title'] ) . '">' . stlh_card_badge_icon( $b ) . '<span>' . esc_html( $b['text'] ) . '</span></span>';
 	}
 	return '<span class="st-cbs">' . $html . '</span>';
 }

@@ -51,7 +51,7 @@ function stlh_defaults(): array {
 		'map_url'        => '',
 		'store_facts'    => '',
 		'trust'          => "shield|گارانتی اصالت|تضمین اصالت و سلامت کالا\nclock|مهلت تست|تست با خیال راحت پس از خرید\ncard|خرید اقساطی|شرایط ویژه پرداخت قسطی\nstore|خرید حضوری|قم، بازار سلام، واحد F11",
-		'card_badges'    => "battery|باتری|٪\nregistry|ریجستری|\nreal_photo|عکس واقعی|",
+		'card_badges'    => "battery|باتری|٪\nregistry|ریجستری|\nreal_photo|عکس از خودِ محصول|",
 		// صاحب فروشگاه: نوار اعتماد زیر بنر نه، درست پیش از سوالات متداول.
 		// صاحب فروشگاه: دسته‌ها ← پیشنهاد ویژه ← آیفون نو ← کارکرده‌ها ← لوازم جانبی ← پرفروش‌ها
 		'order'          => "banner\ncategories\nflash_deal\nrows\ngroup\nbest\nsocial\ntrust\nfaq\nposts",

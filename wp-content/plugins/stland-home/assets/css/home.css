@@ -1220,15 +1220,18 @@ body.home { overflow-x: clip; }
 .st-pr-price del, .st-pr-row .st-pr-price del { font-size: 12px; color: #64748b; font-weight: 600; }
 .st-pr-price .woocommerce-Price-currencySymbol { font-size: 11.5px; }
 .st-sale { font-size: 11px !important; background: #dc2626 !important; }
-.st-cbs { flex-direction: row; flex-wrap: wrap; align-items: center; left: 6px; gap: 4px; }
+.st-cbs { top: auto; bottom: 6px; right: 6px; left: auto; flex-direction: column; align-items: flex-start; gap: 4px; }
 .st-cb { height: 22px; font-size: 11px; padding: 0 7px 0 6px; border-radius: 8px; }
-.st-cb.is-info { padding: 0; width: 22px; justify-content: center; }
-.st-cb.is-info span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+/* صاحب فروشگاه (۹ آبان): منتهی‌الیهِ راستِ عکس، پایین، بالای نام — اول «عکس از خودِ محصول»، بعد رجیستر، بعد باتری */
+.st-cb--photo { order: 1; }
+.st-cb--registry { order: 2; }
+.st-cb--battery { order: 3; }
+.st-cb--other { order: 4; }
 .st-section-header p { font-size: 12.5px; color: #5b616e; }
 @media (max-width: 576px) {
     .st-pr-spec, .st-pr-row .st-pr-spec { font-size: 12px; }
 }
 @media (min-width: 768px) {
+    .st-cbs { bottom: 8px; right: 8px; }
     .st-cb { height: 24px; font-size: 11.5px; }
-    .st-cb.is-info { width: 24px; }
 }
