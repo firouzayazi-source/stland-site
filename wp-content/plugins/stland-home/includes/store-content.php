@@ -169,8 +169,43 @@ function stlh_store_drafts(): array {
 
 /** صفحه‌های ابزاری — بمانند ولی در جستجو نیایند */
 function stlh_store_noindex_slugs(): array {
-	return [ 'compare', 'review', 'submit-comment', 'search', 'courier-panel', 'supervisor-map', 'heatmap', 'order-location', 'track-your-order', 'categories-elementor', 'elementor-43744' ];
+	return [ 'compare', 'track-your-order', 'elementor-43744' ];
 }
+
+/*
+ * برگه‌های بی‌استفاده به زباله‌دان (یک بار؛ ۳۰ روز از «برگه‌ها ← زباله‌دان» برمی‌گردند) — صاحب فروشگاه (۹ آبان ۱۴۰۵): «همان چیزی
+ * بماند که الان یا بعداً لازم داریم، باقی پاک شود». پیش از فهرست شدن سنجیده شد: در تنظیماتِ قالب (`compare_page`، `categories_page`،
+ * `top_bar_trackorder`، `comment_rules_page`) نیستند و هیچ صفحه‌ای به آن‌ها پیوند نمی‌دهد. فقط اگر شناسه و نامک هر دو بخورند.
+ */
+const STLH_PAGES_TRASH = [
+	13048 => 'categories-elementor', // پیش‌نویسِ صفحه‌ساز، هرگز منتشر نشد
+	16279 => 'review',               // «نظرسنجی محصولات»ِ نسخه‌ی نمونه‌ی قالب
+	44061 => 'search',               // «جستجوی محصولات» — جست‌وجو داخلِ سربرگ است
+	67    => 'submit-comment',       // «افزودن دیدگاه»ِ نسخه‌ی نمونه — فرمِ نظرِ محصول به آن بند نیست
+	44479 => 'order-location',       // چهار برگه‌ی خالیِ پنلِ ارسال (۲۴ شهریور) — صاحب فروشگاه: «انجام بده»
+	44480 => 'heatmap',
+	44481 => 'courier-panel',
+	44482 => 'supervisor-map',
+];
+
+add_action( 'init', static function (): void {
+	$hash = md5( wp_json_encode( STLH_PAGES_TRASH ) );
+	$prev = (array) get_option( 'stlh_pages_trash', [] );
+	if ( ( $prev['hash'] ?? '' ) === $hash || ! add_option( 'stlh_pages_trash_lock', time(), '', false ) ) {
+		return;
+	}
+	$done = [];
+	foreach ( STLH_PAGES_TRASH as $id => $slug ) {
+		$post = get_post( $id );
+		if ( ! $post || 'page' !== $post->post_type || rawurldecode( $post->post_name ) !== $slug ) {
+			$done[ $id ] = 'skip: ' . ( $post ? $post->post_type . '/' . $post->post_name : 'missing' );
+			continue;
+		}
+		$done[ $id ] = 'trash' === $post->post_status ? 'already' : ( wp_trash_post( $id ) ? 'trashed' : 'failed' );
+	}
+	update_option( 'stlh_pages_trash', [ 'hash' => $hash, 'at' => gmdate( 'c' ), 'items' => $done ], false );
+	delete_option( 'stlh_pages_trash_lock' );
+}, 42 );
 
 function stlh_store_content_apply(): array {
 	$log  = [ 'at' => gmdate( 'c' ), 'ver' => STLH_CONTENT_VER, 'pages' => [], 'drafts' => [], 'noindex' => [], 'settings' => [] ];
