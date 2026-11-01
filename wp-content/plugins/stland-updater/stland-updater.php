@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       StockLand Updater
  * Description:       افزونه‌های استوک لند را از گیت‌هاب به‌روز می‌کند — مثل آپدیت معمولی افزونه‌ها، بدون FTP.
- * Version:           1.2.0
+ * Version:           1.3.0
  * Requires at least: 6.3
  * Requires PHP:      8.1
  * Text Domain:       stland-updater
@@ -38,14 +38,121 @@ function stlu_manifest( bool $fresh = false ): ?array {
 			return $cached ?: null;
 		}
 	}
-	$res  = wp_remote_get( STLU_RELEASE . 'manifest.json', [ 'timeout' => 15 ] );
-	$code = is_wp_error( $res ) ? 0 : (int) wp_remote_retrieve_response_code( $res );
-	$data = 200 === $code ? json_decode( (string) wp_remote_retrieve_body( $res ), true ) : null;
-	$ok   = is_array( $data ) && isset( $data['plugins'] ) && is_array( $data['plugins'] );
+	$data = '' !== stlu_token() ? stlu_manifest_private() : null;
+	if ( null === $data ) {
+		$res  = wp_remote_get( STLU_RELEASE . 'manifest.json', [ 'timeout' => 15 ] );
+		$code = is_wp_error( $res ) ? 0 : (int) wp_remote_retrieve_response_code( $res );
+		$data = 200 === $code ? json_decode( (string) wp_remote_retrieve_body( $res ), true ) : null;
+	}
+	$ok = is_array( $data ) && isset( $data['plugins'] ) && is_array( $data['plugins'] );
 	// شکست هم کش می‌شود (کوتاه‌تر) تا هر بار باز کردن پیشخوان منتظر گیت‌هاب نماند.
 	set_site_transient( STLU_CACHE, $ok ? $data : [], $ok ? 30 * MINUTE_IN_SECONDS : 10 * MINUTE_IN_SECONDS );
 	return $ok ? $data : null;
 }
+
+/*
+ * ─── مخزنِ خصوصی ───
+ * صاحب فروشگاه (۱۰ آبان ۱۴۰۵) مخزن را برای امنیت خصوصی کرد؛ از آن به بعد نشانیِ عمومیِ Release جوابِ ۴۰۴ می‌دهد و سایت
+ * هیچ نسخه‌ای نمی‌گیرد. پس با یک کلیدِ فقط‌خواندنیِ گیت‌هاب (Fine-grained، فقط همین مخزن، «Contents: Read-only») از راهِ
+ * API خوانده می‌شود: فهرستِ فایل‌های Releaseِ `latest`، بعد هر فایل با `Accept: application/octet-stream`. گیت‌هاب به یک
+ * نشانیِ امضاشده‌ی موقت می‌فرستد که **بی** کلید خوانده می‌شود (کلید فقط به api.github.com می‌رود).
+ * کلید: ثابتِ `STLU_TOKEN` در wp-config.php، وگرنه گزینه‌ی `stlu_token` از همین صفحه‌ی تنظیمات (بی autoload). هرگز نمایش داده
+ * یا در گزارش نوشته نمی‌شود. بی کلید، همان راهِ عمومیِ قبلی.
+ */
+function stlu_token(): string {
+	$t = defined( 'STLU_TOKEN' ) ? (string) STLU_TOKEN : (string) get_option( 'stlu_token', '' );
+	return preg_match( '/^[A-Za-z0-9_]{20,255}$/', $t ) ? $t : '';
+}
+
+function stlu_api_args( array $extra = [] ): array {
+	return array_merge( [
+		'timeout' => 20,
+		'headers' => [
+			'Authorization'        => 'Bearer ' . stlu_token(),
+			'Accept'               => 'application/vnd.github+json',
+			'X-GitHub-Api-Version' => '2022-11-28',
+			'User-Agent'           => 'stland-updater',
+		],
+	], $extra );
+}
+
+const STLU_ASSET_API = 'https://api.github.com/repos/' . STLU_REPO . '/releases/assets/';
+
+/** نشانیِ امضاشده‌ی یک فایلِ Release (بی دنبال کردنِ هدایت، تا کلید به سرورِ دیگری نرود) */
+function stlu_asset_url( int $id ) {
+	$args = stlu_api_args( [ 'redirection' => 0 ] );
+	$args['headers']['Accept'] = 'application/octet-stream';
+	$res = wp_remote_get( STLU_ASSET_API . $id, $args );
+	if ( is_wp_error( $res ) ) {
+		return $res;
+	}
+	$code = (int) wp_remote_retrieve_response_code( $res );
+	$loc  = (string) wp_remote_retrieve_header( $res, 'location' );
+	if ( $code >= 300 && $code < 400 && '' !== $loc ) {
+		return $loc;
+	}
+	return new WP_Error( 'stlu_asset', 'GitHub ' . $code );
+}
+
+function stlu_manifest_private(): ?array {
+	$res = wp_remote_get( 'https://api.github.com/repos/' . STLU_REPO . '/releases/tags/latest', stlu_api_args() );
+	if ( is_wp_error( $res ) || 200 !== (int) wp_remote_retrieve_response_code( $res ) ) {
+		return null;
+	}
+	$rel    = json_decode( (string) wp_remote_retrieve_body( $res ), true );
+	$assets = [];
+	foreach ( (array) ( $rel['assets'] ?? [] ) as $a ) {
+		if ( isset( $a['name'], $a['id'] ) ) {
+			$assets[ (string) $a['name'] ] = (int) $a['id'];
+		}
+	}
+	if ( empty( $assets['manifest.json'] ) ) {
+		return null;
+	}
+	$url = stlu_asset_url( $assets['manifest.json'] );
+	if ( is_wp_error( $url ) ) {
+		return null;
+	}
+	$res  = wp_remote_get( $url, [ 'timeout' => 15 ] );
+	$data = ! is_wp_error( $res ) && 200 === (int) wp_remote_retrieve_response_code( $res ) ? json_decode( (string) wp_remote_retrieve_body( $res ), true ) : null;
+	if ( ! is_array( $data ) || ! isset( $data['plugins'] ) || ! is_array( $data['plugins'] ) ) {
+		return null;
+	}
+	foreach ( $data['plugins'] as $slug => &$info ) {
+		$zip = (string) ( $info['zip'] ?? '' );
+		if ( isset( $assets[ $zip ] ) ) {
+			$info['asset'] = $assets[ $zip ];
+		}
+	}
+	unset( $info );
+	return $data;
+}
+
+/** بسته‌ی هر افزونه: مخزنِ خصوصی → نشانیِ API (دانلودش با `upgrader_pre_download` پایین)، وگرنه نشانیِ عمومی */
+function stlu_package( array $info ): string {
+	return ! empty( $info['asset'] ) && '' !== stlu_token()
+		? STLU_ASSET_API . (int) $info['asset']
+		: STLU_RELEASE . rawurlencode( (string) $info['zip'] );
+}
+
+// دانلودِ بسته از مخزنِ خصوصی: وردپرس خودش سرآیندِ کلید را نمی‌فرستد
+add_filter( 'upgrader_pre_download', static function ( $reply, $package ) {
+	if ( ! is_string( $package ) || ! str_starts_with( $package, STLU_ASSET_API ) ) {
+		return $reply;
+	}
+	$url = stlu_asset_url( (int) substr( $package, strlen( STLU_ASSET_API ) ) );
+	if ( is_wp_error( $url ) ) {
+		return $url;
+	}
+	require_once ABSPATH . 'wp-admin/includes/file.php';
+	$tmp = wp_tempnam( 'stland-plugin.zip' );
+	$res = wp_remote_get( $url, [ 'timeout' => 120, 'stream' => true, 'filename' => $tmp ] );
+	if ( is_wp_error( $res ) || 200 !== (int) wp_remote_retrieve_response_code( $res ) ) {
+		@unlink( $tmp ); // phpcs:ignore
+		return is_wp_error( $res ) ? $res : new WP_Error( 'stlu_download', 'GitHub ' . wp_remote_retrieve_response_code( $res ) );
+	}
+	return $tmp;
+}, 10, 2 );
 
 function stlu_file( string $slug ): string {
 	return $slug . '/' . $slug . '.php';
@@ -58,7 +165,7 @@ function stlu_item( string $slug, array $info ): object {
 		'plugin'       => stlu_file( $slug ),
 		'new_version'  => (string) $info['version'],
 		'url'          => 'https://github.com/' . STLU_REPO,
-		'package'      => STLU_RELEASE . rawurlencode( (string) $info['zip'] ),
+		'package'      => stlu_package( $info ),
 		'requires_php' => '8.1',
 		'icons'        => [],
 		'banners'      => [],
@@ -117,7 +224,7 @@ add_filter( 'plugins_api', function ( $result, $action, $args ) {
 		'version'       => $info['version'],
 		'author'        => 'StockLand',
 		'homepage'      => 'https://github.com/' . STLU_REPO,
-		'download_link' => STLU_RELEASE . rawurlencode( (string) $info['zip'] ),
+		'download_link' => stlu_package( $info ),
 		'requires_php'  => '8.1',
 		'sections'      => [ 'description' => 'منتشرشده از کامیت ' . esc_html( substr( (string) $manifest['sha'], 0, 7 ) ) ],
 	];
@@ -339,7 +446,16 @@ function stlu_back( string $msg, bool $ok = true ): never {
 
 /** آزمایش اتصال: هم manifest و هم دانلود zip (که به سرور دیگری ریدایرکت می‌شود) */
 function stlu_probe(): array {
-	$out   = [];
+	$out = [];
+	if ( '' !== stlu_token() ) {
+		$start = microtime( true );
+		$res   = wp_remote_get( 'https://api.github.com/repos/' . STLU_REPO . '/releases/tags/latest', stlu_api_args() );
+		$out[] = [ 'API (مخزنِ خصوصی، با کلید)', is_wp_error( $res ) ? $res->get_error_message() : (string) wp_remote_retrieve_response_code( $res ), round( microtime( true ) - $start, 1 ) ];
+		$start = microtime( true );
+		$m     = stlu_manifest_private();
+		$out[] = [ 'manifest.json', $m ? '200' : 'خوانده نشد', round( microtime( true ) - $start, 1 ) ];
+		return $out;
+	}
 	$start = microtime( true );
 	$res   = wp_remote_get( STLU_RELEASE . 'manifest.json', [ 'timeout' => 15 ] );
 	$out[] = [ 'manifest.json', is_wp_error( $res ) ? $res->get_error_message() : (string) wp_remote_retrieve_response_code( $res ), round( microtime( true ) - $start, 1 ) ];
@@ -352,6 +468,26 @@ function stlu_probe(): array {
 	}
 	return $out;
 }
+
+// ذخیره یا پاک کردنِ کلیدِ گیت‌هاب (فرمِ همین صفحه، POST)
+add_action( 'admin_post_stlu_token', static function (): void {
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_die( 'اجازه ندارید.' );
+	}
+	check_admin_referer( 'stlu_token' );
+	$t = trim( (string) wp_unslash( $_POST['stlu_token'] ?? '' ) );
+	if ( isset( $_POST['stlu_token_clear'] ) ) {
+		delete_option( 'stlu_token' );
+		delete_site_transient( STLU_CACHE );
+		stlu_back( 'کلید پاک شد.' );
+	}
+	if ( ! preg_match( '/^[A-Za-z0-9_]{20,255}$/', $t ) ) {
+		stlu_back( 'کلید درست نیست — همان متنی را که گیت‌هاب داد کامل بچسبانید (با github_pat_ شروع می‌شود).', false );
+	}
+	update_option( 'stlu_token', $t, false );
+	delete_site_transient( STLU_CACHE );
+	stlu_back( stlu_manifest( true ) ? 'کلید ذخیره شد و فهرست از مخزنِ خصوصی خوانده شد.' : 'کلید ذخیره شد ولی گیت‌هاب جواب نداد — «آزمایش اتصال» را بزنید.', (bool) stlu_manifest() );
+} );
 
 add_action( 'admin_post_stlu', function (): void {
 	$do = sanitize_key( (string) ( $_GET['do'] ?? '' ) );
@@ -426,6 +562,21 @@ function stlu_page(): void {
 				به‌روزرسانی خودکار: <?php echo $auto ? 'روشن — خاموش کن' : 'خاموش — روشن کن'; ?>
 			</a>
 		</p>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:12px 0 18px;padding:12px 14px;border:1px solid #dcdcde;border-radius:8px;max-width:640px;background:#fff">
+			<input type="hidden" name="action" value="stlu_token">
+			<?php wp_nonce_field( 'stlu_token' ); ?>
+			<strong>کلیدِ گیت‌هاب (مخزنِ خصوصی)</strong>
+			<?php if ( defined( 'STLU_TOKEN' ) ) : ?>
+				<p class="description">کلید در wp-config.php تعریف شده است.</p>
+			<?php else : ?>
+				<p class="description"><?php echo '' !== stlu_token() ? 'کلید ذخیره شده است (نمایش داده نمی‌شود).' : 'کلیدی ذخیره نشده — مخزن اگر خصوصی باشد، به‌روزرسانی کار نمی‌کند.'; ?></p>
+				<p style="display:flex;gap:8px;flex-wrap:wrap">
+					<input type="password" name="stlu_token" autocomplete="off" placeholder="github_pat_…" style="flex:1 1 280px;direction:ltr">
+					<button class="button button-primary" type="submit">ذخیره‌ی کلید</button>
+					<?php if ( '' !== stlu_token() ) : ?><button class="button" type="submit" name="stlu_token_clear" value="1">پاک کردنِ کلید</button><?php endif; ?>
+				</p>
+			<?php endif; ?>
+		</form>
 		<?php if ( $auto ) : ?>
 			<?php $last = (array) get_option( 'stlu_auto_last', [] ); $next = wp_next_scheduled( 'stlu_auto_run' ); ?>
 			<p class="description">
