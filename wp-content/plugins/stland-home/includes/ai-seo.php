@@ -552,3 +552,30 @@ add_action( 'wp_head', static function (): void {
 		echo '<meta name="google-site-verification" content="' . esc_attr( STLH_GOOGLE_VERIFY ) . '" />' . "\n";
 	}
 }, 1 );
+
+/**
+ * عنوان و توضیحِ صفحه‌ی اصلی در گوگل (بازبینیِ روزِ ۱۴، ۱۱ آبان ۱۴۰۵): کنسول نشان داد «استوک لند» ۸۷۷ بار دیده شده و فقط ۱۹ بار
+ * رویش زده‌اند، و «استوکلند» ۱۶۹ بار بی هیچ کلیک. عنوانِ قبلی «استوک لند - استوک لند» بود، توضیح نداشت و افزونه‌ی سئو تکه‌ای
+ * از کدِ صفحه (با کدکوتاه) را توضیحِ اشتراک‌گذاری کرده بود. حالا عنوان و توضیح از `stlh_label()` می‌آیند، با هر دو املای نام؛
+ * در داده‌ی ساختاریافته‌ی سایت و سازمان هم نام‌های دیگر (`alternateName`) آمده تا گوگل املاهای مختلف را یکی بداند.
+ */
+function stlh_home_seo( string $key, $value ) {
+	return ( is_front_page() && ! is_paged() ) ? wp_strip_all_tags( stlh_label( $key ) ) : $value;
+}
+add_filter( 'wpseo_title', static fn( $t ) => stlh_home_seo( 'home_seo_title', $t ), 20 );
+add_filter( 'wpseo_opengraph_title', static fn( $t ) => stlh_home_seo( 'home_seo_title', $t ), 20 );
+add_filter( 'wpseo_twitter_title', static fn( $t ) => stlh_home_seo( 'home_seo_title', $t ), 20 );
+add_filter( 'wpseo_metadesc', static fn( $d ) => stlh_home_seo( 'home_seo_desc', $d ), 20 );
+add_filter( 'wpseo_opengraph_desc', static fn( $d ) => stlh_home_seo( 'home_seo_desc', $d ), 20 );
+add_filter( 'wpseo_twitter_description', static fn( $d ) => stlh_home_seo( 'home_seo_desc', $d ), 20 );
+
+const STLH_BRAND_ALIASES = [ 'استوکلند', 'StockLand', 'Stock Land', 'stland.ir' ];
+foreach ( [ 'wpseo_schema_website', 'wpseo_schema_organization' ] as $stlh_hook ) {
+	add_filter( $stlh_hook, static function ( $data ) {
+		if ( is_array( $data ) ) {
+			$data['alternateName'] = STLH_BRAND_ALIASES;
+		}
+		return $data;
+	}, 20 );
+}
+unset( $stlh_hook );
