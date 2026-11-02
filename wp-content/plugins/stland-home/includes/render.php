@@ -277,7 +277,7 @@ function stlh_color_fa( string $c ): string {
 		'black' => 'مشکی', 'white' => 'سفید', 'blue' => 'آبی', 'green' => 'سبز', 'pink' => 'صورتی', 'red' => 'قرمز', 'yellow' => 'زرد',
 		'purple' => 'بنفش', 'gold' => 'طلایی', 'silver' => 'نقره‌ای', 'graphite' => 'گرافیتی', 'midnight' => 'سرمه‌ای', 'starlight' => 'کرم',
 		'space black' => 'مشکی', 'space gray' => 'خاکستری', 'space grey' => 'خاکستری', 'deep purple' => 'بنفش تیره', 'sierra blue' => 'آبی سیرا',
-		'pacific blue' => 'آبی اقیانوسی', 'alpine green' => 'سبز آلپاین', 'product red' => 'قرمز', '(product)red' => 'قرمز',
+		'pacific blue' => 'آبی اقیانوسی', 'midnight green' => 'سبز تیره', 'alpine green' => 'سبز آلپاین', 'product red' => 'قرمز', '(product)red' => 'قرمز',
 		'black titanium' => 'تیتانیوم مشکی', 'white titanium' => 'تیتانیوم سفید', 'natural titanium' => 'تیتانیوم طبیعی', 'blue titanium' => 'تیتانیوم آبی',
 		'desert titanium' => 'تیتانیوم صحرایی', 'cosmic orange' => 'نارنجی', 'deep blue' => 'آبی تیره', 'lavender' => 'اسطوخودوسی', 'sage' => 'سبز مریمی',
 		'mist blue' => 'آبی مه‌آلود', 'ultramarine' => 'لاجوردی', 'teal' => 'سبزآبی', 'coral' => 'مرجانی', 'light gold' => 'طلایی روشن', 'sky blue' => 'آبی آسمانی',

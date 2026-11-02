@@ -579,3 +579,11 @@ foreach ( [ 'wpseo_schema_website', 'wpseo_schema_organization' ] as $stlh_hook 
 	}, 20 );
 }
 unset( $stlh_hook );
+// نامِ صفحه‌ی اصلی در داده‌ی ساختاریافته‌ی افزونه‌ی سئو جدا از عنوان ساخته می‌شود و هنوز «استوک لند - استوک لند» بود.
+add_filter( 'wpseo_schema_webpage', static function ( $data ) {
+	if ( is_array( $data ) && is_front_page() && ! is_paged() ) {
+		$data['name']        = wp_strip_all_tags( stlh_label( 'home_seo_title' ) );
+		$data['description'] = wp_strip_all_tags( stlh_label( 'home_seo_desc' ) );
+	}
+	return $data;
+}, 20 );
