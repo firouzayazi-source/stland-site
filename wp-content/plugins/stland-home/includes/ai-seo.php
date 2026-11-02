@@ -541,3 +541,14 @@ add_action( 'wp_head', static function (): void {
 		echo '<meta name="msvalidate.01" content="' . esc_attr( stlh_bing_code() ) . '" />' . "\n";
 	}
 }, 1 );
+
+/*
+ * تأییدِ مالکیت در کنسولِ جست‌وجوی گوگل — صاحب فروشگاه (۱۱ آبان ۱۴۰۵): کنسول دوباره «تأییدِ مالکیت» خواست و او روشِ
+ * «HTML tag» را انتخاب کرد. گوگل گفته پاک نشود، وگرنه تأیید از دست می‌رود.
+ */
+const STLH_GOOGLE_VERIFY = 'PHHdrvHnjwDgBDsPT2ltlw5ZYIKzuJqy0fG9_ji4dbc';
+add_action( 'wp_head', static function (): void {
+	if ( is_front_page() ) {
+		echo '<meta name="google-site-verification" content="' . esc_attr( STLH_GOOGLE_VERIFY ) . '" />' . "\n";
+	}
+}, 1 );
