@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       StockLand Updater
  * Description:       افزونه‌های استوک لند را از گیت‌هاب به‌روز می‌کند — مثل آپدیت معمولی افزونه‌ها، بدون FTP.
- * Version:           1.3.1
+ * Version:           1.4.0
  * Requires at least: 6.3
  * Requires PHP:      8.1
  * Text Domain:       stland-updater
@@ -433,9 +433,14 @@ add_action( 'stlu_auto_run', static function (): void {
 } );
 
 // ─── صفحه‌ی تنظیمات ───
+// صاحب فروشگاه (۱۱ آبان ۱۴۰۵): «با گیت هر دقیقه کار نداریم؛ پنهان باشد و با یک پیوند باز شود». صفحه ثبت می‌ماند ولی از
+// منوی «تنظیمات» برداشته می‌شود؛ راهِ رسیدن: پیوندِ «به‌روزرسانی» زیرِ همین افزونه در صفحه‌ی «افزونه‌ها».
 add_action( 'admin_menu', function (): void {
 	add_options_page( 'به‌روزرسانی استوک لند', 'به‌روزرسانی استوک لند', 'update_plugins', 'stland-updater', 'stlu_page' );
 } );
+add_action( 'admin_menu', static function (): void {
+	remove_submenu_page( 'options-general.php', 'stland-updater' );
+}, 999 );
 
 add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), function ( array $links ): array {
 	array_unshift( $links, '<a href="' . esc_url( admin_url( 'options-general.php?page=stland-updater' ) ) . '">به‌روزرسانی</a>' );
@@ -536,6 +541,44 @@ add_action( 'admin_post_stlu', function (): void {
 	stlu_back( 'کار ناشناخته.', false );
 } );
 
+function stlu_fa( string $s ): string {
+	return strtr( $s, [ '0' => '۰', '1' => '۱', '2' => '۲', '3' => '۳', '4' => '۴', '5' => '۵', '6' => '۶', '7' => '۷', '8' => '۸', '9' => '۹' ] );
+}
+
+function stlu_css(): string {
+	return '.stlu{max-width:720px;margin:24px auto 40px;padding:0 12px;font-size:14px;color:#1f2430}
+.stlu *{box-sizing:border-box}
+.stlu-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.stlu-head h1{margin:0;padding:0;font-size:22px;font-weight:800}
+.stlu-pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;font-size:13px;font-weight:700}
+.stlu-pill::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+.stlu-ok{background:#e8f6ee;color:#137a3f}.stlu-warn{background:#fff4e0;color:#a35b00}.stlu-bad{background:#fde8ec;color:#b4123a}
+.stlu-card{background:#fff;border:1px solid #e6e9ef;border-radius:20px;box-shadow:0 1px 2px rgba(15,23,42,.05),0 6px 18px -10px rgba(15,23,42,.12);padding:6px 18px;margin-bottom:14px}
+.stlu-row{display:flex;align-items:center;gap:12px;padding:14px 0;border-top:1px solid #f0f2f5;flex-wrap:wrap}
+.stlu-row:first-child{border-top:0}
+.stlu-name{flex:1 1 180px;font-weight:700;font-size:15px}
+.stlu-name small{display:block;font-weight:500;color:#6b7280;font-size:12.5px;margin-top:2px}
+.stlu-tag{font-size:12.5px;font-weight:700;padding:4px 10px;border-radius:999px}
+.stlu-btn{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 18px;border-radius:12px;border:1px solid #d6dbe4;background:#fff;color:#1f2430;font-weight:700;font-size:14px;text-decoration:none;cursor:pointer;font-family:inherit}
+.stlu-btn:hover{border-color:#0071e3;color:#0071e3}
+.stlu-btn--pri{background:#0071e3;border-color:#0071e3;color:#fff}.stlu-btn--pri:hover{background:#005bbf;color:#fff}
+.stlu-meta{color:#5b616e;font-size:13px;line-height:2;padding:12px 0}
+.stlu-actions{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 18px}
+.stlu-msg{padding:12px 16px;border-radius:14px;margin-bottom:14px;font-weight:600}
+.stlu details{background:#f7f8fa;border:1px solid #e6e9ef;border-radius:16px;padding:0 16px}
+.stlu summary{cursor:pointer;padding:14px 0;font-weight:700;color:#5b616e;list-style:none}
+.stlu summary::-webkit-details-marker{display:none}
+.stlu summary::after{content:"＋";float:left;color:#9aa1ad}.stlu details[open] summary::after{content:"－"}
+.stlu-sec{padding:14px 0;border-top:1px solid #e6e9ef}
+.stlu-sec h3{margin:0 0 6px;font-size:14px}
+.stlu-sec p{margin:0 0 10px;color:#5b616e;font-size:13px}
+.stlu-form{display:flex;gap:8px;flex-wrap:wrap}
+.stlu-form input{flex:1 1 240px;min-height:40px;border:1px solid #d6dbe4;border-radius:12px;padding:0 12px;direction:ltr}
+.stlu-probe{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+.stlu-probe td{padding:8px 4px;border-top:1px solid #e6e9ef}
+@media (max-width:600px){.stlu{margin-top:12px}.stlu-btn{flex:1 1 auto}}';
+}
+
 function stlu_page(): void {
 	if ( ! function_exists( 'get_plugins' ) ) {
 		require_once ABSPATH . 'wp-admin/includes/plugin.php';
@@ -546,100 +589,137 @@ function stlu_page(): void {
 	$manifest = stlu_manifest();
 	$plugins  = get_plugins();
 	$auto     = '1' === get_option( STLU_OPT_AUTO );
+	$token    = defined( 'STLU_TOKEN' ) || '' !== stlu_token();
+	$last     = (array) get_option( 'stlu_auto_last', [] );
+	$next     = $auto ? wp_next_scheduled( 'stlu_auto_run' ) : false;
 	delete_transient( 'stlu_notice_' . $uid );
+
+	$rows = [];
+	$pending = 0;
+	$off     = 0;
+	foreach ( (array) ( $manifest['plugins'] ?? [] ) as $slug => $info ) {
+		$file      = stlu_file( (string) $slug );
+		$installed = $plugins[ $file ]['Version'] ?? null;
+		$newer     = null !== $installed && version_compare( (string) $info['version'], $installed, '>' );
+		$active    = null !== $installed && is_plugin_active( $file );
+		$pending  += $newer ? 1 : 0;
+		$off      += ( null !== $installed && ! $active ) ? 1 : 0;
+		$rows[]    = compact( 'slug', 'info', 'file', 'installed', 'newer', 'active' );
+	}
+	if ( ! $manifest ) {
+		$pill = [ 'stlu-bad', 'گیت‌هاب جواب نداد' ];
+	} elseif ( $off ) {
+		$pill = [ 'stlu-bad', stlu_fa( (string) $off ) . ' افزونه خاموش است' ];
+	} elseif ( $pending ) {
+		$pill = [ 'stlu-warn', stlu_fa( (string) $pending ) . ' نسخه‌ی تازه' ];
+	} else {
+		$pill = [ 'stlu-ok', 'همه به‌روزند' ];
+	}
+	$open = $probe || ! $token || ! $manifest;
 	?>
-	<div class="wrap" dir="rtl">
-		<h1>به‌روزرسانی استوک لند</h1>
+	<style><?php echo stlu_css(); // phpcs:ignore WordPress.Security.EscapeOutput -- CSSِ ثابت ?></style>
+	<div class="wrap stlu" dir="rtl">
+		<div class="stlu-head">
+			<h1>به‌روزرسانی استوک لند</h1>
+			<span class="stlu-pill <?php echo esc_attr( $pill[0] ); ?>"><?php echo esc_html( $pill[1] ); ?></span>
+		</div>
 		<?php if ( $notice ) : ?>
-			<div class="notice notice-<?php echo $notice[1] ? 'success' : 'error'; ?>"><p><?php echo esc_html( $notice[0] ); ?></p></div>
+			<div class="stlu-msg <?php echo $notice[1] ? 'stlu-ok' : 'stlu-bad'; ?>"><?php echo esc_html( $notice[0] ); ?></div>
 		<?php endif; ?>
 
-		<p>
-			افزونه‌های استوک لند از
-			<a href="<?php echo esc_url( 'https://github.com/' . STLU_REPO ); ?>" target="_blank" rel="noopener">گیت‌هاب</a>
-			خوانده می‌شوند. نسخه‌ی تازه در صفحه‌ی «افزونه‌ها» و «به‌روزرسانی‌ها» مثل بقیه دیده می‌شود.
-			<?php if ( $manifest ) : ?>
-				<br>آخرین انتشار: کامیت <code><?php echo esc_html( substr( (string) $manifest['sha'], 0, 7 ) ); ?></code>
-			<?php endif; ?>
-		</p>
-
-		<p style="display:flex;flex-wrap:wrap;gap:8px">
-			<a class="button button-primary" href="<?php echo esc_url( stlu_action_url( 'check' ) ); ?>">بررسی همین حالا</a>
-			<a class="button" href="<?php echo esc_url( stlu_action_url( 'test' ) ); ?>">آزمایش اتصال به گیت‌هاب</a>
-			<a class="button" href="<?php echo esc_url( stlu_action_url( 'auto' ) ); ?>">
-				به‌روزرسانی خودکار: <?php echo $auto ? 'روشن — خاموش کن' : 'خاموش — روشن کن'; ?>
-			</a>
-		</p>
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" style="margin:12px 0 18px;padding:12px 14px;border:1px solid #dcdcde;border-radius:8px;max-width:640px;background:#fff">
-			<input type="hidden" name="action" value="stlu_token">
-			<?php wp_nonce_field( 'stlu_token' ); ?>
-			<strong>کلیدِ گیت‌هاب (مخزنِ خصوصی)</strong>
-			<?php if ( defined( 'STLU_TOKEN' ) ) : ?>
-				<p class="description">کلید در wp-config.php تعریف شده است.</p>
-			<?php else : ?>
-				<p class="description"><?php echo '' !== stlu_token() ? 'کلید ذخیره شده است (نمایش داده نمی‌شود).' : 'کلیدی ذخیره نشده — مخزن اگر خصوصی باشد، به‌روزرسانی کار نمی‌کند.'; ?></p>
-				<p style="display:flex;gap:8px;flex-wrap:wrap">
-					<input type="password" name="stlu_token" autocomplete="off" placeholder="github_pat_…" style="flex:1 1 280px;direction:ltr">
-					<button class="button button-primary" type="submit">ذخیره‌ی کلید</button>
-					<?php if ( '' !== stlu_token() ) : ?><button class="button" type="submit" name="stlu_token_clear" value="1">پاک کردنِ کلید</button><?php endif; ?>
-				</p>
-			<?php endif; ?>
-		</form>
-		<?php if ( $auto ) : ?>
-			<?php $last = (array) get_option( 'stlu_auto_last', [] ); $next = wp_next_scheduled( 'stlu_auto_run' ); ?>
-			<p class="description">
-				هر ۱۵ دقیقه خودش بررسی و نصب می‌کند<?php echo $next ? ' — بررسیِ بعدی ' . esc_html( human_time_diff( time(), (int) $next ) ) . ' دیگر' : ''; ?>.
-				<?php if ( ! empty( $last['at'] ) ) : ?>
-					<br>آخرین نصبِ خودکار (<?php echo esc_html( $last['at'] ); ?>): <?php echo esc_html( implode( ' | ', (array) ( $last['result'] ?? [] ) ) ); ?>
-				<?php endif; ?>
-			</p>
-		<?php endif; ?>
-
-		<?php if ( ! $manifest ) : ?>
-			<div class="notice notice-warning inline"><p>فهرست از گیت‌هاب خوانده نشد. «آزمایش اتصال» را بزنید.</p></div>
+		<?php if ( $rows ) : ?>
+			<div class="stlu-card">
+				<?php foreach ( $rows as $r ) : ?>
+					<div class="stlu-row">
+						<div class="stlu-name">
+							<?php echo esc_html( $plugins[ $r['file'] ]['Name'] ?? $r['slug'] ); ?>
+							<small>
+								<?php if ( null === $r['installed'] ) : ?>
+									نصب نشده — نسخه‌ی موجود <?php echo esc_html( stlu_fa( (string) $r['info']['version'] ) ); ?>
+								<?php elseif ( $r['newer'] ) : ?>
+									نسخه‌ی <?php echo esc_html( stlu_fa( $r['installed'] ) ); ?> ← <?php echo esc_html( stlu_fa( (string) $r['info']['version'] ) ); ?>
+								<?php else : ?>
+									نسخه‌ی <?php echo esc_html( stlu_fa( $r['installed'] ) ); ?>
+								<?php endif; ?>
+							</small>
+						</div>
+						<?php if ( null === $r['installed'] ) : ?>
+							<a class="stlu-btn" href="<?php echo esc_url( stlu_action_url( 'install', [ 'slug' => $r['slug'] ] ) ); ?>">نصب</a>
+						<?php elseif ( ! $r['active'] ) : ?>
+							<span class="stlu-tag stlu-bad">خاموش</span>
+							<a class="stlu-btn stlu-btn--pri" href="<?php echo esc_url( wp_nonce_url( self_admin_url( 'plugins.php?action=activate&plugin=' . rawurlencode( $r['file'] ) ), 'activate-plugin_' . $r['file'] ) ); ?>">روشن کن</a>
+						<?php elseif ( $r['newer'] ) : ?>
+							<a class="stlu-btn stlu-btn--pri" href="<?php echo esc_url( wp_nonce_url( self_admin_url( 'update.php?action=upgrade-plugin&plugin=' . rawurlencode( $r['file'] ) ), 'upgrade-plugin_' . $r['file'] ) ); ?>">به‌روزرسانی</a>
+						<?php else : ?>
+							<span class="stlu-tag stlu-ok">به‌روز</span>
+						<?php endif; ?>
+					</div>
+				<?php endforeach; ?>
+				<div class="stlu-meta">
+					<?php if ( $auto ) : ?>
+						هر ۱۵ دقیقه خودش بررسی و نصب می‌کند<?php echo $next ? ' — بررسیِ بعدی ' . esc_html( stlu_fa( human_time_diff( time(), (int) $next ) ) ) . ' دیگر' : ''; ?>.
+					<?php else : ?>
+						نصبِ خودکار خاموش است؛ نسخه‌ی تازه فقط با دکمه نصب می‌شود.
+					<?php endif; ?>
+					<?php if ( ! empty( $last['at'] ) ) : ?>
+						<br>آخرین نصبِ خودکار: <?php echo esc_html( stlu_fa( human_time_diff( (int) strtotime( (string) $last['at'] ) ) ) ); ?> پیش
+					<?php endif; ?>
+				</div>
+			</div>
 		<?php else : ?>
-			<table class="widefat striped" style="max-width:640px">
-				<thead><tr><th>افزونه</th><th>نصب‌شده</th><th>گیت‌هاب</th><th></th></tr></thead>
-				<tbody>
-				<?php foreach ( $manifest['plugins'] as $slug => $info ) :
-					$file      = stlu_file( (string) $slug );
-					$installed = $plugins[ $file ]['Version'] ?? null;
-					?>
-					<tr>
-						<td><?php echo esc_html( $plugins[ $file ]['Name'] ?? $slug ); ?></td>
-						<td><?php echo esc_html( $installed ?? '—' ); ?></td>
-						<td><?php echo esc_html( (string) $info['version'] ); ?></td>
-						<td>
-							<?php if ( null === $installed ) : ?>
-								<a class="button button-small" href="<?php echo esc_url( stlu_action_url( 'install', [ 'slug' => $slug ] ) ); ?>">نصب</a>
-							<?php elseif ( version_compare( (string) $info['version'], $installed, '>' ) ) : ?>
-								<a class="button button-small button-primary" href="<?php echo esc_url( wp_nonce_url( self_admin_url( 'update.php?action=upgrade-plugin&plugin=' . rawurlencode( $file ) ), 'upgrade-plugin_' . $file ) ); ?>">به‌روزرسانی</a>
-							<?php else : ?>
-								به‌روز است
-							<?php endif; ?>
-						</td>
-					</tr>
-				<?php endforeach; ?>
-				</tbody>
-			</table>
+			<div class="stlu-msg stlu-bad">فهرستِ افزونه‌ها از گیت‌هاب خوانده نشد. پایینِ صفحه «تنظیماتِ اتصال» را باز کنید و «آزمایشِ اتصال» را بزنید.</div>
 		<?php endif; ?>
 
-		<?php if ( $probe ) : ?>
-			<h2>نتیجه‌ی آزمایش اتصال</h2>
-			<table class="widefat striped" style="max-width:640px">
-				<thead><tr><th>فایل</th><th>پاسخ</th><th>ثانیه</th></tr></thead>
-				<tbody>
-				<?php foreach ( $probe as [ $name, $status, $secs ] ) : ?>
-					<tr>
-						<td><code><?php echo esc_html( $name ); ?></code></td>
-						<td><?php echo '200' === $status ? '✅ ۲۰۰' : '❌ ' . esc_html( $status ); ?></td>
-						<td><?php echo esc_html( (string) $secs ); ?></td>
-					</tr>
-				<?php endforeach; ?>
-				</tbody>
-			</table>
-			<p>هر دو ردیف باید ✅ باشند. اگر ❌ است، هاست اجازه‌ی اتصال به گیت‌هاب را نمی‌دهد.</p>
-		<?php endif; ?>
+		<div class="stlu-actions">
+			<a class="stlu-btn stlu-btn--pri" href="<?php echo esc_url( stlu_action_url( 'check' ) ); ?>">بررسی همین حالا</a>
+		</div>
+
+		<details<?php echo $open ? ' open' : ''; ?>>
+			<summary>تنظیماتِ اتصال به گیت‌هاب — معمولاً لازم نیست</summary>
+
+			<div class="stlu-sec">
+				<h3>کلیدِ گیت‌هاب</h3>
+				<?php if ( defined( 'STLU_TOKEN' ) ) : ?>
+					<p>کلید در پرونده‌ی تنظیماتِ وردپرس تعریف شده است.</p>
+				<?php else : ?>
+					<p><?php echo '' !== stlu_token() ? '✓ کلید ذخیره شده است (نمایش داده نمی‌شود). فقط وقتی کلید منقضی شد، کلیدِ تازه را این‌جا بچسبانید.' : 'کلیدی ذخیره نشده — بی کلید هیچ نسخه‌ای از مخزنِ خصوصی نمی‌رسد.'; ?></p>
+					<form class="stlu-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+						<input type="hidden" name="action" value="stlu_token">
+						<?php wp_nonce_field( 'stlu_token' ); ?>
+						<input type="password" name="stlu_token" autocomplete="off" placeholder="github_pat_…">
+						<button class="stlu-btn stlu-btn--pri" type="submit">ذخیره‌ی کلید</button>
+						<?php if ( '' !== stlu_token() ) : ?><button class="stlu-btn" type="submit" name="stlu_token_clear" value="1">پاک کردن</button><?php endif; ?>
+					</form>
+				<?php endif; ?>
+			</div>
+
+			<div class="stlu-sec">
+				<h3>آزمایش و نصبِ خودکار</h3>
+				<p>
+					<?php if ( $manifest ) : ?>آخرین انتشار: <code dir="ltr"><?php echo esc_html( substr( (string) $manifest['sha'], 0, 7 ) ); ?></code> — <?php endif; ?>
+					<a href="<?php echo esc_url( 'https://github.com/' . STLU_REPO ); ?>" target="_blank" rel="noopener">مخزن در گیت‌هاب</a>
+				</p>
+				<div class="stlu-form">
+					<a class="stlu-btn" href="<?php echo esc_url( stlu_action_url( 'test' ) ); ?>">آزمایشِ اتصال</a>
+					<a class="stlu-btn" href="<?php echo esc_url( stlu_action_url( 'auto' ) ); ?>"><?php echo $auto ? 'خاموش کردنِ نصبِ خودکار' : 'روشن کردنِ نصبِ خودکار'; ?></a>
+				</div>
+				<?php if ( $probe ) : ?>
+					<table class="stlu-probe">
+						<?php foreach ( $probe as [ $name, $status, $secs ] ) : ?>
+							<tr>
+								<td><code dir="ltr"><?php echo esc_html( $name ); ?></code></td>
+								<td><?php echo '200' === $status ? '✅ درست' : '❌ ' . esc_html( $status ); ?></td>
+								<td><?php echo esc_html( stlu_fa( (string) $secs ) ); ?> ثانیه</td>
+							</tr>
+						<?php endforeach; ?>
+					</table>
+					<p style="margin-top:8px">هر دو ردیف باید ✅ باشند. اگر ❌ است، هاست اجازه‌ی اتصال به گیت‌هاب را نمی‌دهد یا کلید منقضی شده.</p>
+				<?php endif; ?>
+				<?php if ( ! empty( $last['result'] ) ) : ?>
+					<p dir="ltr" style="text-align:left;font-size:12px;margin-top:8px"><?php echo esc_html( implode( ' | ', (array) $last['result'] ) ); ?></p>
+				<?php endif; ?>
+			</div>
+		</details>
 	</div>
 	<?php
 }
