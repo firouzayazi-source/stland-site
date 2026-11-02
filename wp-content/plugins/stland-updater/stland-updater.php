@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       StockLand Updater
  * Description:       افزونه‌های استوک لند را از گیت‌هاب به‌روز می‌کند — مثل آپدیت معمولی افزونه‌ها، بدون FTP.
- * Version:           1.3.0
+ * Version:           1.3.1
  * Requires at least: 6.3
  * Requires PHP:      8.1
  * Text Domain:       stland-updater
@@ -401,14 +401,22 @@ add_action( 'stlu_auto_run', static function (): void {
 		require_once ABSPATH . 'wp-admin/includes/file.php';
 		require_once ABSPATH . 'wp-admin/includes/misc.php';
 		require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
 		wp_clean_plugins_cache( false );
 		// خودِ به‌روزرسان آخر — تا اگر نسخه‌ی تازه‌اش ایرادی داشت، بقیه نصب شده باشند
 		uksort( $todo, static fn( $a, $b ) => ( str_starts_with( $a, 'stland-updater/' ) <=> str_starts_with( $b, 'stland-updater/' ) ) );
 		foreach ( $todo as $file => [ $from, $to ] ) {
+			$was = is_plugin_active( $file );
 			$up  = new Plugin_Upgrader( new Automatic_Upgrader_Skin() );
 			$res = $up->upgrade( $file );
 			$ok  = true === $res || ( is_array( $res ) && ! is_wp_error( $res ) );
 			$log['result'][] = $file . ' ' . $from . ' → ' . $to . ': ' . ( $ok ? 'ok' : ( is_wp_error( $res ) ? $res->get_error_message() : wp_strip_all_tags( implode( ' ', (array) $up->skin->get_upgrade_messages() ) ) ) );
+			// وردپرس وقتی کار از راهِ «کرون» شناخته نشود (مثلاً کرونِ واقعیِ هاست) افزونه را پیش از نصب غیرفعال می‌کند و
+			// فعال کردنِ دوباره را به مرورگر می‌سپارد؛ اینجا مرورگری نیست. ۱۱ آبان ۱۴۰۵ «stland-home» ۱.۷۸.۸ همین‌طور خاموش ماند.
+			if ( $was && ! is_plugin_active( $file ) ) {
+				$re              = activate_plugin( $file, '', false, true );
+				$log['result'][] = $file . ' reactivate: ' . ( is_wp_error( $re ) ? $re->get_error_message() : 'ok' );
+			}
 		}
 		wp_clean_plugins_cache( false );
 		if ( stlu_code_changed( array_keys( $todo ) ) ) {
