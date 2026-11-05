@@ -440,11 +440,31 @@ add_action( 'init', static function (): void {
 		if ( $post && $slug === $post->post_name && 'publish' === $post->post_status ) {
 			wp_update_post( [ 'ID' => $id, 'post_status' => 'draft' ] );
 			clean_post_cache( $id );
+			stlh_posts_state_touch( $slug, $id );
 		}
 		$done[] = $id;
 		update_option( 'stlh_posts_unpublished', $done, false );
 	}
+	// ۱.۸۱.۳ زمانِ ویرایش را در وضعیتِ ذخیره‌شده به‌روز نکرد و همین برگرداندن «ویرایش در پیشخوان» شمرده شد؛ «منتشر کن»ِ ۱.۸۱.۴
+	// رد شد (`skipped: edited in admin`). یک بار برای همان شناسه‌ها جبران می‌شود.
+	if ( '1' !== get_option( 'stlh_posts_unpublish_fix' ) ) {
+		foreach ( STLH_POSTS_UNPUBLISH as $id => $slug ) {
+			stlh_posts_state_touch( $slug, $id );
+		}
+		update_option( 'stlh_posts_unpublish_fix', '1', false );
+	}
 }, 39 );
+
+/** زمانِ ویرایشِ فعلیِ مقاله را در `stlh_posts_state` می‌گذارد تا تغییرِ خودِ افزونه «ویرایش در پیشخوان» شمرده نشود. */
+function stlh_posts_state_touch( string $slug, int $id ): void {
+	$state = (array) get_option( 'stlh_posts_state', [] );
+	if ( empty( $state[ $slug ] ) || ! is_array( $state[ $slug ] ) ) {
+		return;
+	}
+	$state[ $slug ]['modified'] = (string) get_post_field( 'post_modified_gmt', $id );
+	unset( $state[ $slug ]['skipped'], $state[ $slug ]['hash'] );
+	update_option( 'stlh_posts_state', $state, false );
+}
 
 /**
  * کشِ اشیا (memcached) بعد از نوشتن: درخواستی که هم‌زمان نسخه‌ی قدیم را از پایگاه داده خوانده بود (مثلاً گرم‌کنِ کش
