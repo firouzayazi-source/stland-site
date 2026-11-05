@@ -425,6 +425,28 @@ const STLH_POSTS = [
 add_action( 'init', 'stlh_posts_apply', 40 );
 
 /**
+ * برگرداندنِ یک‌باره‌ی مقاله‌ی منتشرشده به پیش‌نویس (شناسه => نامک). `stlh_posts_apply` وضعیتِ مقاله‌ی منتشرشده را دست
+ * نمی‌زند، پس این‌جا. ۱۴ آبان ۱۴۰۵: «قطعه‌ی تعویضی» با ۱.۸۱.۱ منتشر شد در حالی که صاحب فروشگاه همان دقیقه‌ها گفت اول
+ * پیش‌نویس ببیند؛ ۱.۸۱.۲ دیر رسید. هر شناسه فقط یک بار (`stlh_posts_unpublished`) تا «منتشر کن»ِ بعدی را برنگرداند.
+ */
+const STLH_POSTS_UNPUBLISH = [ 45249 => 'iphone-replaced-parts' ];
+add_action( 'init', static function (): void {
+	$done = (array) get_option( 'stlh_posts_unpublished', [] );
+	foreach ( STLH_POSTS_UNPUBLISH as $id => $slug ) {
+		if ( in_array( $id, $done, true ) ) {
+			continue;
+		}
+		$post = get_post( $id );
+		if ( $post && $slug === $post->post_name && 'publish' === $post->post_status ) {
+			wp_update_post( [ 'ID' => $id, 'post_status' => 'draft' ] );
+			clean_post_cache( $id );
+		}
+		$done[] = $id;
+		update_option( 'stlh_posts_unpublished', $done, false );
+	}
+}, 39 );
+
+/**
  * کشِ اشیا (memcached) بعد از نوشتن: درخواستی که هم‌زمان نسخه‌ی قدیم را از پایگاه داده خوانده بود (مثلاً گرم‌کنِ کش
  * بعد از پاک‌سازیِ LiteSpeed) ممکن است بعد از `clean_post_cache` ما همان را دوباره در کش بگذارد — ۲۴ مهر مقاله‌ی ۴۴۳۴۱
  * با متنِ قدیم ماند در حالی که پایگاه داده و نسخه‌ها متنِ تازه را داشتند. پس یک بار دیگر، کمی بعد، کش پاک می‌شود؛
