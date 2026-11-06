@@ -25,7 +25,8 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const STLH_CONTENT_VER = '5'; // ۵ (۱۵ آبان ۱۴۰۵): صاحب فروشگاه — «پس دادن نه، فقط معاوضه»؛ ایراد ← معاوضه یا هزینه‌ی تعمیر با فروشگاه، شهرهای دیگر از روزِ رسیدن
+const STLH_CONTENT_VER = '6'; // ۶ (۱۵ آبان ۱۴۰۵): صاحب فروشگاه — «آدرس ربات شد Stlandd_bot، همه جا اصلاح کن»
+// پیشین: ۵ — ۵ (۱۵ آبان ۱۴۰۵): صاحب فروشگاه — «پس دادن نه، فقط معاوضه»؛ ایراد ← معاوضه یا هزینه‌ی تعمیر با فروشگاه، شهرهای دیگر از روزِ رسیدن
 // پیشین: ۴ // ۴ (۵ آبان ۱۴۰۵): صاحب فروشگاه — «تمام شماره‌های سایت بشه ۰۹۱۲۷۴۸۸۴۳۴»؛ شماره‌ی دوم از بلوکِ تماس رفت
 
 /** اطلاعاتِ واقعیِ فروشگاه — یک جا، برای همه‌ی صفحه‌ها (صاحب فروشگاه، مهر ۱۴۰۵) */
@@ -37,7 +38,7 @@ function stlh_store_facts(): array {
 		'map'        => 'https://maps.app.goo.gl/yHqYRPdBMHctQYB1A',
 		'instagram'  => 'stock_land.ir',
 		'telegram'   => 'stlandd',
-		'bot'        => 'stock_land_bot',
+		'bot'        => 'Stlandd_bot',
 		'email'      => 'info@stland.ir',
 		'hours'      => 'شنبه تا پنج‌شنبه ۱۱ تا ۱۴ و ۱۷ تا ۲۲ — جمعه‌ها ۱۷ تا ۲۲',
 		'hours_spec' => "شنبه تا پنج‌شنبه|11:00|14:00\nشنبه تا پنج‌شنبه|17:00|22:00\nجمعه|17:00|22:00",
@@ -313,6 +314,7 @@ function stlh_store_content_apply(): array {
 	$set( 'opening_hours', $f['hours_spec'], [ "شنبه تا پنج‌شنبه|10:00|23:00\nجمعه|16:00|23:00" ] );
 	$set( 'payment_methods', $f['payment'] );
 	$set( 'map_url', $f['map'] );
+	$set( 'telegram_bot', $f['bot'], [ 'stock_land_bot', '@stock_land_bot' ] );
 	$set( 'telegram', $f['telegram'] );
 	$set( 'store_email', $f['email'] );
 	$set( 'store_facts', implode( "\n", [

@@ -16,7 +16,7 @@ function stlh_defaults(): array {
 		'flash_product'  => 0,
 		'flash_badge'    => '🔥 پیشنهاد ویژه استوک لند',
 		'instagram'      => 'stock_land.ir',
-		'telegram_bot'   => 'stock_land_bot',
+		'telegram_bot'   => 'Stlandd_bot',
 		'telegram'       => 'stlandd',
 		'phone'          => '09127488434',
 		'address'        => 'قم، ۵۵ متری عمار یاسر، مجتمع تجاری بازار سلام، طبقه اول، واحد اف ۱۱',
