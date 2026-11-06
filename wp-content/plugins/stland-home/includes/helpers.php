@@ -352,7 +352,23 @@ function stlh_brand_icon( string $brand ): string {
 	return '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21.9 4.6l-3.2 15c-.24 1.06-.87 1.32-1.76.82l-4.87-3.59-2.35 2.26c-.26.26-.48.48-.98.48l.35-4.96 9.03-8.16c.39-.35-.09-.54-.61-.2L6.35 13.3 1.54 11.8c-1.04-.33-1.06-1.04.22-1.54L20.57 3c.87-.32 1.63.2 1.33 1.6z"/></svg>';
 }
 
-/** نشان‌های کارت از ویژگی (attribute) یا متای محصول */
+/**
+ * مقدارِ یک کلیدِ نشانِ کارت (`battery`، `registry`، …).
+ *
+ * ⛔ متای حسابداری اول (صاحب پروژه، ۱۴ آبان ۱۴۰۵: «هر داده‌ای که در Novo تعیین می‌شود همه‌جا اعمال شود»). پیش‌تر
+ *    ویژگیِ هم‌نامِ محصول جلو بود و متای حسابداری فقط وقتی خوانده می‌شد که ویژگی خالی بود؛ ویژگیِ دستیِ «registry» در
+ *    پیشخوان، «بدون رجیستری»ِ حسابداری را می‌پوشاند. متای موجود — حتی خالی، که یعنی «حسابداری می‌گوید نیست» — برنده است؛
+ *    ویژگی فقط برای محصولی که حسابداری هیچ‌وقت این کلید را برایش نفرستاده.
+ */
+function stlh_card_value( WC_Product $p, string $key ): string {
+	if ( $p->meta_exists( $key ) ) {
+		$meta = $p->get_meta( $key );
+		return is_scalar( $meta ) ? trim( wp_strip_all_tags( (string) $meta ) ) : '';
+	}
+	return trim( wp_strip_all_tags( (string) $p->get_attribute( $key ) ) );
+}
+
+/** نشان‌های کارت از متای حسابداری (یا ویژگیِ محصول، اگر متا نبود) */
 function stlh_badges( WC_Product $p, int $max = 2 ): array {
 	$out = [];
 	foreach ( stlh_lines( (string) stlh_opt( 'card_badges' ) ) as $line ) {
@@ -360,11 +376,7 @@ function stlh_badges( WC_Product $p, int $max = 2 ): array {
 		if ( '' === $key ) {
 			continue;
 		}
-		$val = trim( wp_strip_all_tags( (string) $p->get_attribute( $key ) ) );
-		if ( '' === $val ) {
-			$meta = $p->get_meta( $key );
-			$val  = is_scalar( $meta ) ? trim( wp_strip_all_tags( (string) $meta ) ) : '';
-		}
+		$val = stlh_card_value( $p, $key );
 		if ( '' === $val ) {
 			continue;
 		}

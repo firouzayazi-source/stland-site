@@ -29,11 +29,7 @@ function stlh_card_badge_items( WC_Product $p, int $max = 3 ): array {
 
 	$out = [];
 	foreach ( $keys as $key => [ $label, $suffix ] ) {
-		$val = trim( wp_strip_all_tags( (string) $p->get_attribute( $key ) ) );
-		if ( '' === $val ) {
-			$meta = $p->get_meta( $key );
-			$val  = is_scalar( $meta ) ? trim( wp_strip_all_tags( (string) $meta ) ) : '';
-		}
+		$val = stlh_card_value( $p, $key ); // ⛔ متای حسابداری اول (`helpers.php`)
 		if ( '' === $val ) {
 			continue;
 		}
