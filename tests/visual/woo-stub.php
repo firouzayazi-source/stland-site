@@ -35,6 +35,7 @@ class WC_Product {
 	}
 	public function get_attribute( $k ) { return ''; }
 	public function get_meta( $k ) { return get_post_meta( $this->p->ID, $k, true ); }
+	public function meta_exists( $k ) { return metadata_exists( 'post', $this->p->ID, $k ); }
 	public function is_type( $t ) { return 'simple' === $t; }
 	public function get_short_description() { return ''; }
 	public function get_description() { return ''; }
