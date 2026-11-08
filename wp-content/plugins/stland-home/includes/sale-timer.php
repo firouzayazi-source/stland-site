@@ -127,8 +127,8 @@ add_action( 'wp_enqueue_scripts', static function (): void {
 
 function stlh_sale_timer_css(): string {
 	return <<<'CSS'
-.stlh-tm{--tm1:#1d4ed8;--tm2:#38bdf8;position:relative;margin:12px 0;padding:12px 14px 13px;border-radius:18px;color:#fff;direction:rtl;
-background:linear-gradient(120deg,var(--tm1),var(--tm2));box-shadow:0 10px 28px -12px rgba(29,78,216,.75);overflow:hidden;font-family:inherit}
+.stlh-tm{--tm1:#ff3d5a;--tm2:#ff8a3d;position:relative;margin:12px 0;padding:12px 14px 13px;border-radius:18px;color:#fff;direction:rtl;
+background:linear-gradient(120deg,var(--tm1),var(--tm2));box-shadow:0 10px 28px -12px rgba(255,61,90,.75);overflow:hidden;font-family:inherit}
 .stlh-tm:before{content:"";position:absolute;inset:-40% -10% auto auto;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.14)}
 .stlh-tm-head{position:relative;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}
 .stlh-tm-title{display:flex;align-items:center;gap:6px;font-weight:900;font-size:15px;line-height:1.3}
@@ -146,9 +146,11 @@ border-radius:12px;padding:6px 2px 5px;text-align:center}
 @keyframes stlh-tm-tick{0%{transform:translateY(-2px);opacity:.55}35%{transform:none;opacity:1}}
 @keyframes stlh-tm-zap{50%{transform:scale(1.18) rotate(-8deg)}}
 .stlh-tm-pill{position:absolute;z-index:3;left:8px;bottom:8px;display:inline-flex;align-items:center;gap:4px;padding:3px 9px 3px 8px;border-radius:999px;
-background:linear-gradient(120deg,#1d4ed8,#38bdf8);color:#fff;font-size:11.5px;font-weight:800;line-height:1.5;direction:rtl;
-box-shadow:0 4px 12px -4px rgba(29,78,216,.8);font-variant-numeric:tabular-nums;pointer-events:none}
-.stlh-tm-pill.stlh-tm-inline{position:static;align-self:flex-start;width:max-content;max-width:100%;margin:2px 0 8px}
+background:linear-gradient(120deg,#ff3d5a,#ff8a3d);color:#fff;font-size:11.5px;font-weight:800;line-height:1.5;direction:rtl;
+box-shadow:0 4px 12px -4px rgba(255,61,90,.8);font-variant-numeric:tabular-nums;pointer-events:none}
+.stlh-tm-pill.stlh-tm-inline{position:static;display:flex;width:max-content;max-width:100%;margin:4px 0 10px;margin-inline-start:auto;padding:6px 13px 6px 12px;font-size:13.5px;gap:6px;box-shadow:0 6px 16px -6px rgba(255,61,90,.85)}
+.stlh-tm-pill.stlh-tm-inline svg{width:15px;height:15px}
+@media (max-width:576px){.stlh-tm-pill.stlh-tm-inline{font-size:12px;padding:5px 10px;gap:5px}.stlh-tm-pill.stlh-tm-inline svg{width:13px;height:13px}}
 .stlh-tm-pill svg{width:12px;height:12px;flex:0 0 auto}
 .st-pr-img,.products__item-image-wrapper,.product-thumb{position:relative}
 @media (prefers-reduced-motion:reduce){.stlh-tm *{animation:none!important}}
@@ -183,7 +185,9 @@ var r=document.querySelector('.product-remain')||document.querySelector('.bakala
 if(!r)return;r.parentNode.insertBefore(b,r)}box=b;
 /* شمارشِ معکوسِ خودِ قالب (flipclock) برای کالای زمان‌دار — دو تایمر کنارِ هم نباشد */
 document.querySelectorAll('.flip-clock-wrapper,.flipdown').forEach(function(w){(w.closest('[class*=countdown],[class*=timer],[class*=offer],[class*=flip]')||w).style.display='none'})}
-function tick(){pills.forEach(function(p){var s=left(+p.dataset.stlhEnd);if(!s){p.remove();return}p.hidden=false;p.innerHTML=pillText(s)});
+function clocks(){document.querySelectorAll('.stlh-tm-clock[data-stlh-end]').forEach(function(c){var s=left(+c.dataset.stlhEnd);if(!s){c.closest('.st-sale-band')&&(c.textContent=T.done);return}
+var d=Math.floor(s/86400),t=[f(Math.floor(s%86400/3600)),f(Math.floor(s%3600/60)),f(s%60)];c.innerHTML=(d?'<b>'+f(d,1)+'</b><i>روز</i>':'')+'<b>'+t[0]+'</b>:<b>'+t[1]+'</b>:<b>'+t[2]+'</b>'})}
+function tick(){clocks();pills.forEach(function(p){var s=left(+p.dataset.stlhEnd);if(!s){p.remove();return}p.hidden=false;p.innerHTML=pillText(s)});
 if(box){var s=left(+box.dataset.stlhEnd);if(!s){box.classList.add('done');box.querySelector('.stlh-tm-sub').textContent=T.done;return}
 var d=Math.floor(s/86400),q=box.querySelectorAll('.stlh-tm-n');q[0].textContent=f(d);q[1].textContent=f(Math.floor(s%86400/3600));
 q[2].textContent=f(Math.floor(s%3600/60));q[3].textContent=f(s%60);var du=box.querySelector('.stlh-tm-u.d');
@@ -192,4 +196,31 @@ function go(){scan();mountBox();tick();setInterval(tick,1000);
 if(window.jQuery){jQuery(document).on('ajaxComplete',function(){setTimeout(function(){scan();tick()},300)})}}
 document.readyState==='loading'?document.addEventListener('DOMContentLoaded',go):go()})();
 JS;
+}
+
+/* ─── بخشِ «فروش ویژه»ی صفحه‌ی اصلی (کلید `sale` در ترتیبِ بخش‌ها) ───
+ * صاحب فروشگاه (۱۷ آبان ۱۴۰۵): «یک بخش هم برای فروش ویژه؛ کالاهایی که تایمر دارند آن‌جا هم بیایند، زمینه‌ی قرمز مثلِ فروشِ ویژه‌ی
+ * فروشگاه‌های بزرگ». نوارِ قرمز با عنوان و شمارشِ معکوسِ نزدیک‌ترین پایان، و کارت‌های سفید؛ بی کالای تایمردارِ موجود، پنهان. */
+function stlh_sale(): string {
+	if ( ! function_exists( 'stlh_woo' ) || ! stlh_woo() ) {
+		return '';
+	}
+	$map   = stlh_sale_timers();
+	$items = [];
+	foreach ( $map as $id => $end ) {
+		$p = wc_get_product( $id );
+		if ( $p && 'publish' === $p->get_status() && $p->is_in_stock() && $p->is_visible() ) {
+			$items[ $id ] = $p;
+		}
+	}
+	if ( ! $items ) {
+		return '';
+	}
+	uasort( $items, static fn( $a, $b ) => stlh_sale_percent( $b ) <=> stlh_sale_percent( $a ) );
+	$items = array_slice( $items, 0, 16, true );
+	$soon  = min( array_intersect_key( $map, $items ) );
+	return '<section class="st-pr-wrapper st-sale-band"><div class="st-pr-container"><div class="st-sale-head">'
+		. '<div class="st-sale-title"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><h2>' . esc_html( stlh_label( 'sale_title' ) ) . '</h2></div>'
+		. '<div class="st-sale-count"><span>' . esc_html( stlh_label( 'timer_sub' ) ) . '</span><span class="stlh-tm-clock" data-stlh-end="' . (int) $soon . '"></span></div>'
+		. '</div><div class="st-pr-track"><div class="st-pr-row">' . implode( '', array_map( 'stlh_card', $items ) ) . '</div></div></div></section>';
 }

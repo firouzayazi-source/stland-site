@@ -7,6 +7,7 @@ function stlh_sections(): array {
 		'banner'     => 'بنر',
 		'trust'      => 'نوار اعتماد',
 		'categories' => 'دسته‌بندی‌ها',
+		'sale'       => 'فروش ویژه (کالاهای تایمردار، نوارِ قرمز)',
 		'flash_deal' => 'پیشنهاد ویژه',
 		'rows'       => 'ردیف‌های محصول (آیفون نو، کارکرده، لوازم جانبی…)',
 		'group'      => 'لوازم جانبی — اگر در ردیف‌ها نیست',
@@ -62,7 +63,7 @@ add_shortcode( 'stl_products', function ( $atts ): string {
 	return stlh_cached( 'products:' . wp_json_encode( $atts ), fn() => stlh_products( $atts ) );
 } );
 
-foreach ( [ 'banner', 'trust', 'categories', 'group', 'best', 'flash_deal', 'social', 'faq', 'posts' ] as $part ) {
+foreach ( [ 'banner', 'trust', 'categories', 'group', 'best', 'flash_deal', 'sale', 'social', 'faq', 'posts' ] as $part ) {
 	add_shortcode( 'stl_' . $part, function () use ( $part ): string {
 		stlh_assets();
 		return stlh_section( $part );

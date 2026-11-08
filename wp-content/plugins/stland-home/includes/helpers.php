@@ -54,7 +54,7 @@ function stlh_defaults(): array {
 		'card_badges'    => "battery|باتری|٪\nregistry|ریجستری|\nreal_photo|عکس از خودِ محصول|",
 		// صاحب فروشگاه: نوار اعتماد زیر بنر نه، درست پیش از سوالات متداول.
 		// صاحب فروشگاه: دسته‌ها ← پیشنهاد ویژه ← آیفون نو ← کارکرده‌ها ← لوازم جانبی ← پرفروش‌ها
-		'order'          => "banner\ncategories\nflash_deal\nrows\ngroup\nbest\nsocial\ntrust\nfaq\nposts",
+		'order'          => "banner\ncategories\nsale\nflash_deal\nrows\ngroup\nbest\nsocial\ntrust\nfaq\nposts",
 		'best_cat'       => 'best-sellers',
 		'recent_span'    => 5,
 		/*
@@ -87,7 +87,7 @@ function stlh_opt( string $key ): mixed {
 		$opts = wp_parse_args( (array) get_option( STLH_OPT, [] ), stlh_defaults() );
 		// ترتیبِ پیش‌فرضِ نسخه‌ی ۱.۵.۰ که ذخیره شده بود، یعنی کسی دستش نزده؛ پیش‌فرضِ تازه جایش.
 		// ترتیب‌های پیش‌فرضِ نسخه‌های قبل که ذخیره شده‌اند یعنی کسی دستشان نزده؛ پیش‌فرضِ تازه جایشان.
-		if ( in_array( $opts['order'], [ "banner\ntrust\ncategories\nflash_deal\nrows\ngroup\nsocial\nfaq\nposts", "banner\ncategories\nflash_deal\nrows\ngroup\nsocial\ntrust\nfaq\nposts" ], true ) ) {
+		if ( in_array( $opts['order'], [ "banner\ntrust\ncategories\nflash_deal\nrows\ngroup\nsocial\nfaq\nposts", "banner\ncategories\nflash_deal\nrows\ngroup\nsocial\ntrust\nfaq\nposts", "banner\ncategories\nflash_deal\nrows\ngroup\nbest\nsocial\ntrust\nfaq\nposts" ], true ) ) {
 			$opts['order'] = stlh_defaults()['order'];
 		}
 	}
@@ -112,6 +112,7 @@ function stlh_label_defaults(): array {
 		'more'        => [ 'مشاهده همه', 'دکمه‌ی کنارِ عنوانِ هر ردیف' ],
 		'more_list'   => [ 'مشاهده لیست', 'دکمه‌ی کنارِ هر زیردسته در ردیفِ «هر زیردسته یک ردیف»' ],
 		'out'         => [ 'ناموجود', '(دیگر به کار نمی‌رود — کالای بی‌موجودی «فروخته شد» می‌خورد)' ],
+		'sale_title'  => [ 'فروش ویژه', 'عنوانِ نوارِ قرمزِ «فروش ویژه» در صفحه‌ی اصلی (کالاهای تایمردار)' ],
 		'timer_title' => [ 'پیشنهادِ ویژه', 'عنوانِ کادرِ تایمرِ تخفیف در صفحه‌ی محصول' ],
 		'timer_sub'   => [ 'تا پایانِ تخفیف', 'زیرعنوانِ کادرِ تایمرِ تخفیف' ],
 		'timer_done'  => [ 'تخفیف تمام شد', 'وقتی تایمرِ تخفیف به صفر رسید' ],

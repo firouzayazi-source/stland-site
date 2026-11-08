@@ -72,6 +72,17 @@ add_action( 'admin_menu', static function (): void {
 	add_submenu_page( 'edit.php?post_type=product', 'تایمرِ تخفیف', 'تایمرِ تخفیف', 'manage_woocommerce', 'stlh-sale-timer', 'stlh_timer_page' );
 } );
 
+add_action( 'admin_post_stlh_sale_display', static function (): void {
+	if ( ! current_user_can( 'manage_woocommerce' ) ) {
+		wp_die( 'دسترسی ندارید.' );
+	}
+	check_admin_referer( 'stlh_sale_display' );
+	update_option( 'stlh_sale_display', 'amount' === ( $_POST['mode'] ?? '' ) ? 'amount' : 'percent', false );
+	stlh_timer_purge();
+	wp_safe_redirect( add_query_arg( [ 'page' => 'stlh-sale-timer', 'shown' => 1 ], admin_url( 'edit.php?post_type=product' ) ) );
+	exit;
+} );
+
 add_action( 'admin_post_stlh_sale_timer', static function (): void {
 	if ( ! current_user_can( 'manage_woocommerce' ) ) {
 		wp_die( 'دسترسی ندارید.' );
@@ -119,6 +130,18 @@ function stlh_timer_page(): void {
 		<?php if ( isset( $_GET['done'] ) ) : ?>
 			<div class="notice notice-success"><p><?php echo esc_html( stlh_fa( (int) $_GET['done'] ) . ( ! empty( $_GET['cleared'] ) ? ' کالا بی‌تایمر شد.' : ' کالا تایمر گرفت.' ) ); ?></p></div>
 		<?php endif; ?>
+		<?php if ( isset( $_GET['shown'] ) ) : ?><div class="notice notice-success"><p>نمایشِ تخفیف ذخیره شد.</p></div><?php endif; ?>
+		<form class="card" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<?php wp_nonce_field( 'stlh_sale_display' ); ?>
+			<input type="hidden" name="action" value="stlh_sale_display">
+			<div class="bar">
+				<strong>روی کارت‌ها، کنارِ قیمت نشان بده:</strong>
+				<?php $mode = get_option( 'stlh_sale_display', 'percent' ); ?>
+				<label><input type="radio" name="mode" value="percent" <?php checked( 'amount' !== $mode ); ?>> درصدِ تخفیف (مثلاً «۶٪»)</label>
+				<label><input type="radio" name="mode" value="amount" <?php checked( 'amount' === $mode ); ?>> مبلغِ تخفیف (مثلاً «۱۰٫۱ میلیون»)</label>
+				<button class="button" type="submit">ذخیره</button>
+			</div>
+		</form>
 		<?php if ( ! $items ) : ?>
 			<div class="card"><p>الان هیچ کالایی در تخفیف نیست. اول در Novo یا ویرایشِ محصول قیمتِ ویژه بگذارید.</p></div>
 		<?php else : ?>
