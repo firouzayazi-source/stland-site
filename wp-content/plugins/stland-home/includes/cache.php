@@ -100,7 +100,15 @@ add_action( 'litespeed_purge_all', static function (): void {
 	}
 }, 1 );
 add_action( 'init', static function (): void {
-	if ( wp_doing_cron() || ! get_option( 'stlh_purge_pending' ) ) {
+	if ( wp_doing_cron() ) {
+		return;
+	}
+	// یک بار: همین نسخه هم در کارِ زمان‌بندی‌شده نصب می‌شود و کدِ قبلی این یادداشت را نداشت — صفحه‌های کهنه‌ی تا امروز پاک شوند
+	if ( '1' !== get_option( 'stlh_purge_once_1822' ) ) {
+		update_option( 'stlh_purge_once_1822', '1', false );
+		update_option( 'stlh_purge_pending', time(), false );
+	}
+	if ( ! get_option( 'stlh_purge_pending' ) ) {
 		return;
 	}
 	delete_option( 'stlh_purge_pending' );
