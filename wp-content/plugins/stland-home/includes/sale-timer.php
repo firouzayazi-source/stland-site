@@ -92,8 +92,8 @@ add_action( 'stlh_sale_end_tick', static function (): void {
 		wc_scheduled_sales(); // قیمت را خودِ فروشگاه‌ساز به قیمتِ اصلی برمی‌گرداند و محصول را ذخیره می‌کند (کش‌ها با همان ذخیره پاک می‌شوند)
 	}
 	delete_transient( 'stlh_sale_timers' );
-	if ( function_exists( 'stlh_cache_flush' ) ) {
-		stlh_cache_flush();
+	if ( function_exists( 'stlh_timer_purge' ) ) {
+		stlh_timer_purge(); // تخفیفِ تمام‌شده از همه‌ی صفحه‌های کش‌شده برود
 	}
 } );
 

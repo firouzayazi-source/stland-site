@@ -41,6 +41,20 @@ function stlh_timer_apply( WC_Product $p, int $end ): void {
 	delete_transient( 'stlh_sale_timers' );
 }
 
+/**
+ * تایمر روی صفحه‌ی اصلی، همه‌ی دسته‌ها و صفحه‌ی هر محصول است؛ ذخیره‌ی محصول در درخواستِ زمان‌بندی‌شده صفحه‌ی کش‌شده‌ی LiteSpeed را پاک
+ * نکرد (۱۷ آبان: ۲۷ کالا تایمر گرفتند ولی صفحه‌ی محصول از کش بی تایمر می‌آمد). پس بعد از هر تغییرِ گروهی کلِ کشِ صفحه پاک می‌شود.
+ */
+function stlh_timer_purge(): void {
+	if ( function_exists( 'stlh_cache_flush' ) ) {
+		stlh_cache_flush();
+	}
+	do_action( 'litespeed_purge_all' );
+	if ( function_exists( 'stlh_pc_purge' ) ) {
+		stlh_pc_purge();
+	}
+}
+
 /** «۱ روز و ۳ ساعت مانده» */
 function stlh_timer_left( int $end ): string {
 	$s = $end - time();
@@ -80,9 +94,7 @@ add_action( 'admin_post_stlh_sale_timer', static function (): void {
 			++$done;
 		}
 	}
-	if ( function_exists( 'stlh_cache_flush' ) ) {
-		stlh_cache_flush();
-	}
+	stlh_timer_purge();
 	wp_safe_redirect( add_query_arg( [ 'page' => 'stlh-sale-timer', 'done' => $done, 'cleared' => (int) $clear ], admin_url( 'edit.php?post_type=product' ) ) );
 	exit;
 } );
@@ -171,7 +183,5 @@ add_action( 'init', static function (): void {
 		}
 	}
 	update_option( 'stlh_sale_timer_seed', [ 'at' => gmdate( 'c' ), 'end' => gmdate( 'c', $end ), 'ids' => $done ], false );
-	if ( function_exists( 'stlh_cache_flush' ) ) {
-		stlh_cache_flush();
-	}
+	stlh_timer_purge();
 }, 60 );
