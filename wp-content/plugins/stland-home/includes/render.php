@@ -335,7 +335,8 @@ function stlh_card_price( WC_Product $p ): string {
 	if ( $p->is_type( 'variable' ) ) {
 		return '<span class="st-pr-was">' . $pill . '</span>' . stlh_price( $p );
 	}
-	return '<span class="st-pr-was">' . $pill . '<del>' . wp_kses_post( wc_price( (float) $p->get_regular_price() ) ) . '</del></span>'
+	// ترتیب در خطِ چپ‌به‌راست: قیمتِ قبلی، بعد قرص — قرص سمتِ راستِ عدد، مثلِ نمونه‌ی صاحب فروشگاه
+	return '<span class="st-pr-was"><del>' . wp_kses_post( wc_price( (float) $p->get_regular_price() ) ) . '</del>' . $pill . '</span>'
 		. '<span class="st-pr-now">' . wp_kses_post( wc_price( (float) $p->get_price() ) ) . '</span>';
 }
 

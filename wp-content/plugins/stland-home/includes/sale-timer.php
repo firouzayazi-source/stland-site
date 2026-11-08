@@ -152,6 +152,10 @@ box-shadow:0 4px 12px -4px rgba(255,61,90,.8);font-variant-numeric:tabular-nums;
 .stlh-tm-pill.stlh-tm-inline svg{width:15px;height:15px}
 @media (max-width:576px){.stlh-tm-pill.stlh-tm-inline{font-size:12px;padding:5px 10px;gap:5px}.stlh-tm-pill.stlh-tm-inline svg{width:13px;height:13px}}
 .stlh-tm-pill svg{width:12px;height:12px;flex:0 0 auto}
+/* اندازه‌ی ثابت (صاحب فروشگاه: «با تغییرِ اعداد سایزش کم و زیاد می‌شود»): هر عدد خانه‌ی هم‌پهنای خودش را دارد */
+.stlh-tm-d{display:inline-block;width:1.3em;text-align:center;font-weight:inherit}
+.stlh-tm-hms{display:inline-flex;align-items:center}
+.stlh-tm-n{display:block;min-width:1.6em;text-align:center}
 .st-pr-img,.products__item-image-wrapper,.product-thumb{position:relative}
 @media (prefers-reduced-motion:reduce){.stlh-tm *{animation:none!important}}
 CSS;
@@ -166,7 +170,8 @@ clk='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.
 left=function(e){return Math.max(0,Math.floor(e-Date.now()/1000))},
 pills=[],box=null;
 function pillText(s){var d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60),x=s%60;
-return clk+(d?'<span>'+f(d,1)+' روز و</span>':'')+'<span dir="ltr">'+f(h)+':'+f(m)+':'+f(x)+'</span>'}
+var u=function(n){return '<b class="stlh-tm-d">'+n+'</b>'};
+return clk+(d?'<span>'+u(f(d,1))+' روز و</span>':'')+'<span dir="ltr" class="stlh-tm-hms">'+u(f(h))+':'+u(f(m))+':'+u(f(x))+'</span>'}
 function mountPill(li,end){if(li.querySelector('.stlh-tm-pill'))return;var p=document.createElement('span');p.className='stlh-tm-pill stlh-tm-inline';p.dataset.stlhEnd=end;
 var t=li.querySelector('.products__item-fatitle,.product-title,.title');if(t&&t.parentNode){t.parentNode.insertBefore(p,t.nextSibling)}else{li.appendChild(p)}}
 function scan(){
@@ -236,7 +241,7 @@ function stlh_sale_band_css(): string {
 .st-sale-title h2 { margin: 0; color: #fff; font-size: 22px; font-weight: 900; }
 .st-sale-count { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
 .stlh-tm-clock { display: inline-flex; align-items: center; gap: 3px; direction: ltr; font-weight: 900; }
-.stlh-tm-clock b { min-width: 32px; padding: 5px 4px; text-align: center; background: #fff; color: #d6203a; border-radius: 8px; font-size: 15px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.stlh-tm-clock b { width: 32px; min-width: 32px; padding: 5px 4px; text-align: center; background: #fff; color: #d6203a; border-radius: 8px; font-size: 15px; line-height: 1.2; font-variant-numeric: tabular-nums; }
 .stlh-tm-clock i { font-style: normal; font-size: 12px; margin: 0 4px 0 2px; direction: rtl; }
 .st-sale-band .st-pr-card { background: #fff; }
 .st-sale-band .stlh-tm-pill { display: none !important; }
@@ -244,7 +249,7 @@ function stlh_sale_band_css(): string {
     .st-sale-band .st-pr-container { border-radius: 18px; padding: 14px 10px 12px; }
     .st-sale-title h2 { font-size: 18px; }
     .st-sale-title svg { width: 22px; height: 22px; }
-    .stlh-tm-clock b { min-width: 27px; font-size: 13px; padding: 4px 3px; }
+    .stlh-tm-clock b { width: 27px; min-width: 27px; font-size: 13px; padding: 4px 3px; }
 }
 CSS;
 }
