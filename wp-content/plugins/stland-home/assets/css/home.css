@@ -1235,3 +1235,14 @@ body.home { overflow-x: clip; }
     .st-cbs { bottom: 8px; right: 8px; }
     .st-cb { height: 24px; font-size: 11.5px; }
 }
+
+/* ==============================
+   تخفیفِ کارت (۱۷ آبان ۱۴۰۵) — صاحب فروشگاه: «درصدِ تخفیف، تایمر و عکس از خودِ محصول روی هم افتاده؛ تخفیف با همین رنگِ قرمز
+   بیاید پایین و نوشته‌اش حذف شود، فقط درصد». قرصِ درصد کنارِ قیمتِ قبلی، قیمتِ تازه زیرش؛ تایمرِ آبی زیرِ نام (`sale-timer.php`).
+============================== */
+.st-pr-price .st-pr-was { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 2px; }
+.st-pr-price .st-pr-was del { display: inline; margin: 0; font-size: 12px; color: #94a3b8; font-weight: 600; }
+.st-pr-price .st-pr-was del .woocommerce-Price-currencySymbol { display: none; }
+.st-off { display: inline-flex; align-items: center; background: #dc2626; color: #fff; font-size: 11px; font-weight: 800; line-height: 1; padding: 4px 8px; border-radius: 999px; box-shadow: 0 3px 10px -4px rgba(220,38,38,.7); }
+.st-pr-price .st-pr-now { display: block; }
+@media (max-width: 576px) { .st-off { font-size: 10px; padding: 3px 7px; } .st-pr-price .st-pr-was del { font-size: 11px; } }

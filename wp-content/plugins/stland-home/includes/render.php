@@ -289,18 +289,20 @@ function stlh_color_fa( string $c ): string {
 
 function stlh_card( WC_Product $p ): string {
 	$spec   = stlh_spec_line( $p );
-	$badges = stlh_card_badges_html( $p ) . stlh_sale_timer_pill( $p ); // قرص‌های ریزِ گوشه (`card-badges.php`) و تایمرِ تخفیف (`sale-timer.php`)
-	$sale = $p->is_in_stock() ? stlh_sale_label( $p ) : '';
-	$sale = $sale ? '<span class="st-sale">' . esc_html( $sale ) . '</span>' : '';
+	$badges = stlh_card_badges_html( $p ); // قرص‌های ریزِ گوشه (`card-badges.php`)
+	/*
+	 * صاحب فروشگاه با عکس (۱۷ آبان ۱۴۰۵): «درصدِ تخفیف، تایمر و عکس از خودِ محصول روی هم افتاده». تخفیف دیگر روی عکس نیست:
+	 * فقط درصد، قرصِ قرمز کنارِ قیمتِ قبلی (مثلِ نمونه‌ای که فرستاد)؛ تایمرِ آبی زیرِ نام و مشخصات (`sale-timer.php`).
+	 */
 	return sprintf(
-		'<a class="st-pr-card" href="%s"><span class="st-pr-img">%s%s%s</span><span class="st-pr-name">%s</span>%s<span class="st-pr-foot"><span class="st-pr-price">%s</span></span></a>',
+		'<a class="st-pr-card" href="%s"><span class="st-pr-img">%s%s</span><span class="st-pr-name">%s</span>%s%s<span class="st-pr-foot"><span class="st-pr-price">%s</span></span></a>',
 		esc_url( $p->get_permalink() ),
 		$badges,
 		stlh_card_image( $p ),
-		$sale,
 		esc_html( $p->get_name() ),
 		$spec ? '<span class="st-pr-spec">' . esc_html( $spec ) . '</span>' : '',
-		stlh_price( $p )
+		stlh_sale_timer_pill( $p, true ),
+		stlh_card_price( $p )
 	);
 }
 
@@ -321,6 +323,20 @@ function stlh_card_image( WC_Product $p ): string {
  * نشانِ تخفیف. «۱٪» روی گوشیِ دویست میلیونی بی‌معناست ولی «۳ میلیون»
  * معنا دارد؛ پس مبلغ، کوتاه. برای محصول متغیر همان درصد می‌ماند.
  */
+/** قیمتِ کارت: در تخفیف، «٪ — قیمتِ قبلی» در یک خط و قیمتِ تازه زیرش */
+function stlh_card_price( WC_Product $p ): string {
+	$off = $p->is_in_stock() ? stlh_sale_percent( $p ) : 0;
+	if ( ! $off ) {
+		return stlh_price( $p );
+	}
+	$pill = '<span class="st-off">' . esc_html( stlh_fa( $off ) ) . '٪</span>';
+	if ( $p->is_type( 'variable' ) ) {
+		return '<span class="st-pr-was">' . $pill . '</span>' . stlh_price( $p );
+	}
+	return '<span class="st-pr-was">' . $pill . '<del>' . wp_kses_post( wc_price( (float) $p->get_regular_price() ) ) . '</del></span>'
+		. '<span class="st-pr-now">' . wp_kses_post( wc_price( (float) $p->get_price() ) ) . '</span>';
+}
+
 function stlh_sale_label( WC_Product $p ): string {
 	if ( ! $p->is_on_sale() ) {
 		return '';

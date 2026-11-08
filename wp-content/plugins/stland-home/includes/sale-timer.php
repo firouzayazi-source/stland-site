@@ -64,9 +64,9 @@ function stlh_sale_timers(): array {
 }
 
 /** قرصِ کارتِ صفحه‌ی اصلی (`stlh_card`) — JS عددش را هر ثانیه می‌گذارد */
-function stlh_sale_timer_pill( WC_Product $p ): string {
+function stlh_sale_timer_pill( WC_Product $p, bool $inline = false ): string {
 	$end = $p->is_in_stock() ? stlh_sale_end( $p ) : 0;
-	return $end ? '<span class="stlh-tm-pill" data-stlh-end="' . $end . '" hidden></span>' : '';
+	return $end ? '<span class="stlh-tm-pill' . ( $inline ? ' stlh-tm-inline' : '' ) . '" data-stlh-end="' . $end . '" hidden></span>' : '';
 }
 
 // ─── پایانِ واقعیِ تخفیف سرِ همان دقیقه ───
@@ -127,8 +127,8 @@ add_action( 'wp_enqueue_scripts', static function (): void {
 
 function stlh_sale_timer_css(): string {
 	return <<<'CSS'
-.stlh-tm{--tm1:#ff3d5a;--tm2:#ff8a3d;position:relative;margin:12px 0;padding:12px 14px 13px;border-radius:18px;color:#fff;direction:rtl;
-background:linear-gradient(120deg,var(--tm1),var(--tm2));box-shadow:0 10px 28px -12px rgba(255,61,90,.75);overflow:hidden;font-family:inherit}
+.stlh-tm{--tm1:#1d4ed8;--tm2:#38bdf8;position:relative;margin:12px 0;padding:12px 14px 13px;border-radius:18px;color:#fff;direction:rtl;
+background:linear-gradient(120deg,var(--tm1),var(--tm2));box-shadow:0 10px 28px -12px rgba(29,78,216,.75);overflow:hidden;font-family:inherit}
 .stlh-tm:before{content:"";position:absolute;inset:-40% -10% auto auto;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.14)}
 .stlh-tm-head{position:relative;display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}
 .stlh-tm-title{display:flex;align-items:center;gap:6px;font-weight:900;font-size:15px;line-height:1.3}
@@ -146,8 +146,9 @@ border-radius:12px;padding:6px 2px 5px;text-align:center}
 @keyframes stlh-tm-tick{0%{transform:translateY(-2px);opacity:.55}35%{transform:none;opacity:1}}
 @keyframes stlh-tm-zap{50%{transform:scale(1.18) rotate(-8deg)}}
 .stlh-tm-pill{position:absolute;z-index:3;left:8px;bottom:8px;display:inline-flex;align-items:center;gap:4px;padding:3px 9px 3px 8px;border-radius:999px;
-background:linear-gradient(120deg,#ff3d5a,#ff8a3d);color:#fff;font-size:11.5px;font-weight:800;line-height:1.5;direction:rtl;
-box-shadow:0 4px 12px -4px rgba(255,61,90,.8);font-variant-numeric:tabular-nums;pointer-events:none}
+background:linear-gradient(120deg,#1d4ed8,#38bdf8);color:#fff;font-size:11.5px;font-weight:800;line-height:1.5;direction:rtl;
+box-shadow:0 4px 12px -4px rgba(29,78,216,.8);font-variant-numeric:tabular-nums;pointer-events:none}
+.stlh-tm-pill.stlh-tm-inline{position:static;align-self:flex-start;width:max-content;max-width:100%;margin:2px 0 8px}
 .stlh-tm-pill svg{width:12px;height:12px;flex:0 0 auto}
 .st-pr-img,.products__item-image-wrapper,.product-thumb{position:relative}
 @media (prefers-reduced-motion:reduce){.stlh-tm *{animation:none!important}}
@@ -164,11 +165,12 @@ left=function(e){return Math.max(0,Math.floor(e-Date.now()/1000))},
 pills=[],box=null;
 function pillText(s){var d=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60),x=s%60;
 return clk+(d?'<span>'+f(d,1)+' روز و</span>':'')+'<span dir="ltr">'+f(h)+':'+f(m)+':'+f(x)+'</span>'}
-function mountPill(host,end){if(!host||host.querySelector('.stlh-tm-pill'))return;var p=document.createElement('span');p.className='stlh-tm-pill';p.dataset.stlhEnd=end;host.appendChild(p)}
+function mountPill(li,end){if(li.querySelector('.stlh-tm-pill'))return;var p=document.createElement('span');p.className='stlh-tm-pill stlh-tm-inline';p.dataset.stlhEnd=end;
+var t=li.querySelector('.products__item-fatitle,.product-title,.title');if(t&&t.parentNode){t.parentNode.insertBefore(p,t.nextSibling)}else{li.appendChild(p)}}
 function scan(){
 document.querySelectorAll('li.product[data-id],.products-list article[data-id],[data-product_id].product').forEach(function(li){
 var id=li.getAttribute('data-id')||li.getAttribute('data-product_id'),end=M[id];if(!end)return;
-mountPill(li.querySelector('.products__item-image-wrapper,.product-thumb,.thumb,.product-image')||li,end)});
+mountPill(li,end)});
 pills=[].slice.call(document.querySelectorAll('.stlh-tm-pill[data-stlh-end]'))}
 function mountBox(){var end=T.single;if(!end||document.querySelector('.stlh-tm'))return;
 var b=document.createElement('div');b.className='stlh-tm';b.setAttribute('role','timer');b.dataset.stlhEnd=end;
