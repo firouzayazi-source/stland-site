@@ -289,7 +289,7 @@ function stlh_color_fa( string $c ): string {
 
 function stlh_card( WC_Product $p ): string {
 	$spec   = stlh_spec_line( $p );
-	$badges = stlh_card_badges_html( $p ); // قرص‌های ریزِ گوشه (`card-badges.php`)
+	$badges = stlh_card_badges_html( $p ) . stlh_sale_timer_pill( $p ); // قرص‌های ریزِ گوشه (`card-badges.php`) و تایمرِ تخفیف (`sale-timer.php`)
 	$sale = $p->is_in_stock() ? stlh_sale_label( $p ) : '';
 	$sale = $sale ? '<span class="st-sale">' . esc_html( $sale ) . '</span>' : '';
 	return sprintf(
