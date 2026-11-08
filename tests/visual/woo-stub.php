@@ -59,3 +59,4 @@ function wc_get_product( $id ) {
 	return $p ? new WC_Product( $p ) : false;
 }
 function get_woocommerce_currency() { return 'IRT'; }
+function wc_price( $p ) { return '<span class="woocommerce-Price-amount amount"><bdi>' . number_format( (float) $p ) . '&nbsp;<span class="woocommerce-Price-currencySymbol">تومان</span></bdi></span>'; }
