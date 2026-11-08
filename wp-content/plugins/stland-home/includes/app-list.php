@@ -272,7 +272,7 @@ function stlh_app_list_card( WC_Product $p, array $chips ): string {
 		stlh_card_image( $p ),
 		esc_html( $p->get_name() ),
 		$chip_html ? '<span class="stlh-al-chips">' . $chip_html . '</span>' : '',
-		stlh_price( $p )
+		stlh_card_price( $p ) // تخفیف با همان استانداردِ کارت‌ها: قیمتِ قبلی + قرصِ قرمزِ درصد/مبلغ، قیمتِ تازه زیرش (صاحب فروشگاه، ۱۷ آبان)
 	);
 }
 
@@ -310,7 +310,14 @@ function stlh_app_list_html(): string {
 			esc_html( stlh_fa( count( $s['cards'] ) ) )
 		);
 	}
-	$html = '<div class="stlh-al">'
+	// قاعده‌های قیمتِ تخفیفی داخلِ خودِ صفحه (CSSِ بحرانیِ LiteSpeed قاعده‌ی تازه را نمی‌آورد — همان درسِ صفحه‌ی اصلی)
+	$html = '<style id="stlh-al-sale">' . stlh_card_price_css()
+		. '.stlh-al-price{flex-direction:column;align-items:flex-end;gap:2px;width:100%}'
+		. '.stlh-al-price .st-pr-was{display:flex;direction:ltr;justify-content:flex-start;align-items:center;gap:6px}'
+		. '.stlh-al-price .st-pr-was del{order:0;margin:0;font-size:12px;font-weight:600;color:#8e8e93}'
+		. '.stlh-al-price .st-pr-was del .woocommerce-Price-currencySymbol{display:none}'
+		. '.stlh-al-price .st-pr-now{display:block;text-align:left}</style>'
+		. '<div class="stlh-al">'
 		. '<header class="stlh-al-hero"><h1>' . esc_html( stlh_label( 'list_title' ) ) . '</h1>'
 		. '<p>' . esc_html( stlh_label( 'list_sub' ) ) . '</p>'
 		. ( ! empty( $data['at'] ) ? '<p class="stlh-al-upd"><time datetime="' . esc_attr( gmdate( 'c', (int) $data['at'] ) ) . '">'
