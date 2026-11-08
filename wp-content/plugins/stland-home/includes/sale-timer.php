@@ -219,8 +219,32 @@ function stlh_sale(): string {
 	uasort( $items, static fn( $a, $b ) => stlh_sale_percent( $b ) <=> stlh_sale_percent( $a ) );
 	$items = array_slice( $items, 0, 16, true );
 	$soon  = min( array_intersect_key( $map, $items ) );
-	return '<section class="st-pr-wrapper st-sale-band"><div class="st-pr-container"><div class="st-sale-head">'
-		. '<div class="st-sale-title"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><h2>' . esc_html( stlh_label( 'sale_title' ) ) . '</h2></div>'
+	// ⛔ سبکِ نوار همین‌جا هم می‌آید و آیکن اندازه‌ی ثابت دارد: CSSِ بهینه‌شده‌ی LiteSpeed (فقط قاعده‌های دیده‌شده) قاعده‌ی تازه‌ی
+	// home.css را نداشت و آیکنِ صاعقه کلِ صفحه را گرفت (۱۷ آبان ۱۴۰۵).
+	return '<section class="st-pr-wrapper st-sale-band"><style>' . stlh_sale_band_css() . '</style><div class="st-pr-container"><div class="st-sale-head">'
+		. '<div class="st-sale-title"><svg width="28" height="28" style="width:28px;height:28px;flex:0 0 auto" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><h2>' . esc_html( stlh_label( 'sale_title' ) ) . '</h2></div>'
 		. '<div class="st-sale-count"><span>' . esc_html( stlh_label( 'timer_sub' ) ) . '</span><span class="stlh-tm-clock" data-stlh-end="' . (int) $soon . '"></span></div>'
 		. '</div><div class="st-pr-track"><div class="st-pr-row">' . implode( '', array_map( 'stlh_card', $items ) ) . '</div></div></div></section>';
+}
+
+function stlh_sale_band_css(): string {
+	return <<<'CSS'
+.st-sale-band .st-pr-container { background: linear-gradient(135deg, #ef394e 0%, #d6203a 100%); border-radius: 22px; padding: 18px 16px 16px; box-shadow: 0 18px 40px -22px rgba(214,32,58,.8); }
+.st-sale-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; color: #fff; flex-wrap: wrap; }
+.st-sale-title { display: flex; align-items: center; gap: 8px; }
+.st-sale-title svg { width: 28px; height: 28px; color: #ffd84d; filter: drop-shadow(0 2px 6px rgba(0,0,0,.25)); }
+.st-sale-title h2 { margin: 0; color: #fff; font-size: 22px; font-weight: 900; }
+.st-sale-count { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
+.stlh-tm-clock { display: inline-flex; align-items: center; gap: 3px; direction: ltr; font-weight: 900; }
+.stlh-tm-clock b { min-width: 32px; padding: 5px 4px; text-align: center; background: #fff; color: #d6203a; border-radius: 8px; font-size: 15px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.stlh-tm-clock i { font-style: normal; font-size: 12px; margin: 0 4px 0 2px; direction: rtl; }
+.st-sale-band .st-pr-card { background: #fff; }
+.st-sale-band .stlh-tm-pill { display: none !important; }
+@media (max-width: 576px) {
+    .st-sale-band .st-pr-container { border-radius: 18px; padding: 14px 10px 12px; }
+    .st-sale-title h2 { font-size: 18px; }
+    .st-sale-title svg { width: 22px; height: 22px; }
+    .stlh-tm-clock b { min-width: 27px; font-size: 13px; padding: 4px 3px; }
+}
+CSS;
 }
