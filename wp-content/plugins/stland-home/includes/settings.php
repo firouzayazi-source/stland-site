@@ -82,7 +82,7 @@ function stlh_sanitize( mixed $in ): array {
 			'banner_link' === $k                                                                         => esc_url_raw( (string) $v ),
 			in_array( $k, [ 'categories', 'product_rows', 'faq', 'address', 'trust', 'card_badges', 'opening_hours', 'store_facts', 'payment_methods' ], true ) => sanitize_textarea_field( (string) $v ),
 			'order' === $k                                                                               => implode( "\n", array_values( array_intersect( array_unique( stlh_lines( sanitize_textarea_field( (string) $v ) ) ), array_keys( stlh_sections() ) ) ) ),
-			in_array( $k, [ 'font_enable', 'font_sitewide', 'takeover', 'speed_diet', 'warm', 'page_cache', 'co_skin' ], true )            => empty( $in[ $k ] ) ? '' : '1',
+			in_array( $k, [ 'font_enable', 'font_sitewide', 'takeover', 'speed_diet', 'warm', 'page_cache', 'co_skin', 'menu_live', 'menu_live_empty' ], true )            => empty( $in[ $k ] ) ? '' : '1',
 			'co_accent' === $k                                                                           => (string) sanitize_hex_color( (string) $v ),
 			'zp_cap' === $k                                                                              => absint( preg_replace( '/[^0-9]/', '', strtr( (string) $v, array_combine( mb_str_split( '۰۱۲۳۴۵۶۷۸۹' ), str_split( '0123456789' ) ) ) ) ),
 			'cat_style' === $k                                                                           => 'photo' === $v ? 'photo' : 'icon',
@@ -473,6 +473,8 @@ function stlh_settings_page(): void {
 				stlh_row_text( 'عنوان', 'cat_title', (string) $o['cat_title'] );
 				stlh_row_text( 'زیرعنوان', 'cat_subtitle', (string) $o['cat_subtitle'] );
 				stlh_row_tree( array_map( 'intval', (array) $o['hide_cats'] ), (array) $o['cat_names'] );
+				stlh_row_check( 'منوی بالای سایت', 'menu_live', (string) $o['menu_live'], 'زیرمنوی دسته‌ها خودکار از درختِ دسته‌ها (همان که حسابداری می‌سازد)', 'هر دسته‌ی تازه، تغییرِ نام یا ترتیب در حسابداری خودش در منوی رایانه و گوشی می‌نشیند؛ فقط دسته‌های دارای محصول، و نه آن‌هایی که بالا تیکِ «پنهان» خورده‌اند. خاموش: همان فهرستِ ثابتِ «نمایش ← فهرست‌ها» (چیزی از آن پاک نشده).' );
+				stlh_row_check( 'دسته‌های خالی در منو', 'menu_live_empty', (string) $o['menu_live_empty'], 'دسته‌ای که الان محصولِ قابلِ نمایش ندارد هم در منو بیاید', 'پیش‌فرض خاموش: مشتری روی دسته‌ی خالی نمی‌رود.' );
 				?>
 				<tr><th scope="row">نمایش</th><td>
 					<label><input type="radio" name="<?php echo esc_attr( STLH_OPT ); ?>[cat_style]" value="icon" <?php checked( $o['cat_style'], 'icon' ); ?>> آیکن</label>&nbsp;&nbsp;
