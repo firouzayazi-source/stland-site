@@ -87,3 +87,23 @@ add_action( 'transition_post_status', function ( string $new, string $old, WP_Po
 	}
 }, 10, 3 );
 add_action( 'save_post_post', 'stlh_cache_flush', 10, 0 );
+
+/*
+ * پاک کردنِ کشِ LiteSpeed از درونِ کارِ زمان‌بندی‌شده بی‌اثر است (۱۷ آبان ۱۴۰۵): `wp-cron.php` جوابِ HTTP را پیش از اجرای کارها
+ * می‌فرستد و سرآیندِ `X-LiteSpeed-Purge` دیگر به سرور نمی‌رسد. صفحه‌ی محصول بعد از دو انتشار و تایمرِ تخفیف هنوز نسخه‌ی پیش از
+ * همه‌شان را از کش می‌داد. پس هر «پاک کردنِ کل» در کارِ زمان‌بندی‌شده (به‌روزرسانِ خودکار، تایمر، …) یادداشت می‌شود و نخستین
+ * درخواستِ عادیِ بعدی که PHP را اجرا می‌کند (پیشخوان، سبدِ خرید، `wc-ajax`، صفحه‌ای که در کش نیست) همان را دوباره می‌فرستد.
+ */
+add_action( 'litespeed_purge_all', static function (): void {
+	if ( wp_doing_cron() ) {
+		update_option( 'stlh_purge_pending', time(), false );
+	}
+}, 1 );
+add_action( 'init', static function (): void {
+	if ( wp_doing_cron() || ! get_option( 'stlh_purge_pending' ) ) {
+		return;
+	}
+	delete_option( 'stlh_purge_pending' );
+	do_action( 'litespeed_purge_all' );
+	update_option( 'stlh_purge_replayed', gmdate( 'c' ), false );
+}, 99 );
