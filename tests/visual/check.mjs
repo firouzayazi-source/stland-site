@@ -71,6 +71,13 @@ for (const [name, width, height] of [['mobile', 390, 844], ['desktop', 1280, 900
   check(top.length > 0 && top.every((n) => gen(n) >= 14), `${name}: ردیفِ بالای کارکرده فقط ۱۴ به بالا — آمد: ${top.join('، ')}`)
   check(low.length > 0 && low.every((n) => gen(n) < 14), `${name}: ردیفِ زیرینِ کارکرده ۱۳ و پایین‌تر — آمد: ${low.join('، ')}`)
 
+  // صاحب فروشگاه با عکس (۱۷ آبان): تخفیفِ کارت قرصِ قرمز کنارِ قیمتِ قبلی، نه «۶٪»ِ سیاه
+  const off = page.locator('.st-pr-card .st-off').first()
+  check((await off.count()) === 1, `${name}: قرصِ تخفیفِ کارت نیست`)
+  if (await off.count()) {
+    const bg = await off.evaluate((e) => getComputedStyle(e).backgroundColor)
+    check(bg === 'rgb(220, 38, 38)', `${name}: قرصِ تخفیف قرمز نیست (${bg})`)
+  }
   check(errors.length === 0, `${name}: خطای جاوااسکریپت: ${errors.join(' / ')}`)
   if (outDir) await page.screenshot({ path: `${outDir}/home-${name}.png`, fullPage: true })
   await page.close()

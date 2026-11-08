@@ -49,7 +49,9 @@ function stlh_section( string $key ): string {
 /** کل صفحه اصلی به ترتیبی که در تنظیمات آمده */
 add_shortcode( 'stl_home', function (): string {
 	stlh_assets();
-	$out = '';
+	// قیمت و قرصِ تخفیفِ کارت داخلِ خودِ صفحه هم می‌آید (۱۷ آبان ۱۴۰۵): CSSِ بحرانی و ترکیبیِ LiteSpeed قاعده‌های تازه‌ی home.css
+	// را دیر یا اصلاً نمی‌آورد و صاحب فروشگاه «۶٪»ِ سیاه و قیمتِ راست‌چین دید.
+	$out = '<style id="stlh-card-price">' . stlh_card_price_css() . '</style>';
 	foreach ( array_unique( stlh_lines( (string) stlh_opt( 'order' ) ) ) as $key ) {
 		$out .= stlh_section( $key );
 	}
@@ -68,4 +70,19 @@ foreach ( [ 'banner', 'trust', 'categories', 'group', 'best', 'flash_deal', 'sal
 		stlh_assets();
 		return stlh_section( $part );
 	} );
+}
+
+/** قاعده‌های قیمتِ کارت (همان‌ها در home.css هم هست) */
+function stlh_card_price_css(): string {
+	return <<<'CSS'
+.st-pr-price .st-pr-was { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 2px; }
+.st-pr-price .st-pr-was del { display: inline; margin: 0; font-size: 12px; color: #94a3b8; font-weight: 600; }
+.st-pr-price .st-pr-was del .woocommerce-Price-currencySymbol { display: none; }
+.st-off { display: inline-flex; align-items: center; background: #dc2626; color: #fff; font-size: 11px; font-weight: 800; line-height: 1; padding: 4px 8px; border-radius: 999px; box-shadow: 0 3px 10px -4px rgba(220,38,38,.7); }
+.st-pr-price .st-pr-now { display: block; }
+@media (max-width: 576px) { .st-off { font-size: 10px; padding: 3px 7px; } .st-pr-price .st-pr-was del { font-size: 11px; } }
+.st-pr-foot .st-pr-price { margin-inline-start: auto; text-align: left; }
+.st-pr-price .st-pr-was { direction: ltr; justify-content: flex-start; }
+.st-pr-price .st-pr-now { direction: rtl; }
+CSS;
 }
