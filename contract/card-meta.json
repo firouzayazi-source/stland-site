@@ -1,6 +1,6 @@
 {
-  "_": "Meta keys the accounting app (sthesabland: src/lib/woo/describe.ts cardMeta, CARD_CONTRACT_VERSION) writes on every phone product, and stland-home reads: 'keys' for card badges (stlh_defaults card_badges), 'spec' for the one-line spec under the name (stlh_spec_line). Bump 'version' and STLH_CONTRACT together; the accounting health panel compares it with the site's /wp-json/stland/v1/status. 'seo' (v3): SEO title/description/focus keyword that includes/seo-bridge.php copies into Yoast's _yoast_wpseo_* fields. 'product' (v4): stl_health — JSON of the used phone's health booklet ({items:[{l,v,ok}],total,checked,battery,cycles}) that includes/product-page.php renders under the warning box; empty string = no booklet. 'keys' (v5): real_photo = '1' when the phone's own photos are shown (card badge «عکس واقعی»); empty = no badge.",
-  "version": 5,
+  "_": "Meta keys the accounting app (sthesabland: src/lib/woo/describe.ts cardMeta, CARD_CONTRACT_VERSION) writes on every phone product, and stland-home reads: 'keys' for card badges (stlh_defaults card_badges), 'spec' for the one-line spec under the name (stlh_spec_line). Bump 'version' and STLH_CONTRACT together; the accounting health panel compares it with the site's /wp-json/stland/v1/status. 'seo' (v3): SEO title/description/focus keyword that includes/seo-bridge.php copies into Yoast's _yoast_wpseo_* fields. 'product' (v4): stl_health — JSON of the used phone's health booklet ({items:[{l,v,ok}],total,checked,battery,cycles}) that includes/product-page.php renders under the warning box; empty string = no booklet. 'keys' (v5): real_photo = '1' when the phone's own photos are shown (card badge «عکس واقعی»); empty = no badge. 'sale' (v6): sale_show = 'percent' | 'amount' — how the discount pill shows for this product (Novo: the owner set the discount as a percent or as a toman price); empty = the site-wide «تایمرِ تخفیف» choice (stlh_sale_display).",
+  "version": 6,
   "keys": [
     "battery",
     "registry",
@@ -18,5 +18,8 @@
   ],
   "product": [
     "stl_health"
+  ],
+  "sale": [
+    "sale_show"
   ]
 }

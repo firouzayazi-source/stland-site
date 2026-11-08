@@ -329,8 +329,8 @@ function stlh_card_price( WC_Product $p ): string {
 	if ( ! $off ) {
 		return stlh_price( $p );
 	}
-	// درصد یا مبلغ — انتخابِ صاحب فروشگاه در «محصولات ← تایمرِ تخفیف» (`stlh_sale_display`)
-	$amount = 'amount' === get_option( 'stlh_sale_display', 'percent' ) && ! $p->is_type( 'variable' ) ? trim( str_replace( 'تخفیف', '', stlh_sale_label( $p ) ) ) : '';
+	// درصد یا مبلغ — همان که در Novo برای این کالا گذاشته شده، وگرنه انتخابِ کلیِ «محصولات ← تایمرِ تخفیف» (`stlh_sale_show`)
+	$amount = 'amount' === stlh_sale_show( $p ) && ! $p->is_type( 'variable' ) ? trim( str_replace( 'تخفیف', '', stlh_sale_label( $p ) ) ) : '';
 	$pill   = '<span class="st-off">' . esc_html( $amount ?: stlh_fa( $off ) . '٪' ) . '</span>';
 	if ( $p->is_type( 'variable' ) ) {
 		return '<span class="st-pr-was">' . $pill . '</span>' . stlh_price( $p );

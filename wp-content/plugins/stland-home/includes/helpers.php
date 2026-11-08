@@ -318,6 +318,32 @@ function stlh_cat_icon( string $key ): string {
 	return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . ( $icons[ $key ] ?? $icons['tag'] ) . '</svg>';
 }
 
+/**
+ * قرصِ تخفیفِ این کالا درصد باشد یا مبلغ (قرارداد ۶): Novo برای هر کالا می‌فرستد (`sale_show`) — تخفیفی که صاحب فروشگاه در Novo به درصد
+ * گذاشته «۶٪» و به تومان گذاشته «۱۰ میلیون» (صاحب فروشگاه، ۱۹ آبان ۱۴۰۵). خالی = انتخابِ کلیِ «محصولات ← تایمرِ تخفیف» (`stlh_sale_display`).
+ */
+function stlh_sale_show( WC_Product $p ): string {
+	$m = (string) $p->get_meta( 'sale_show' );
+	if ( '' === $m && $p->get_parent_id() ) {
+		$m = (string) get_post_meta( $p->get_parent_id(), 'sale_show', true );
+	}
+	if ( 'percent' === $m || 'amount' === $m ) {
+		return $m;
+	}
+	return 'amount' === get_option( 'stlh_sale_display', 'percent' ) ? 'amount' : 'percent';
+}
+
+/** کالاهایی که Novo برایشان شیوه‌ی قرص را تعیین کرده: [شناسه => percent|amount] — یک پرسش، برای قرصِ فهرستِ قالب */
+function stlh_sale_show_map(): array {
+	global $wpdb;
+	$rows = $wpdb->get_results( "SELECT post_id, meta_value FROM {$wpdb->postmeta} WHERE meta_key = 'sale_show' AND meta_value IN ('percent','amount')" );
+	$map  = [];
+	foreach ( $rows ?: [] as $r ) {
+		$map[ (int) $r->post_id ] = $r->meta_value;
+	}
+	return $map;
+}
+
 /** درصد تخفیف (محصول ساده یا بیشترین تخفیف متغیر) */
 function stlh_sale_percent( WC_Product $p ): int {
 	if ( ! $p->is_on_sale() ) {
