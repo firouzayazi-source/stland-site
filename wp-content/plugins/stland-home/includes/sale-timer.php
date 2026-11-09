@@ -205,30 +205,48 @@ JS;
 
 /* ─── بخشِ «فروش ویژه»ی صفحه‌ی اصلی (کلید `sale` در ترتیبِ بخش‌ها) ───
  * صاحب فروشگاه (۱۷ آبان ۱۴۰۵): «یک بخش هم برای فروش ویژه؛ کالاهایی که تایمر دارند آن‌جا هم بیایند، زمینه‌ی قرمز مثلِ فروشِ ویژه‌ی
- * فروشگاه‌های بزرگ». نوارِ قرمز با عنوان و شمارشِ معکوسِ نزدیک‌ترین پایان، و کارت‌های سفید؛ بی کالای تایمردارِ موجود، پنهان. */
+ * فروشگاه‌های بزرگ». نوارِ قرمز و کارت‌های سفید؛ بی کالای تخفیف‌دارِ موجود، پنهان.
+ * ⛔ همه‌ی کالاهای تخفیف‌دار، نه فقط تایمردارها (صاحب فروشگاه، ۱۹ آبان ۱۴۰۵: «چرا فقط این در فروش ویژه است؟» — ۲۷ تخفیف بود و فقط یکی
+ * تایمر داشت). تایمردارها اول (نزدیک‌ترین پایان اول)، بعد بقیه به ترتیبِ درصد؛ شمارشِ معکوسِ سرِ نوار فقط وقتی دست‌کم یکی تایمر دارد. */
 function stlh_sale(): string {
-	if ( ! function_exists( 'stlh_woo' ) || ! stlh_woo() ) {
+	if ( ! function_exists( 'stlh_woo' ) || ! stlh_woo() || ! function_exists( 'wc_get_product_ids_on_sale' ) ) {
 		return '';
 	}
 	$map   = stlh_sale_timers();
 	$items = [];
-	foreach ( $map as $id => $end ) {
+	foreach ( wc_get_product_ids_on_sale() as $id ) {
 		$p = wc_get_product( $id );
-		if ( $p && 'publish' === $p->get_status() && $p->is_in_stock() && $p->is_visible() ) {
-			$items[ $id ] = $p;
+		if ( ! $p ) {
+			continue;
+		}
+		$main = $p->get_parent_id() ?: $p->get_id();
+		if ( isset( $items[ $main ] ) ) {
+			continue;
+		}
+		$mp = $main === $p->get_id() ? $p : wc_get_product( $main );
+		if ( $mp && 'publish' === $mp->get_status() && $mp->is_in_stock() && $mp->is_visible() && stlh_sale_percent( $mp ) > 0 ) {
+			$items[ $main ] = $mp;
 		}
 	}
 	if ( ! $items ) {
 		return '';
 	}
-	uasort( $items, static fn( $a, $b ) => stlh_sale_percent( $b ) <=> stlh_sale_percent( $a ) );
-	$items = array_slice( $items, 0, 16, true );
-	$soon  = min( array_intersect_key( $map, $items ) );
+	uksort(
+		$items,
+		static function ( $a, $b ) use ( $map, $items ) {
+			$ta = $map[ $a ] ?? PHP_INT_MAX;
+			$tb = $map[ $b ] ?? PHP_INT_MAX;
+			return $ta <=> $tb ?: stlh_sale_percent( $items[ $b ] ) <=> stlh_sale_percent( $items[ $a ] );
+		}
+	);
+	$items = array_slice( $items, 0, 30, true );
+	$ends  = array_intersect_key( $map, $items );
+	$count = $ends ? '<div class="st-sale-count"><span>' . esc_html( stlh_label( 'timer_sub' ) ) . '</span><span class="stlh-tm-clock" data-stlh-end="' . (int) min( $ends ) . '"></span></div>' : '';
 	// ⛔ سبکِ نوار همین‌جا هم می‌آید و آیکن اندازه‌ی ثابت دارد: CSSِ بهینه‌شده‌ی LiteSpeed (فقط قاعده‌های دیده‌شده) قاعده‌ی تازه‌ی
 	// home.css را نداشت و آیکنِ صاعقه کلِ صفحه را گرفت (۱۷ آبان ۱۴۰۵).
 	return '<section class="st-pr-wrapper st-sale-band"><style>' . stlh_sale_band_css() . '</style><div class="st-pr-container"><div class="st-sale-head">'
 		. '<div class="st-sale-title"><svg width="28" height="28" style="width:28px;height:28px;flex:0 0 auto" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg><h2>' . esc_html( stlh_label( 'sale_title' ) ) . '</h2></div>'
-		. '<div class="st-sale-count"><span>' . esc_html( stlh_label( 'timer_sub' ) ) . '</span><span class="stlh-tm-clock" data-stlh-end="' . (int) $soon . '"></span></div>'
+		. $count
 		. '</div><div class="st-pr-track"><div class="st-pr-row">' . implode( '', array_map( 'stlh_card', $items ) ) . '</div></div></div></section>';
 }
 
