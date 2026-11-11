@@ -49,11 +49,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('tests/visual/package-lock.json') }}
       - name: Install Playwright
         working-directory: tests/visual
+        # مرورگر از کش؛ کتابخانه‌های سیستمی را ubuntu-latest خودش دارد. نصبِ وابستگی‌ها از آینه‌ی اوبونتو اختیاری و با سقفِ زمان است
+        # (۲۱ آبان ۱۴۰۵: آینه‌ها در دسترس نبودند و `--with-deps` کلِ انتشار را دو بار قرمز کرد؛ هر بار هم ~۹ دقیقه وقت می‌گرفت).
         run: |
           npm install --no-audit --no-fund
-          npx playwright install --with-deps chromium
+          npx playwright install chromium
+          timeout 240 npx playwright install-deps chromium || echo "::warning::وابستگی‌های سیستمیِ مرورگر نصب نشد؛ با کتابخانه‌های خودِ ماشین ادامه می‌دهیم"
       - name: Render and check the homepage
         run: bash tests/visual/run.sh
       - uses: actions/upload-artifact@v4
