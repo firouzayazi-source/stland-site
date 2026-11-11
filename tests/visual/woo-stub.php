@@ -17,6 +17,7 @@ add_action( 'plugins_loaded', static function (): void {
 class WC_Product {
 	public function __construct( public WP_Post $p ) {}
 	public function get_id() { return $this->p->ID; }
+	public function get_parent_id() { return 0; }
 	public function get_name() { return $this->p->post_title; }
 	public function get_permalink() { return '#p' . $this->p->ID; }
 	public function get_image_id() { return 0; }
