@@ -48,5 +48,5 @@
 رد کرد. کدش مانده: اگر روزی هاست باز کرد، متغیر مخزن `FTP_DEPLOY` را
 `on` کنید (Settings ← Secrets and variables ← Actions ← Variables).
 Secretهای `FTP_SERVER`، `FTP_USERNAME`، `FTP_PASSWORD` و
-`FTP_REMOTE_DIR` (= `/` برای حساب `[حسابِ FTP]`) از قبل تعریف
+`FTP_REMOTE_DIR` (= `/` برای حسابِ FTPِ انتشار) از قبل تعریف
 شده‌اند. نشانیِ وارسی: `https://stland.ir/wp-json/stland/v1/health`.
