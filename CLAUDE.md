@@ -192,6 +192,7 @@
 * کدِ قالب: `path=/wp-json/stland/v1/theme-files` (فهرست) و
   `…/theme-files?theme=<slug>&path=<file>` (متن) — `includes/theme-files.php`. فایلِ
   بیش از ۱ مگ تکه‌تکه: `&offset=<next>` تا `next` تهی شود.
+* پیامکِ سفارش (افزونه‌ی «پیامک حرفه‌ای ووکامرس»): `path=/wp-json/stland/v1/sms-check` — فعال بودن، تنظیماتِ بی‌خطر، ۱۵ ارسالِ آخر و جوابِ سامانه (رمزها پوشیده، شماره‌ها چهار رقمِ آخر).
 * تنظیماتِ قالب (Redux، `bakala_options`): `path=/wp-json/stland/v1/site-options` — کلیدهای
   رمز/توکن/درگاه/پیامک با `***` پوشیده‌اند.
 * بخشی از باکالا (تعریفِ کادرهای پیشخوان، `inc/integrations/woocommerce/metaboxs/*`،
