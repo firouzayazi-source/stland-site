@@ -37,6 +37,8 @@ function stlh_defaults(): array {
 		'font_sitewide'  => '',
 		// رژیمِ فایل‌ها (includes/speed.php) — پیش‌فرض روشن؛ اگر چیزی در صفحه شکست، اول این
 		'speed_diet'     => '1',
+		// دکمه‌ی «افزودن به سبد»: گرداننده‌ی باکالا به‌جای فروشگاه‌ساز (includes/cart-button.php)؛ '0' = خاموش
+		'cart_button_fix' => '1',
 		// پوسته‌ی سبد/پرداخت به سبکِ دیجی‌کالا (includes/checkout-skin.php)؛ رنگِ خالی = «رنگ تأکیدی»
 		'co_skin'        => '1',
 		'co_accent'      => '',
