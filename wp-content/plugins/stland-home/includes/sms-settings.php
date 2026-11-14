@@ -16,27 +16,34 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-const STLH_SMS_SET_VER = '1';
+const STLH_SMS_SET_VER = '2';
 
 function stlh_sms_desired(): array {
 	$f     = function_exists( 'stlh_store_facts' ) ? stlh_store_facts() : [];
 	$phone = (string) ( $f['phone'] ?? '' );
+	// ۲ (۲۴ آبان ۱۴۰۵): خریدِ آزمایشی (سفارشِ ۴۵۳۸۰) با «خطای 11: شماره گیرنده در لیست سیاه است» برگشت — خطِ اشتراکیِ
+	// ملی‌پیامک پیامکِ معمولی به شماره‌ی بسته‌شده نمی‌فرستد. پس الگو (خدماتی، `BaseServiceNumber`): متن به قالبِ
+	// `pattern:<کد>` + یک سطر برای هر متغیر ({0}، {1}… به همین ترتیب). کدها الگوهای تأییدشده‌ی خودِ صاحب فروشگاه در پنلِ
+	// ملی‌پیامک‌اند (عکسِ پنل، ۲۴ آبان) — همه یک متغیر دارند: شماره‌ی سفارش.
+	//   ۳۲۳۴۳۲ «… سفارش {0} ثبت و در حال پردازش است…»  ۲۹۱۷۹۶ «… سفارش {0} در انتظار بررسی می‌باشد.»
+	//   ۲۹۱۷۹۷ «… سفارش {0} تکمیل شد…»
+	// «لغو» و «کدِ رهگیری» الگوی تأییدشده ندارند → فعلاً خاموش (متنِ کوتاهشان برای وقتی الگو ساخته شد می‌ماند).
+	// مدیر همان الگوها را می‌گیرد (شماره‌ی سفارش + وضعیت از خودِ متن پیداست).
 	$sign  = "\nاستوک لند";
 	return [
 		'sms_buyer_settings'       => [
-			'order_status'                => [ 'processing' => 'processing', 'on-hold' => 'on-hold', 'completed' => 'completed', 'cancelled' => 'cancelled', 'set-post-tracking-code' => 'set-post-tracking-code' ],
-			'sms_body_processing'         => '{b_first_name} عزیز، سفارش {order_id} پرداخت و ثبت شد.' . $sign,
-			'sms_body_on-hold'            => '{b_first_name} عزیز، سفارش {order_id} ثبت شد و در حال بررسی است.' . $sign,
-			'sms_body_completed'          => '{b_first_name} عزیز، سفارش {order_id} تکمیل شد. ممنون از خریدتان.' . $sign,
-			'sms_body_cancelled'          => 'سفارش {order_id} لغو شد. پرسش: ' . $phone . $sign,
+			'order_status'                    => [ 'processing' => 'processing', 'on-hold' => 'on-hold', 'completed' => 'completed' ],
+			'sms_body_processing'             => "pattern:323432\norder:{order_id}",
+			'sms_body_on-hold'                => "pattern:291796\norder:{order_id}",
+			'sms_body_completed'              => "pattern:291797\norder:{order_id}",
+			'sms_body_cancelled'              => 'سفارش {order_id} لغو شد. پرسش: ' . $phone . $sign,
 			'sms_body_set-post-tracking-code' => 'سفارش {order_id} ارسال شد. کد رهگیری پست: {post_tracking_code}' . $sign,
 		],
 		'sms_super_admin_settings' => [
-			'super_admin_phone'                    => $phone,
-			'super_admin_order_status'             => [ 'processing' => 'processing', 'on-hold' => 'on-hold', 'cancelled' => 'cancelled' ],
-			'super_admin_sms_body_processing'      => 'سفارش تازه {order_id} پرداخت شد: {price}',
-			'super_admin_sms_body_on-hold'         => 'سفارش {order_id} منتظر بررسی است: {price} ({payment_method})',
-			'super_admin_sms_body_cancelled'       => 'سفارش {order_id} لغو شد.',
+			'super_admin_phone'               => $phone,
+			'super_admin_order_status'        => [ 'processing' => 'processing', 'on-hold' => 'on-hold' ],
+			'super_admin_sms_body_processing' => "pattern:323432\norder:{order_id}",
+			'super_admin_sms_body_on-hold'    => "pattern:291796\norder:{order_id}",
 		],
 		'sms_notif_settings'       => [
 			'enable_notif_sms_main' => 'off',
