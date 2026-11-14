@@ -52,6 +52,7 @@ function stlh_sms_check(): array {
 	$out = [
 		'plugin_active' => is_plugin_active( 'persian-woocommerce-sms/WoocommerceIR_SMS.php' ),
 		'settings'      => [],
+		'applied'       => get_option( 'stlh_sms_applied', null ),
 	];
 	foreach ( [ 'sms_main_settings', 'sms_buyer_settings', 'sms_super_admin_settings', 'sms_product_admin_settings', 'sms_notif_settings' ] as $sec ) {
 		$v                       = get_option( $sec );
