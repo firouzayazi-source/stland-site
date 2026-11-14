@@ -70,6 +70,9 @@ const STLH_BAKALA_SET = [
 	'product_description_image'  => [ 'url' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/headset.svg', 'id' => '', 'height' => '96', 'width' => '96', 'thumbnail' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/headset.svg' ],
 	'extra_btn_product_icon'     => [ 'url' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/whatsapp.svg', 'id' => '', 'height' => '96', 'width' => '96', 'thumbnail' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/whatsapp.svg' ],
 	'fixed_box_img'              => [ 'url' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/phone.svg', 'id' => '', 'height' => '96', 'width' => '96', 'thumbnail' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/phone.svg' ],
+	// برگه‌ی تشکرِ بعد از خرید هنوز متنِ نمونه‌ی قالب را نشان می‌داد: «متن دلخواه برگه تشکر» (عکسِ خریدِ آزمایشیِ صاحب فروشگاه،
+	// ۲۴ آبان ۱۴۰۵). شماره همان شماره‌ی فروشگاه (stlh_store_facts).
+	'extra_thankyou'             => '<p style="text-align: center;">از خریدتان ممنونیم. برای پیگیریِ سفارش با ۰۹۱۲ ۷۴۸ ۸۴۳۴ تماس بگیرید یا از «پیگیری سفارش» استفاده کنید.</p>',
 ];
 
 /** برچسب‌هایی که پاک می‌شوند — فقط اگر به هیچ نوشته/محصولی وصل نباشند (count = 0) */
