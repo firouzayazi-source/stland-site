@@ -16,7 +16,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-const STLH_SMS_SET_VER = '2';
+const STLH_SMS_SET_VER = '3';
 
 function stlh_sms_desired(): array {
 	$f     = function_exists( 'stlh_store_facts' ) ? stlh_store_facts() : [];
@@ -27,23 +27,25 @@ function stlh_sms_desired(): array {
 	// ملی‌پیامک‌اند (عکسِ پنل، ۲۴ آبان) — همه یک متغیر دارند: شماره‌ی سفارش.
 	//   ۳۲۳۴۳۲ «… سفارش {0} ثبت و در حال پردازش است…»  ۲۹۱۷۹۶ «… سفارش {0} در انتظار بررسی می‌باشد.»
 	//   ۲۹۱۷۹۷ «… سفارش {0} تکمیل شد…»
-	// «لغو» و «کدِ رهگیری» الگوی تأییدشده ندارند → فعلاً خاموش (متنِ کوتاهشان برای وقتی الگو ساخته شد می‌ماند).
+	// ۳ (همان روز، دو برگِ دیگرِ پنل): ۲۸۵۶۷۷ «… سفارش {0} لغو شد.» و ۲۶۸۳۸۰ «سفارش {0} با کد {1} به اداره پست تحویل
+	//   داده شد… کد مرسوله {2} را… رهگیری نمایید» — {1} و {2} هر دو کدِ رهگیری؛ نامِ متغیرها باید فرق کند (افزونه آن‌ها را با
+	//   نام در آرایه می‌گذارد و نامِ تکراری جای قبلی را می‌گیرد). کدِ ورودِ باکالا هم الگوی ۲۶۶۸۰۶ است (همان `ippanel_pattern`).
 	// مدیر همان الگوها را می‌گیرد (شماره‌ی سفارش + وضعیت از خودِ متن پیداست).
-	$sign  = "\nاستوک لند";
 	return [
 		'sms_buyer_settings'       => [
-			'order_status'                    => [ 'processing' => 'processing', 'on-hold' => 'on-hold', 'completed' => 'completed' ],
+			'order_status'                    => [ 'processing' => 'processing', 'on-hold' => 'on-hold', 'completed' => 'completed', 'cancelled' => 'cancelled', 'set-post-tracking-code' => 'set-post-tracking-code' ],
 			'sms_body_processing'             => "pattern:323432\norder:{order_id}",
 			'sms_body_on-hold'                => "pattern:291796\norder:{order_id}",
 			'sms_body_completed'              => "pattern:291797\norder:{order_id}",
-			'sms_body_cancelled'              => 'سفارش {order_id} لغو شد. پرسش: ' . $phone . $sign,
-			'sms_body_set-post-tracking-code' => 'سفارش {order_id} ارسال شد. کد رهگیری پست: {post_tracking_code}' . $sign,
+			'sms_body_cancelled'              => "pattern:285677\norder:{order_id}",
+			'sms_body_set-post-tracking-code' => "pattern:268380\norder:{order_id}\ncode:{post_tracking_code}\ncode2:{post_tracking_code}",
 		],
 		'sms_super_admin_settings' => [
 			'super_admin_phone'               => $phone,
-			'super_admin_order_status'        => [ 'processing' => 'processing', 'on-hold' => 'on-hold' ],
+			'super_admin_order_status'        => [ 'processing' => 'processing', 'on-hold' => 'on-hold', 'cancelled' => 'cancelled' ],
 			'super_admin_sms_body_processing' => "pattern:323432\norder:{order_id}",
 			'super_admin_sms_body_on-hold'    => "pattern:291796\norder:{order_id}",
+			'super_admin_sms_body_cancelled'  => "pattern:285677\norder:{order_id}",
 		],
 		'sms_notif_settings'       => [
 			'enable_notif_sms_main' => 'off',
