@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       StockLand Updater
  * Description:       افزونه‌های استوک لند را از گیت‌هاب به‌روز می‌کند — مثل آپدیت معمولی افزونه‌ها، بدون FTP.
- * Version:           1.4.0
+ * Version:           1.4.1
  * Requires at least: 6.3
  * Requires PHP:      8.1
  * Text Domain:       stland-updater
@@ -427,8 +427,14 @@ add_action( 'stlu_auto_run', static function (): void {
 		delete_transient( 'stlu_auto_lock' );
 		update_option( 'stlu_auto_last', $log, false );
 	} else {
+		// ۲۵ آبان ۱۴۰۵: وقتی گیت‌هاب جواب نمی‌داد این شاخه فقط «checked» را می‌نوشت و «no answer» گم می‌شد — سایت ۴۵ دقیقه
+		// نسخه‌ی تازه را نگرفت و هیچ نشانی از علت نبود. حالا آخرین شکست و زمانش هم می‌ماند (`fail`)، و با پاسخِ درست پاک می‌شود.
 		$prev = (array) get_option( 'stlu_auto_last', [] );
-		update_option( 'stlu_auto_last', [ 'checked' => gmdate( 'c' ) ] + array_diff_key( $prev, [ 'checked' => 1 ] ), false );
+		$row  = [ 'checked' => gmdate( 'c' ) ] + array_diff_key( $prev, [ 'checked' => 1, 'fail' => 1 ] );
+		if ( ! $manifest ) {
+			$row['fail'] = gmdate( 'c' ) . ' manifest: no answer from GitHub (' . ( '' !== stlu_token() ? 'API با کلید' : 'نشانیِ عمومی' ) . ')';
+		}
+		update_option( 'stlu_auto_last', $row, false );
 	}
 } );
 
