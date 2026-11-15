@@ -70,6 +70,11 @@ const STLH_BAKALA_SET = [
 	'product_description_image'  => [ 'url' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/headset.svg', 'id' => '', 'height' => '96', 'width' => '96', 'thumbnail' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/headset.svg' ],
 	'extra_btn_product_icon'     => [ 'url' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/whatsapp.svg', 'id' => '', 'height' => '96', 'width' => '96', 'thumbnail' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/whatsapp.svg' ],
 	'fixed_box_img'              => [ 'url' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/phone.svg', 'id' => '', 'height' => '96', 'width' => '96', 'thumbnail' => 'https://stland.ir/wp-content/plugins/stland-home/assets/img/phone.svg' ],
+	// لوگوی سربرگ و پانویس فایلِ اصلیِ ۱۰۲۴×۱۰۲۴ (۴۹ کیلوبایت) بود که در گوشی ۳۷ پیکسل دیده می‌شود و روی همه‌ی صفحه‌ها بار
+	// می‌شد؛ اندازه‌ی ۳۰۰×۳۰۰ِ خودِ وردپرس از همان عکس (۶ کیلوبایت) برای صفحه‌ی ۳ برابر هم کافی است (روزِ ۲۸، ۲۵ آبان ۱۴۰۵).
+	'site_header_logo'           => [ 'url' => 'https://stland.ir/wp-content/uploads/64CA15D2-A58D-4A38-AC2D-AFAB29ED7107-300x300.webp', 'id' => '44801', 'height' => '300', 'width' => '300', 'thumbnail' => 'https://stland.ir/wp-content/uploads/64CA15D2-A58D-4A38-AC2D-AFAB29ED7107-150x150.webp' ],
+	'logo-white'                 => [ 'url' => 'https://stland.ir/wp-content/uploads/64CA15D2-A58D-4A38-AC2D-AFAB29ED7107-300x300.webp', 'id' => '44801', 'height' => '300', 'width' => '300', 'thumbnail' => 'https://stland.ir/wp-content/uploads/64CA15D2-A58D-4A38-AC2D-AFAB29ED7107-150x150.webp' ],
+	'site_footer_logo'           => [ 'url' => 'https://stland.ir/wp-content/uploads/64CA15D2-A58D-4A38-AC2D-AFAB29ED7107-300x300.webp', 'id' => '44801', 'height' => '300', 'width' => '300', 'thumbnail' => 'https://stland.ir/wp-content/uploads/64CA15D2-A58D-4A38-AC2D-AFAB29ED7107-150x150.webp' ],
 	// برگه‌ی تشکرِ بعد از خرید هنوز متنِ نمونه‌ی قالب را نشان می‌داد: «متن دلخواه برگه تشکر» (عکسِ خریدِ آزمایشیِ صاحب فروشگاه،
 	// ۲۴ آبان ۱۴۰۵). شماره همان شماره‌ی فروشگاه (stlh_store_facts).
 	'extra_thankyou'             => '<p style="text-align: center;">از خریدتان ممنونیم. برای پیگیریِ سفارش با ۰۹۱۲ ۷۴۸ ۸۴۳۴ تماس بگیرید یا از «پیگیری سفارش» استفاده کنید.</p>',

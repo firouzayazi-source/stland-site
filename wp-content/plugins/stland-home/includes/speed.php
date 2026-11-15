@@ -52,7 +52,12 @@ function stlh_diet_lists(): array {
 	// فروشگاه/دسته/جستجو: فیلترِ قیمت و «بیشتر» لازم است؛ المنتور نه
 	$shop_css = [ 'elementor-frontend', 'elementor-post-12643' ];
 	$shop_js  = [ 'elementor-frontend', 'elementor-frontend-modules', 'elementor-webpack-runtime' ];
+	// مقاله‌ی وبلاگ (روزِ ۲۸ برنامه‌ی محتوا، ۲۵ آبان ۱۴۰۵): تا حالا هیچ رژیمی نداشت و GSAP/Lenis (~۲۴۵ کیلوبایت) و select2
+	// (۷۷ کیلوبایت) را هم می‌گرفت. با مسدود کردنشان در مرورگرِ آزمون روی «۱۲ کار برای عمر باتری» در گوشی: بی خطای JS و
+	// عکسِ صفحه همان. Swiper (کاروسلِ مقاله‌های مرتبط) و sweetalert (پنجره‌ی سبد) می‌مانند.
+	$post_js = [ 'bakala-select2' ];
 	return [
+		'post'    => [ 'css' => $never_css, 'js' => array_merge( $never_js, $post_js ) ],
 		'front'   => [ 'css' => array_merge( $never_css, $front_css ), 'js' => array_merge( $never_js, $front_js ) ],
 		'product' => [ 'css' => array_merge( $never_css, $product_css ), 'js' => array_merge( $never_js, $product_js ) ],
 		'shop'    => [ 'css' => array_merge( $never_css, $shop_css ), 'js' => array_merge( $never_js, $shop_js ) ],
@@ -69,6 +74,9 @@ function stlh_diet_context(): ?string {
 	}
 	if ( function_exists( 'is_product' ) && is_product() ) {
 		return 'product';
+	}
+	if ( is_singular( 'post' ) ) {
+		return 'post';
 	}
 	if ( ( function_exists( 'is_shop' ) && is_shop() ) || ( function_exists( 'is_product_taxonomy' ) && is_product_taxonomy() ) || ( is_search() && 'product' === ( $_GET['post_type'] ?? '' ) ) ) {
 		return 'shop';
