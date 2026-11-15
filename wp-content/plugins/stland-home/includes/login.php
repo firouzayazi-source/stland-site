@@ -28,6 +28,9 @@ body.login{min-height:100dvh!important;display:flex!important;align-items:center
  background:radial-gradient(120% 60% at 50% 0%,rgba(0,113,227,.28),transparent 60%),radial-gradient(90% 50% at 50% 100%,rgba(61,139,255,.12),transparent 70%),linear-gradient(180deg,var(--sl-bg) 0%,var(--sl-bg2) 100%)!important;
  font-family:"YekanBakh","Yekan Bakh",Tahoma,sans-serif!important;color:#fff}
 body.login *{font-family:inherit}
+/* ۲۵ آبان ۱۴۰۵ (عکسِ صاحب فروشگاه): «*{font-family:inherit}» قلمِ آیکن‌های وردپرس را هم عوض می‌کرد و چشمِ «نمایشِ رمز» و «؟»ِ «مرا به خاطر بسپار» مربعِ خالی می‌شدند؛ رمز هم زیرِ دکمه‌ی چشم می‌رفت */
+body.login .dashicons,body.login .dashicons::before,body.login .dashicons-before::before{font-family:dashicons!important}
+body.login #user_pass,body.login .wp-pwd input[type=password],body.login .wp-pwd input[type=text]{padding-left:56px!important}
 body.login #login{width:100%!important;max-width:400px!important;padding:0!important;margin:0 auto!important}
 body.login #login h1{margin:0 0 26px!important;text-align:center}
 body.login #login h1 a,body.login h1 a{background:url({$logo}) center/contain no-repeat!important;width:104px!important;height:104px!important;max-width:none!important;padding:0!important;margin:0 auto!important;

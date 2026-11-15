@@ -35,7 +35,7 @@ function stlh_menu_blog_url(): string {
 function stlh_mm_icon_rules(): array {
 	$home = untrailingslashit( home_url() );
 	$blog = untrailingslashit( stlh_menu_blog_url() );
-	return [
+	return array_merge( [
 		[ 'a.bk-mm-link[href="' . $home . '/"]', 'home', '#1f6fd6' ],
 		[ 'button.bk-mm-link[data-bk-mm-open="m44319"]', 'phone', '#0f766e' ],
 		[ 'button.bk-mm-link[data-bk-mm-open="m44320"]', 'earbuds', '#7c3aed' ],
@@ -43,7 +43,35 @@ function stlh_mm_icon_rules(): array {
 		[ 'a.bk-mm-link[href^="' . $blog . '"]', 'news', '#d63384' ],
 		[ 'a.bk-mm-link[href*="/about/"]', 'info', '#475569' ],
 		[ 'a.bk-mm-link[href*="/contact/"]', 'call', '#0e9f6e' ],
-	];
+	], stlh_mm_top_cat_rules() );
+}
+
+/**
+ * دسته‌های سطحِ اولِ منو که زیرمنو ندارند (پیوندِ مستقیم، مثلِ «کالای دیجیتال») — قالب برایشان فقط حرفِ اولِ نام («ک») را
+ * می‌گذاشت (صاحب فروشگاه، ۲۵ آبان ۱۴۰۵: «کالای دیجیتال آیکونِ متناسب ندارد»). آیکن و رنگ از همان مجموعه‌ی آیکنِ دسته‌ها؛
+ * دسته‌ی تازه هم خودکار آیکن می‌گیرد.
+ */
+function stlh_mm_top_cat_rules(): array {
+	$menu = stlh_menu_main_id();
+	if ( ! $menu || ! function_exists( 'stlh_cat_icon_key' ) ) {
+		return [];
+	}
+	$out = [];
+	foreach ( (array) wp_get_nav_menu_items( $menu ) as $it ) {
+		if ( ! is_object( $it ) || (int) $it->menu_item_parent || 'taxonomy' !== $it->type || 'product_cat' !== $it->object ) {
+			continue;
+		}
+		$t = get_term( (int) $it->object_id, 'product_cat' );
+		if ( ! $t instanceof WP_Term ) {
+			continue;
+		}
+		$link = get_term_link( $t );
+		if ( is_string( $link ) ) {
+			$key   = stlh_cat_icon_key( rawurldecode( $t->slug ), $t->name );
+			$out[] = [ 'a.bk-mm-link[href="' . esc_attr( $link ) . '"]', $key, stlh_cat_palette( $key )[0] ];
+		}
+	}
+	return $out;
 }
 
 function stlh_mm_icon_paths( string $key ): string {
@@ -51,10 +79,10 @@ function stlh_mm_icon_paths( string $key ): string {
 		'home'     => '<path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9v11h13V9"/><path d="M10 20v-5.5h4V20"/>',
 		'phone'    => '<rect x="6.5" y="2.5" width="11" height="19" rx="3"/><path d="M10.5 5h3M10 18.5h4"/>',
 		'earbuds'  => '<path d="M8 4.5a3 3 0 0 0-3 3v1a3 3 0 0 0 3 3V19a1.5 1.5 0 0 0 3 0V7.5a3 3 0 0 0-3-3z"/><path d="M16 4.5a3 3 0 0 1 3 3v1a3 3 0 0 1-3 3V19a1.5 1.5 0 0 1-3 0V7.5a3 3 0 0 1 3-3z"/>',
-		// برچسبِ قیمت با دو خطِ فهرست: «لیستِ قیمتِ روز»
-		'pricetag' => '<path d="M3.5 12.2V4.5a1 1 0 0 1 1-1h7.7l8.3 8.3-8.7 8.7z"/><circle cx="8" cy="8" r="1.4"/><path d="M11.5 12.5l2.5 2.5M9.5 14.5l2.5 2.5"/>',
-		// روزنامه: «مجله و اخبار»
-		'news'     => '<path d="M4 5.5h12.5v13a1.5 1.5 0 0 0 1.5 1.5H6a2 2 0 0 1-2-2z"/><path d="M16.5 9H20v9.5a1.5 1.5 0 0 1-3 0"/><path d="M7 9h6.5M7 12.5h6.5M7 16h4"/>',
+		// برچسبِ قیمت: «لیستِ قیمتِ روز» — ۲۵ آبان ۱۴۰۵ (صاحب فروشگاه: «آیکون‌ها وسط‌چین نیستند») دوباره کشیده شد تا در کادرِ ۲۴ وسط بنشیند
+		'pricetag' => '<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3.5 13.5V3.5h10l7.1 7.1a2 2 0 0 1 0 2.8z"/><circle cx="8.5" cy="8.5" r="1.6"/>',
+		// روزنامه: «مجله و اخبار» (همان روز، وسط‌چین)
+		'news'     => '<path d="M4 21h15a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H8.5a2 2 0 0 0-2 2v14a2 2 0 0 1-2 2zm0 0a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.5"/><path d="M10 7h7v4h-7zM10 14.5h7M10 17.5h4.5"/>',
 		'info'     => '<circle cx="12" cy="12" r="9"/><path d="M12 11v5.5M12 7.6v.01"/>',
 		'call'     => '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>',
 		'grid'     => '<rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/>',
