@@ -38,7 +38,7 @@ jobs:
   # in settings order, accessories as one carousel, no JS/PHP errors. Red here
   # means the change never reaches the site. Screenshots are kept as artifacts.
   visual:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # مرورگرِ آزمون اوبونتو ۲۶.۰۴ را پشتیبانی نمی‌کند (آبان ۱۴۰۵)
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
