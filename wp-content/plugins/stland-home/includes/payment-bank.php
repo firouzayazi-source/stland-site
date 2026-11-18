@@ -148,3 +148,33 @@ add_filter( 'woocommerce_bacs_account_fields', static function ( $fields ) {
 	}
 	return $fields;
 }, 20 );
+
+/*
+ * صفحه‌ی «در حالِ انتقال به درگاه» (افزونه‌ی سامان، `woocommerce_receipt_WC_Sep_Payment_Gateway`). سفارشِ ۴۵۴۰۵ (۲۸ آبان ۱۴۰۵،
+ * ۱۸۰ میلیون): افزونه بعد از گرفتنِ توکن متنِ انگلیسیِ چپ‌چینِ «Transferring to the banking portal…» چاپ می‌کند و فرم را به
+ * درگاه می‌فرستد؛ روی گوشی چند ثانیه همان می‌ماند و راهِ دیگری دیده نمی‌شد. حالا: متنِ افزونه خالی (ترجمه)، کادرِ فارسیِ راست‌چین
+ * جایش، و اگر بعد از ۸ ثانیه هنوز این‌جاست، پیامِ «سقف/فقط پایا/اختلال» با دکمه‌ی پرداختِ دوباره یا «واریز به شبا».
+ */
+add_filter( 'gettext_sb24wc', static function ( $translation, $text ) {
+	return match ( $text ) {
+		'Transferring to the banking portal, please wait...' => '',
+		'Error connecting to the bank port'                  => stlh_label( 'pay_sep_error' ),
+		'An error has occurred, please contact support.'     => stlh_label( 'pay_sep_error' ),
+		default                                              => $translation,
+	};
+}, 10, 2 );
+
+add_action( 'woocommerce_receipt_WC_Sep_Payment_Gateway', static function ( $order_id ): void {
+	$order = wc_get_order( $order_id );
+	if ( ! $order instanceof WC_Order ) {
+		return;
+	}
+	$alt = stlh_bank_has_iban()
+		? '<div id="stlh-pay-slow" style="display:none;margin-top:14px;padding:14px 16px;border-right:4px solid #b45309;background:#fff7ed;line-height:1.9">'
+			. esc_html( stlh_label( 'pay_slow_note' ) )
+			. '<br><a class="button" style="margin-top:10px;display:inline-block" href="' . esc_url( $order->get_checkout_payment_url() ) . '">' . esc_html( stlh_label( 'pay_failed_btn' ) ) . '</a></div>'
+			. '<script>setTimeout(function(){var e=document.getElementById("stlh-pay-slow");if(e)e.style.display="block"},8000);</script>'
+		: '';
+	echo '<div dir="rtl" style="text-align:right;direction:rtl;max-width:640px;margin:16px auto;padding:18px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;font-size:15px;line-height:1.9">'
+		. '<strong>' . esc_html( stlh_label( 'pay_redirecting' ) ) . '</strong>' . $alt . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped above
+}, 5 );
