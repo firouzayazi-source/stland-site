@@ -88,6 +88,7 @@ function stlh_order_summary( WC_Order $o ): array {
 		'total'        => (float) $o->get_total(),
 		'currency'     => $o->get_currency(),
 		'payment'      => $o->get_payment_method_title(),
+		'payment_method' => $o->get_payment_method(), // کد: WC_Sep_Payment_Gateway، WC_ZPal، bacs (واریز به شبا) — Novo، ۲۸ آبان ۱۴۰۵
 		'shipping'     => $o->get_shipping_method(),
 		'customer'     => [
 			'name'     => trim( $o->get_billing_first_name() . ' ' . $o->get_billing_last_name() ),

@@ -13,7 +13,7 @@
 | `GET /wp-json/stland/v1/orders/statuses` | `[{key, label}]` — همه‌ی وضعیت‌ها (با وضعیت‌های افزونه‌ی جایگاه) |
 | `POST /wp-json/stland/v1/orders/<id>` با `{status?, tracking_code?, note?}` | تغییر از Novo؛ پاسخ = همان سفارشِ به‌روز |
 
-هر سفارش: `id`، `number`، `status`، `statusLabel`، `created_gmt`، `modified_gmt`، `paid_gmt`، `total`، `currency`، `payment`،
+هر سفارش: `id`، `number`، `status`، `statusLabel`، `created_gmt`، `modified_gmt`، `paid_gmt`، `total`، `currency`، `payment`، `payment_method` (کدِ روش: `WC_Sep_Payment_Gateway`، `WC_ZPal`، `bacs` = واریز به شبا)،
 `shipping`، `customer {name, phone, state, city, address, postcode, user_id}`، `note`، `tracking`، `items [{name, qty, total,
 product_id, sku}]`، `sms [{type, result, date}]` (۵ پیامکِ آخرِ همان سفارش و جوابِ ملی‌پیامک).
 

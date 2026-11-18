@@ -78,14 +78,56 @@ add_filter( 'woocommerce_available_payment_gateways', static function ( $gateway
 	return $gateways;
 }, 20 );
 
-// یادآوریِ سقفِ کارت زیرِ درگاهِ سامان برای سفارشِ گران
+// یادآوری زیرِ درگاهِ سامان: سقفِ درگاه/بانک یا ساعت‌هایی که فقط پایا پذیرفته می‌شود → «واریز به شبا».
+// صاحب فروشگاه (۲۸ آبان ۱۴۰۵، از نشستِ Novo): «اولویت با درگاه باشد اما شبا هم بتوانند بزنند». `big_pay_from` (تومان): ۰ = همیشه.
 add_filter( 'woocommerce_gateway_description', static function ( $desc, $id ) {
-	if ( 'WC_Sep_Payment_Gateway' !== $id || ! function_exists( 'WC' ) || ! WC()->cart || ! stlh_bank_has_iban() ) {
+	if ( 'WC_Sep_Payment_Gateway' !== $id || ! function_exists( 'WC' ) || ! stlh_bank_has_iban() ) {
 		return $desc;
 	}
-	$from = (int) stlh_opt( 'big_pay_from' );
-	if ( $from > 0 && stlh_pg_toman( (float) WC()->cart->get_total( 'edit' ) ) >= $from ) {
+	$from  = (int) stlh_opt( 'big_pay_from' );
+	$total = WC()->cart ? (float) WC()->cart->get_total( 'edit' ) : 0.0;
+	if ( $from <= 0 || stlh_pg_toman( $total ) >= $from || is_checkout_pay_page() ) {
 		$desc .= '<br><span style="color:#b45309;font-weight:700">' . esc_html( stlh_label( 'pay_big_note' ) ) . '</span>';
 	}
 	return $desc;
 }, 25, 2 );
+
+/** کادرِ «پرداخت انجام نشد» با پیوندِ پرداختِ دوباره (همان صفحه‌ی پرداختِ سفارش، که «واریز به شبا» هم در آن هست) */
+function stlh_bank_failed_box( WC_Order $order ): string {
+	if ( ! $order->needs_payment() || ! stlh_bank_has_iban() ) {
+		return '';
+	}
+	return '<div class="woocommerce-info stlh-pay-failed" style="border-right:4px solid #b45309;padding:14px 16px;margin:0 0 18px;line-height:1.9">'
+		. esc_html( stlh_label( 'pay_failed_note', [ '{سفارش}' => stlh_fa( (string) $order->get_order_number() ) ] ) )
+		. ( is_checkout_pay_page() ? '' : ' <a class="button" style="margin-top:8px;display:inline-block" href="' . esc_url( $order->get_checkout_payment_url() ) . '">' . esc_html( stlh_label( 'pay_failed_btn' ) ) . '</a>' )
+		. '</div>';
+}
+
+// برگشتِ ناموفق از درگاه: صفحه‌ی «پرداختِ سفارش» (سفارشِ پرداخت‌نشده همیشه به این‌جا می‌آید)
+add_action( 'before_woocommerce_pay', static function (): void {
+	$id    = absint( get_query_var( 'order-pay' ) );
+	$order = $id ? wc_get_order( $id ) : null;
+	if ( $order instanceof WC_Order ) {
+		echo stlh_bank_failed_box( $order ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped inside
+	}
+} );
+
+// برگشت به صفحه‌ی تسویه با سفارشِ نیمه‌کاره در نشست
+add_action( 'woocommerce_before_checkout_form', static function (): void {
+	if ( ! function_exists( 'WC' ) || ! WC()->session ) {
+		return;
+	}
+	$id    = absint( WC()->session->get( 'order_awaiting_payment' ) );
+	$order = $id ? wc_get_order( $id ) : null;
+	if ( $order instanceof WC_Order && $order->has_status( [ 'pending', 'failed' ] ) && $order->get_payment_method() !== 'bacs' ) {
+		echo stlh_bank_failed_box( $order ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped inside
+	}
+}, 5 );
+
+// صفحه‌ی «سفارش دریافت شد» با سفارشِ ناموفق/پرداخت‌نشده
+add_action( 'woocommerce_before_thankyou', static function ( $order_id ): void {
+	$order = wc_get_order( $order_id );
+	if ( $order instanceof WC_Order && $order->has_status( [ 'pending', 'failed' ] ) ) {
+		echo stlh_bank_failed_box( $order ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped inside
+	}
+}, 5 );
