@@ -131,3 +131,20 @@ add_action( 'woocommerce_before_thankyou', static function ( $order_id ): void {
 		echo stlh_bank_failed_box( $order ); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped inside
 	}
 }, 5 );
+
+// جدولِ حساب در صفحه‌ی «سفارش دریافت شد» و ایمیل: «کد شعبه» و «بیک» در ایران به کار نمی‌آیند و در ردیفِ ذخیره‌شده
+// از دموی قالب مانده بودند (۲۸ آبان ۱۴۰۵)؛ شماره‌ی ۱۶ رقمی شماره‌ی کارت است، نه حساب.
+add_filter( 'woocommerce_bacs_account_fields', static function ( $fields ) {
+	if ( ! is_array( $fields ) ) {
+		return $fields;
+	}
+	unset( $fields['sort_code'], $fields['bic'] );
+	if ( isset( $fields['iban'] ) ) {
+		$fields['iban']['label'] = stlh_label( 'bacs_iban' );
+	}
+	if ( isset( $fields['account_number'] ) ) {
+		$digits = preg_replace( '/\D+/', '', stlh_ai_en_digits( (string) ( $fields['account_number']['value'] ?? '' ) ) );
+		$fields['account_number']['label'] = stlh_label( 16 === strlen( $digits ) ? 'bacs_card' : 'bacs_account' );
+	}
+	return $fields;
+}, 20 );
