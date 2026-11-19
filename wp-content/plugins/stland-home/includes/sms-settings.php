@@ -16,7 +16,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 
-const STLH_SMS_SET_VER = '3';
+const STLH_SMS_SET_VER = '4';
 
 function stlh_sms_desired(): array {
 	$f     = function_exists( 'stlh_store_facts' ) ? stlh_store_facts() : [];
@@ -42,9 +42,11 @@ function stlh_sms_desired(): array {
 		],
 		'sms_super_admin_settings' => [
 			'super_admin_phone'               => $phone,
-			'super_admin_order_status'        => [ 'processing' => 'processing', 'on-hold' => 'on-hold', 'cancelled' => 'cancelled' ],
+			'super_admin_order_status'        => [ 'processing' => 'processing', 'on-hold' => 'on-hold', 'bank-sent' => 'bank-sent', 'cancelled' => 'cancelled' ],
 			'super_admin_sms_body_processing' => "pattern:323432\norder:{order_id}",
 			'super_admin_sms_body_on-hold'    => "pattern:291796\norder:{order_id}",
+			// ۴ (۲۹ آبان ۱۴۰۵): مشتری «پرداخت کردم»ِ واریز به شبا را زد (وضعیتِ bank-sent، bank-receipt.php) — مدیر با همان الگوی «در انتظار بررسی» خبر می‌شود
+			'super_admin_sms_body_bank-sent'  => "pattern:291796\norder:{order_id}",
 			'super_admin_sms_body_cancelled'  => "pattern:285677\norder:{order_id}",
 		],
 		'sms_notif_settings'       => [

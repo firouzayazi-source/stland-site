@@ -101,6 +101,7 @@ function stlh_order_summary( WC_Order $o ): array {
 		],
 		'note'         => (string) $o->get_customer_note(),
 		'tracking'     => (string) $o->get_meta( 'post_barcode' ),
+		'bank'         => function_exists( 'stlh_bank_summary' ) ? stlh_bank_summary( $o ) : null, // واریز به شبا: کد پیگیری، زمان، فیش (bank-receipt.php)
 		'items'        => $items,
 		'sms'          => $sms,
 	];
