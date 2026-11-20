@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       StockLand Home
  * Description:       صفحه اصلی داینامیک استوک لند — بنر، دسته‌ها، ردیف محصولات، پیشنهاد ویژه، شبکه‌ها، سوالات متداول و مقالات. شورت‌کد: [stl_home]
- * Version:           1.84.30
+ * Version:           1.84.31
  * Requires at least: 6.3
  * Requires PHP:      8.1
  * Requires Plugins:  woocommerce
@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'STLH_VER', '1.84.30' );
+define( 'STLH_VER', '1.84.31' );
 // نسخه‌ی قرارداد با حسابداری (contract/card-meta.json) — پنلِ سلامتِ حسابداری با آن می‌سنجد
 define( 'STLH_CONTRACT', 6 );
 define( 'STLH_DIR', plugin_dir_path( __FILE__ ) );
@@ -82,6 +82,7 @@ require_once STLH_DIR . 'includes/ui-fixes.php';
 require_once STLH_DIR . 'includes/seo-boost.php';
 require_once STLH_DIR . 'includes/payment-bank.php';
 require_once STLH_DIR . 'includes/bank-receipt.php';
+require_once STLH_DIR . 'includes/shipping-local.php';
 
 add_action( 'wp_enqueue_scripts', function (): void {
 	wp_register_style( 'stland-home-vars', false, [], STLH_VER );

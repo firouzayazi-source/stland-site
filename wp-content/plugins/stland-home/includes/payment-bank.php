@@ -178,3 +178,23 @@ add_action( 'woocommerce_receipt_WC_Sep_Payment_Gateway', static function ( $ord
 	echo '<div dir="rtl" style="text-align:right;direction:rtl;max-width:640px;margin:16px auto;padding:18px;border:1px solid #e5e7eb;border-radius:12px;background:#fff;font-size:15px;line-height:1.9">'
 		. '<strong>' . esc_html( stlh_label( 'pay_redirecting' ) ) . '</strong>' . $alt . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped above
 }, 5 );
+
+// مبلغِ بالا → «واریز به شبا» پیش‌فرض و اول (صاحب فروشگاه، ۳۰ آبان ۱۴۰۵: «پیش‌فرضِ مبالغی که رفت بالا فعلاً شبا باشد تا
+// درگاه را ارتقا بدهیم»). فقط یک بار در هر نشست انتخاب می‌شود؛ اگر مشتری خودش درگاه را زد، برنمی‌گردد. `bank_default_from`
+// (تومان): ۰ = خاموش.
+add_filter( 'woocommerce_available_payment_gateways', static function ( $gateways ) {
+	if ( ! is_array( $gateways ) || ! isset( $gateways['bacs'] ) || ( is_admin() && ! wp_doing_ajax() ) || ! function_exists( 'WC' )
+		|| ! WC()->cart || ! WC()->session || is_checkout_pay_page() ) {
+		return $gateways;
+	}
+	$from = (int) stlh_opt( 'bank_default_from' );
+	if ( $from <= 0 || stlh_pg_toman( (float) WC()->cart->get_total( 'edit' ) ) < $from ) {
+		return $gateways;
+	}
+	$gateways = [ 'bacs' => $gateways['bacs'] ] + $gateways;
+	if ( 'set' !== WC()->session->get( 'stlh_bank_default' ) ) {
+		WC()->session->set( 'chosen_payment_method', 'bacs' );
+		WC()->session->set( 'stlh_bank_default', 'set' );
+	}
+	return $gateways;
+}, 30 );
