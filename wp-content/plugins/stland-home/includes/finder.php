@@ -11,6 +11,7 @@
 defined( 'ABSPATH' ) || exit;
 
 const STLH_FINDER_MAX = 80;
+// فقط دسته‌ی گوشی‌ها و زیرشاخه‌هایش (`finder_cat`)؛ «گلس پک فلزی iPhone 17 Pro Max» از نامش گوشی خوانده می‌شد (۳۰ آبان ۱۴۰۵)
 
 /** گوشی‌های موجود برای جست‌وجو: [محصول، نسل، قیمتِ تومان، باتری] */
 function stlh_finder_items(): array {
@@ -18,7 +19,7 @@ function stlh_finder_items(): array {
 		return [];
 	}
 	$out = [];
-	foreach ( wc_get_products( [ 'status' => 'publish', 'stock_status' => 'instock', 'limit' => 300, 'orderby' => 'date', 'order' => 'DESC' ] ) as $p ) {
+	foreach ( wc_get_products( [ 'status' => 'publish', 'stock_status' => 'instock', 'category' => [ (string) stlh_opt( 'finder_cat' ) ], 'limit' => 300, 'orderby' => 'date', 'order' => 'DESC' ] ) as $p ) {
 		$gen = stlh_model_number( $p->get_name() );
 		if ( $gen < 7 ) {
 			continue;

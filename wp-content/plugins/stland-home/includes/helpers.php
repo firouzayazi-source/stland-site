@@ -50,6 +50,8 @@ function stlh_defaults(): array {
 		'big_pay_from'   => 0,
 		// از این مبلغ (تومان) به بالا «واریز به شبا» پیش‌فرض و اول است تا درگاه ارتقا یابد (payment-bank.php)؛ ۰ = خاموش
 		'bank_default_from' => 50000000,
+		// نامکِ دسته‌ی مادرِ گوشی‌ها برای «آیفونِ من را پیدا کن» (finder.php)
+		'finder_cat'     => 'cellphone',
 		// نرخِ ارسالی که نامش این کلمه را دارد فقط برای استانِ خودِ فروشگاه (shipping-local.php)؛ خالی = خاموش
 		'shipping_local_word' => 'پیک',
 		'warm'           => '1',
