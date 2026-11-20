@@ -28,6 +28,11 @@ function stlh_card_badge_items( WC_Product $p, int $max = 3 ): array {
 	$keys += [ 'real_photo' => [ 'عکس از خودِ محصول', '' ] ]; // صاحب فروشگاه (۹ آبان): «اول بنویسد عکس از خودِ محصول»
 
 	$out = [];
+	// کالای امانی (قرارداد ۷، `inquiry.php`): نشانِ «استعلام موجودی» اول و بیرون از سقفِ تعداد
+	if ( function_exists( 'stlh_is_inquiry' ) && stlh_is_inquiry( $p ) ) {
+		$out[] = [ 'key' => 'inquiry', 'text' => stlh_label( 'inquiry_badge' ), 'tone' => 'mid', 'title' => stlh_label( 'inquiry_title' ) ];
+		$max++;
+	}
 	foreach ( $keys as $key => [ $label, $suffix ] ) {
 		$val = stlh_card_value( $p, $key ); // ⛔ متای حسابداری اول (`helpers.php`)
 		if ( '' === $val ) {
@@ -62,6 +67,8 @@ function stlh_card_badge_icon( array $b ): string {
 			return $svg( '<rect x="2" y="7" width="17" height="10" rx="2.5"/><path d="M22 10.5v3"/><rect x="4" y="9" width="' . $w . '" height="6" rx="1" fill="currentColor" stroke="none"/>' );
 		case 'registry':
 			return $svg( '<path d="M12 3l7 3v6c0 4.5-3 7.7-7 9-4-1.3-7-4.5-7-9V6l7-3z"/><path d="M9 12l2 2 4-4"/>' );
+		case 'inquiry':
+			return $svg( '<circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6"/><path d="M12 17h.01"/>' );
 		case 'photo':
 			return $svg( '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.4"/>' );
 		default:
@@ -101,7 +108,7 @@ add_action( 'woocommerce_single_product_end', static function (): void {
 		. 'box-shadow:0 1px 2px rgba(15,23,42,.08),0 0 0 1px rgba(15,23,42,.06);color:#334155;font-size:12px;font-weight:700;line-height:1;white-space:nowrap;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}'
 		. '.st-cbs--pdp .st-cb svg{width:14px;height:14px;flex:0 0 auto}'
 		. '.st-cbs--pdp .is-good svg{color:#0f9f6e}.st-cbs--pdp .is-mid svg{color:#d98b06}.st-cbs--pdp .is-mid span{color:#92590a}.st-cbs--pdp .is-low svg{color:#e0244d}.st-cbs--pdp .is-info svg{color:#2563eb}'
-		. '.st-cbs--pdp .st-cb--battery{order:1}.st-cbs--pdp .st-cb--registry{order:2}.st-cbs--pdp .st-cb--photo{order:3}.st-cbs--pdp .st-cb--other{order:4}'
+		. '.st-cbs--pdp .st-cb--battery{order:1}.st-cbs--pdp .st-cb--registry{order:2}.st-cbs--pdp .st-cb--photo{order:3}.st-cbs--pdp .st-cb--other{order:4}.st-cbs--pdp .st-cb--inquiry{order:0}'
 		. '@media (max-width:767px){.st-cbs--pdp{margin:10px 10px 4px}.st-cbs--pdp.is-on{bottom:8px;right:10px}}'
 		. '</style>';
 	echo str_replace( '<span class="st-cbs">', '<span class="st-cbs st-cbs--pdp" id="stlh-pdp-badges">', $html ); // phpcs:ignore — داخلِ تابع escape شده
