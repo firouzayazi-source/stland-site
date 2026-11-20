@@ -64,7 +64,7 @@ function stlh_defaults(): array {
 		'card_badges'    => "battery|باتری|٪\nregistry|ریجستری|\nreal_photo|عکس از خودِ محصول|",
 		// صاحب فروشگاه: نوار اعتماد زیر بنر نه، درست پیش از سوالات متداول.
 		// صاحب فروشگاه: دسته‌ها ← پیشنهاد ویژه ← آیفون نو ← کارکرده‌ها ← لوازم جانبی ← پرفروش‌ها
-		'order'          => "banner\ncategories\nsale\nflash_deal\nrows\ngroup\nbest\nsocial\ntrust\nfaq\nposts",
+		'order'          => "banner\ncategories\nfinder\nsale\nflash_deal\nrows\ngroup\nbest\nsocial\ntrust\nfaq\nposts",
 		'best_cat'       => 'best-sellers',
 		'recent_span'    => 5,
 		/*
@@ -101,7 +101,7 @@ function stlh_opt( string $key ): mixed {
 		$opts = wp_parse_args( (array) get_option( STLH_OPT, [] ), stlh_defaults() );
 		// ترتیبِ پیش‌فرضِ نسخه‌ی ۱.۵.۰ که ذخیره شده بود، یعنی کسی دستش نزده؛ پیش‌فرضِ تازه جایش.
 		// ترتیب‌های پیش‌فرضِ نسخه‌های قبل که ذخیره شده‌اند یعنی کسی دستشان نزده؛ پیش‌فرضِ تازه جایشان.
-		if ( in_array( $opts['order'], [ "banner\ntrust\ncategories\nflash_deal\nrows\ngroup\nsocial\nfaq\nposts", "banner\ncategories\nflash_deal\nrows\ngroup\nsocial\ntrust\nfaq\nposts", "banner\ncategories\nflash_deal\nrows\ngroup\nbest\nsocial\ntrust\nfaq\nposts" ], true ) ) {
+		if ( in_array( $opts['order'], [ "banner\ntrust\ncategories\nflash_deal\nrows\ngroup\nsocial\nfaq\nposts", "banner\ncategories\nflash_deal\nrows\ngroup\nsocial\ntrust\nfaq\nposts", "banner\ncategories\nflash_deal\nrows\ngroup\nbest\nsocial\ntrust\nfaq\nposts", "banner\ncategories\nsale\nflash_deal\nrows\ngroup\nbest\nsocial\ntrust\nfaq\nposts" ], true ) ) {
 			$opts['order'] = stlh_defaults()['order'];
 		}
 	}
@@ -245,6 +245,22 @@ function stlh_label_defaults(): array {
 		'order_err_not_trash' => [ 'این سفارش در زباله‌دان نیست.', 'خطای Novo برای برگرداندنِ سفارشی که در زباله‌دان نیست' ],
 		'order_err_untrash'   => [ 'برگرداندنِ سفارش از زباله‌دان انجام نشد.', 'خطای Novo' ],
 		'order_err_delete'    => [ 'فقط سفارشِ داخلِ زباله‌دان، لغوشده یا ناموفق را می‌شود برای همیشه پاک کرد؛ اول آن را لغو کنید یا به زباله‌دان ببرید.', 'خطای Novo برای پاک کردنِ همیشگی' ],
+		'finder_title' => [ 'آیفونِ مناسبِ خودت را پیدا کن', 'عنوانِ بخشِ «آیفونِ من را پیدا کن» در صفحه‌ی اصلی' ],
+		'finder_sub' => [ 'بودجه، مدل و حداقلِ سلامتِ باتری را انتخاب کن؛ گوشی‌های موجودِ همین لحظه را می‌بینی.', 'زیرعنوانِ همان بخش' ],
+		'finder_l_budget' => [ 'بودجه', 'برچسبِ فهرستِ بودجه در همان بخش' ],
+		'finder_l_model' => [ 'مدل', 'برچسبِ فهرستِ مدل' ],
+		'finder_l_battery' => [ 'سلامتِ باتری', 'برچسبِ فهرستِ باتری' ],
+		'finder_any_budget' => [ 'هر بودجه‌ای', 'گزینه‌ی اولِ بودجه' ],
+		'finder_budget' => [ 'تا {میلیون} میلیون تومان', 'گزینه‌های بودجه' ],
+		'finder_any_model' => [ 'همه‌ی مدل‌ها', 'گزینه‌ی اولِ مدل' ],
+		'finder_model' => [ 'آیفون {نسل}', 'گزینه‌های مدل' ],
+		'finder_any_battery' => [ 'فرقی ندارد', 'گزینه‌ی اولِ باتری' ],
+		'finder_battery' => [ 'دست‌کم {درصد}٪', 'گزینه‌های باتری' ],
+		'finder_count' => [ '{تعداد} گوشی پیدا شد', 'شمارِ نتیجه‌ها' ],
+		'finder_more' => [ 'گوشی‌های بیشتر', 'دکمه‌ی نمایشِ بیشتر' ],
+		'finder_none' => [ 'گوشی‌ای با این شرایط الان موجود نیست؛ بپرسید، شاید به‌زودی برسد.', 'وقتی نتیجه‌ای نیست' ],
+		'finder_wa' => [ 'سلام، دنبالِ آیفونی با این شرایط هستم:', 'متنِ آغازِ پیامِ واتس‌اپ از همان بخش' ],
+		'tradein_btn' => [ 'گوشیِ قبلی‌ات را چند می‌خریم؟ معاوضه کن', 'دکمه‌ی زیرِ «افزودن به سبد» در صفحه‌ی هر گوشی' ],
 		'bacs_iban'       => [ 'شماره شبا', 'جدولِ حسابِ «واریز به شبا» در صفحه‌ی «سفارش دریافت شد» و ایمیل' ],
 		'bacs_card'       => [ 'شماره کارت', 'همان جدول، وقتی در «شماره حساب» شماره‌ی ۱۶ رقمیِ کارت نوشته شده' ],
 		'bacs_account'    => [ 'شماره حساب', 'همان جدول، برای شماره‌ی حساب' ],

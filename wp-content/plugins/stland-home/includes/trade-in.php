@@ -101,6 +101,9 @@ add_shortcode( 'stl_trade_in', static function (): string {
 	foreach ( STLH_TRADEIN_FIELDS as $key => [ $label, $ph, $req ] ) {
 		$tag   = 'state' === $key ? 'textarea' : 'input';
 		$attrs = sprintf( 'name="%s" placeholder="%s"%s%s', esc_attr( $key ), esc_attr( $ph ), $req ? ' required' : '', 'phone' === $key ? ' inputmode="tel" dir="ltr"' : ( 'battery' === $key ? ' inputmode="numeric"' : '' ) );
+		// «گوشی‌ات را چند می‌خریم؟» از صفحه‌ی گوشی (`?want=`؛ ۳۰ آبان ۱۴۰۵): گوشیِ دلخواه از پیش پر است
+		$pre   = 'want' === $key && isset( $_GET['want'] ) ? mb_substr( sanitize_text_field( wp_unslash( $_GET['want'] ) ), 0, 120 ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
+		$attrs .= '' !== $pre ? ' value="' . esc_attr( $pre ) . '"' : '';
 		$field = 'textarea' === $tag ? "<textarea $attrs rows=\"3\"></textarea>" : "<input type=\"text\" $attrs>";
 		$rows .= '<label class="stlh-ti__row' . ( 'want' === $key ? ' stlh-ti__want' : '' ) . '"><span>' . esc_html( $label ) . ( $req ? ' *' : '' ) . '</span>' . $field . '</label>';
 	}
