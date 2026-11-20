@@ -43,6 +43,7 @@ add_action( 'rest_api_init', static function (): void {
 			'status'        => [ 'type' => 'string', 'required' => false ],
 			'tracking_code' => [ 'type' => 'string', 'required' => false ],
 			'note'          => [ 'type' => 'string', 'required' => false ],
+			'action'        => [ 'type' => 'string', 'required' => false, 'enum' => [ 'trash', 'untrash', 'delete' ] ],
 		],
 	] );
 } );
@@ -53,6 +54,7 @@ function stlh_orders_statuses(): array {
 	foreach ( function_exists( 'wc_get_order_statuses' ) ? wc_get_order_statuses() : [] as $k => $label ) {
 		$out[] = [ 'key' => preg_replace( '/^wc-/', '', $k ), 'label' => wp_strip_all_tags( $label ) ];
 	}
+	$out[] = [ 'key' => 'trash', 'label' => stlh_label( 'order_trash' ) ]; // فقط نمایش؛ با `action` جابه‌جا می‌شود، نه با `status`
 	return $out;
 }
 
@@ -81,7 +83,7 @@ function stlh_order_summary( WC_Order $o ): array {
 		'id'           => $o->get_id(),
 		'number'       => (string) $o->get_order_number(),
 		'status'       => $st,
-		'statusLabel'  => wp_strip_all_tags( $labels[ 'wc-' . $st ] ?? $st ),
+		'statusLabel'  => 'trash' === $st ? stlh_label( 'order_trash' ) : wp_strip_all_tags( $labels[ 'wc-' . $st ] ?? $st ),
 		'created_gmt'  => $o->get_date_created() ? gmdate( 'c', $o->get_date_created()->getTimestamp() ) : '',
 		'modified_gmt' => $o->get_date_modified() ? gmdate( 'c', $o->get_date_modified()->getTimestamp() ) : '',
 		'paid_gmt'     => $o->get_date_paid() ? gmdate( 'c', $o->get_date_paid()->getTimestamp() ) : '',
@@ -122,7 +124,7 @@ function stlh_orders_feed( WP_REST_Request $req ) {
 		'limit'   => min( 50, max( 1, (int) $req->get_param( 'limit' ) ) ),
 		'orderby' => 'modified',
 		'order'   => 'ASC',
-		'status'  => array_keys( wc_get_order_statuses() ),
+		'status'  => array_merge( array_keys( wc_get_order_statuses() ), [ 'trash' ] ), // زباله‌دان هم (Novo، ۳۰ آبان ۱۴۰۵)
 	];
 	if ( $after ) {
 		$args['date_modified'] = '>' . $after;
@@ -134,6 +136,11 @@ function stlh_orders_update( WP_REST_Request $req ) {
 	$o = wc_get_order( (int) $req['id'] );
 	if ( ! $o instanceof WC_Order ) {
 		return new WP_Error( 'stlh_order_not_found', 'سفارش پیدا نشد.', [ 'status' => 404 ] );
+	}
+	// زباله‌دان / برگرداندن / پاک کردنِ همیشگی از Novo (صاحب فروشگاه، ۳۰ آبان ۱۴۰۵: «مدیریتِ کاملِ سفارش از Novo، بی رفتن به وردپرس»)
+	$action = (string) $req->get_param( 'action' );
+	if ( '' !== $action ) {
+		return stlh_orders_action( $o, $action );
 	}
 	$status = $req->get_param( 'status' );
 	$code   = $req->get_param( 'tracking_code' );
@@ -161,4 +168,36 @@ function stlh_orders_update( WP_REST_Request $req ) {
 	}
 	$o = wc_get_order( $o->get_id() );
 	return stlh_order_summary( $o );
+}
+
+/** trash | untrash | delete — پاک کردنِ همیشگی فقط برای سفارشِ داخلِ زباله‌دان، لغوشده یا ناموفق */
+function stlh_orders_action( WC_Order $o, string $action ) {
+	$id = $o->get_id();
+	if ( 'trash' === $action ) {
+		if ( 'trash' !== $o->get_status() ) {
+			$o->add_order_note( stlh_label( 'order_trash_note' ) );
+			$o->delete( false );
+		}
+	} elseif ( 'untrash' === $action ) {
+		if ( 'trash' !== $o->get_status() ) {
+			return new WP_Error( 'stlh_order_not_trash', stlh_label( 'order_err_not_trash' ), [ 'status' => 409 ] );
+		}
+		$store = $o->get_data_store();
+		$done  = method_exists( $store, 'untrash_order' ) ? $store->untrash_order( $o ) : (bool) wp_untrash_post( $id );
+		if ( ! $done ) {
+			return new WP_Error( 'stlh_order_untrash_failed', stlh_label( 'order_err_untrash' ), [ 'status' => 500 ] );
+		}
+		$o = wc_get_order( $id );
+		if ( $o instanceof WC_Order ) {
+			$o->add_order_note( stlh_label( 'order_untrash_note' ) );
+		}
+	} elseif ( 'delete' === $action ) {
+		if ( ! in_array( $o->get_status(), [ 'trash', 'cancelled', 'failed' ], true ) ) {
+			return new WP_Error( 'stlh_order_delete_refused', stlh_label( 'order_err_delete' ), [ 'status' => 409 ] );
+		}
+		$o->delete( true );
+		return [ 'id' => $id, 'deleted' => true ];
+	}
+	$o = wc_get_order( $id );
+	return $o instanceof WC_Order ? stlh_order_summary( $o ) : new WP_Error( 'stlh_order_not_found', 'سفارش پیدا نشد.', [ 'status' => 404 ] );
 }
