@@ -301,7 +301,7 @@ function stlh_card( WC_Product $p ): string {
 		stlh_card_image( $p ),
 		esc_html( $p->get_name() ),
 		$spec ? '<span class="st-pr-spec">' . esc_html( $spec ) . '</span>' : '',
-		stlh_sale_timer_pill( $p, true ),
+		stlh_sale_timer_pill( $p, true ) . stlh_sale_occasion_html( $p ), // برچسبِ مناسبت («جمعه سیاه»…؛ قرارداد ۸)
 		stlh_card_price( $p )
 	);
 }
@@ -336,8 +336,9 @@ function stlh_card_price( WC_Product $p ): string {
 		return '<span class="st-pr-was">' . $pill . '</span>' . stlh_price( $p );
 	}
 	// ترتیب در خطِ چپ‌به‌راست: قیمتِ قبلی، بعد قرص — قرص سمتِ راستِ عدد، مثلِ نمونه‌ی صاحب فروشگاه
-	return '<span class="st-pr-was"><del>' . wp_kses_post( wc_price( (float) $p->get_regular_price() ) ) . '</del>' . $pill . '</span>'
-		. '<span class="st-pr-now">' . wp_kses_post( wc_price( (float) $p->get_price() ) ) . '</span>';
+	// «۱۹۵ میلیون تومان» اگر Novo برای این کالا خواسته (قرارداد ۸، `price-display.php`)
+	return '<span class="st-pr-was"><del>' . wp_kses_post( stlh_price_amount_html( $p, (float) $p->get_regular_price() ) ) . '</del>' . $pill . '</span>'
+		. '<span class="st-pr-now">' . wp_kses_post( stlh_price_amount_html( $p, (float) $p->get_price() ) ) . '</span>';
 }
 
 function stlh_sale_label( WC_Product $p ): string {
