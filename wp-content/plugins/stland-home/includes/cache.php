@@ -28,6 +28,10 @@ function stlh_cache_flush(): void {
 	 * اصلی می‌ماند. بی‌افزونه این هوک کاری نمی‌کند؛ LiteSpeed تکرار در یک درخواست را یکی می‌کند.
 	 */
 	do_action( 'litespeed_purge_url', home_url( '/' ) );
+	// برگه‌ها و مقاله‌هایی که فهرستِ زنده‌ی کالا دارند (مثلِ پستِ جمعه سیاه با [stl_sale]؛ ۲ آذر ۱۴۰۵)
+	foreach ( (array) apply_filters( 'stlh_live_urls', [] ) as $url ) {
+		do_action( 'litespeed_purge_url', $url );
+	}
 	// گرم کردنِ دوباره (includes/warm.php) — چند ثانیه بعد، نه همین حالا
 	do_action( 'stlh_cache_flushed' );
 }

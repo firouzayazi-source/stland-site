@@ -271,3 +271,15 @@ function stlh_sale_band_css(): string {
 }
 CSS;
 }
+
+/** مقاله‌هایی که فهرستِ زنده‌ی «فروش ویژه» ([stl_sale]) دارند، با هر تغییرِ کالا از حافظه‌ی موقتِ صفحه پاک می‌شوند (`cache.php`) */
+const STLH_LIVE_SALE_POSTS = [ 'black-friday-1405' ];
+add_filter( 'stlh_live_urls', static function ( $urls ) {
+	foreach ( STLH_LIVE_SALE_POSTS as $slug ) {
+		$p = get_page_by_path( $slug, OBJECT, 'post' );
+		if ( $p && 'publish' === $p->post_status ) {
+			$urls[] = get_permalink( $p );
+		}
+	}
+	return $urls;
+} );
