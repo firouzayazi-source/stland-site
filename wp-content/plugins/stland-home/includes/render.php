@@ -244,7 +244,9 @@ function stlh_price( WC_Product $p ): string {
 		return '<span class="st-out">' . esc_html( stlh_label( 'sold' ) ) . '</span>';
 	}
 	$html = $p->get_price_html();
-	return $html ? wp_kses_post( $html ) : '<span class="st-call">' . esc_html( stlh_label( 'call' ) ) . '</span>';
+	// قیمتِ میلیونی سبکِ درونِ برچسب دارد که wp_kses_post می‌بُرد؛ آن را خودمان با esc_html ساخته‌ایم (`price-display.php`)
+	$mil = function_exists( 'stlh_price_million' ) && stlh_price_million( $p );
+	return $html ? ( $mil ? $html : wp_kses_post( $html ) ) : '<span class="st-call">' . esc_html( stlh_label( 'call' ) ) . '</span>';
 }
 
 /**
@@ -289,20 +291,24 @@ function stlh_color_fa( string $c ): string {
 
 function stlh_card( WC_Product $p ): string {
 	$spec   = stlh_spec_line( $p );
+	$mil    = function_exists( 'stlh_price_million' ) && stlh_price_million( $p ) && $p->is_in_stock();
 	$badges = stlh_card_badges_html( $p ); // قرص‌های ریزِ گوشه (`card-badges.php`)
 	/*
 	 * صاحب فروشگاه با عکس (۱۷ آبان ۱۴۰۵): «درصدِ تخفیف، تایمر و عکس از خودِ محصول روی هم افتاده». تخفیف دیگر روی عکس نیست:
 	 * فقط درصد، قرصِ قرمز کنارِ قیمتِ قبلی (مثلِ نمونه‌ای که فرستاد)؛ تایمرِ آبی زیرِ نام و مشخصات (`sale-timer.php`).
 	 */
 	return sprintf(
-		'<a class="st-pr-card" href="%s"><span class="st-pr-img">%s%s</span><span class="st-pr-name">%s</span>%s%s<span class="st-pr-foot"><span class="st-pr-price">%s</span></span></a>',
+		'<a class="st-pr-card" href="%s"><span class="st-pr-img">%s%s</span><span class="st-pr-name">%s</span>%s%s<span class="st-pr-foot%s"><span class="st-pr-price"%s>%s</span></span></a>',
 		esc_url( $p->get_permalink() ),
 		$badges,
 		stlh_card_image( $p ),
 		esc_html( $p->get_name() ),
 		$spec ? '<span class="st-pr-spec">' . esc_html( $spec ) . '</span>' : '',
 		stlh_sale_timer_pill( $p, true ) . stlh_sale_occasion_html( $p ), // برچسبِ مناسبت («جمعه سیاه»…؛ قرارداد ۸)
-		stlh_card_price( $p )
+		// قیمتِ میلیونی وسط‌چین (صاحب فروشگاه، ۲ آذر ۱۴۰۵)
+		$mil ? ' is-mil" style="justify-content:center;text-align:center' : '',
+		$mil ? ' style="margin-inline:auto;text-align:center;width:100%"' : '',
+		$mil ? str_replace( 'class="st-pr-was"', 'class="st-pr-was" style="justify-content:center"', stlh_card_price( $p ) ) : stlh_card_price( $p )
 	);
 }
 
@@ -338,7 +344,7 @@ function stlh_card_price( WC_Product $p ): string {
 	// ترتیب در خطِ چپ‌به‌راست: قیمتِ قبلی، بعد قرص — قرص سمتِ راستِ عدد، مثلِ نمونه‌ی صاحب فروشگاه
 	// «۱۹۵ میلیون تومان» اگر Novo برای این کالا خواسته (قرارداد ۸، `price-display.php`)
 	return '<span class="st-pr-was"><del>' . wp_kses_post( stlh_price_amount_html( $p, (float) $p->get_regular_price() ) ) . '</del>' . $pill . '</span>'
-		. '<span class="st-pr-now">' . wp_kses_post( stlh_price_amount_html( $p, (float) $p->get_price() ) ) . '</span>';
+		. '<span class="st-pr-now">' . stlh_price_amount_html( $p, (float) $p->get_price(), true ) . '</span>'; // سبکِ درونِ برچسب‌ها؛ wp_kses_post آن را می‌برید
 }
 
 function stlh_sale_label( WC_Product $p ): string {

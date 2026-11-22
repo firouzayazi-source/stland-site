@@ -34,12 +34,23 @@ function stlh_million_text( float $amount ): ?string {
 }
 
 /** یک مبلغ برای این محصول: شکلِ میلیونی (با همان کلاس‌های قیمتِ فروشگاه‌ساز) یا `wc_price` */
-function stlh_price_amount_html( WC_Product $p, float $amount ): string {
+function stlh_price_amount_html( WC_Product $p, float $amount, bool $big = false ): string {
 	$txt = stlh_price_million( $p ) ? stlh_million_text( $amount ) : null;
 	if ( null === $txt ) {
 		return wc_price( $amount );
 	}
-	return '<span class="woocommerce-Price-amount amount"><bdi>' . esc_html( $txt ) . '&nbsp;<span class="woocommerce-Price-currencySymbol">' . esc_html( stlh_label( 'price_toman' ) ) . '</span></bdi></span>';
+	if ( ! $big ) { // قیمتِ خط‌خورده: ساده و کوچک
+		return '<span class="woocommerce-Price-amount amount"><bdi>' . esc_html( $txt ) . '&nbsp;<span class="woocommerce-Price-currencySymbol">' . esc_html( stlh_label( 'price_toman' ) ) . '</span></bdi></span>';
+	}
+	/*
+	 * قیمتِ اصلیِ کالای میلیونی: عددِ درشت با رنگِ گرادیانی و «میلیون تومان» کوچکِ خاکستری (صاحب فروشگاه، ۲ آذر ۱۴۰۵: «عدد درشت‌تر،
+	 * وسط‌چین، با رنگ و لعابِ بهتر… فقط روی اعدادی که شش صفر را برداشته‌ام»). سبک داخلِ خودِ برچسب‌هاست (قاعده‌ی CSSِ LiteSpeed).
+	 */
+	$num  = trim( str_replace( stlh_label( 'price_million' ), '', $txt ) );
+	return '<span class="woocommerce-Price-amount amount st-mil" style="display:inline-flex;align-items:baseline;gap:5px;direction:rtl;white-space:nowrap"><bdi style="display:inline-flex;align-items:baseline;gap:5px">'
+		. '<b class="st-mil-n" style="font-size:1.75em;line-height:1.1;font-weight:900;letter-spacing:-.5px;color:#1d4ed8;background:linear-gradient(90deg,#1d4ed8,#7c3aed);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">' . esc_html( $num ) . '</b>'
+		. '<span class="st-mil-u" style="font-size:.78em;font-weight:700;color:#64748b">' . esc_html( stlh_label( 'price_million' ) . ' ' . stlh_label( 'price_toman' ) ) . '</span>'
+		. '</bdi></span>';
 }
 
 /** برچسبِ مناسبت (فقط با حراجِ زنده) */
@@ -66,7 +77,7 @@ add_filter( 'woocommerce_get_price_html', static function ( $html, $p ) {
 		return $html;
 	}
 	if ( stlh_price_million( $p ) && ! $p->is_type( 'variable' ) && '' !== (string) $p->get_price() ) {
-		$now = stlh_price_amount_html( $p, (float) $p->get_price() );
+		$now = stlh_price_amount_html( $p, (float) $p->get_price(), true );
 		$html = $p->is_on_sale() && (float) $p->get_regular_price() > (float) $p->get_price()
 			? '<del aria-hidden="true">' . stlh_price_amount_html( $p, (float) $p->get_regular_price() ) . '</del> <ins>' . $now . '</ins>'
 			: $now;
