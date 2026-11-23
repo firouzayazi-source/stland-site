@@ -75,10 +75,15 @@ add_action( 'wp_enqueue_scripts', function (): void {
 	wp_add_inline_script( 'stland-catalog', '(function(){var G=' . wp_json_encode( 'amount' === get_option( 'stlh_sale_display', 'percent' ) ? 'amount' : 'percent' ) . ',S=' . wp_json_encode( (object) stlh_sale_show_map() ) . ',fa="۰۱۲۳۴۵۶۷۸۹",'
 		. 'P=function(b){var c=b.closest("li,article,.product");if(!c)return 0;var m=/(?:^|\\s)post-(\\d+)/.exec(c.className||"");if(m)return m[1];var a=c.querySelector("[data-product_id]");return a?a.getAttribute("data-product_id"):0},'
 		. 'F=function(s){return String(s).replace(/\\d/g,function(d){return fa[d]})},'
-		. 'N=function(el){if(!el)return 0;var t=el.textContent.replace(/[۰-۹]/g,function(d){return fa.indexOf(d)});return +t.replace(/[^0-9]/g,"")||0},'
+		// قیمتِ «میلیونی» (قرارداد ۸): «۱۹۵ میلیون تومان» یعنی ۱۹۵٬۰۰۰٬۰۰۰ — وگرنه قرصِ مبلغ «۱۰ تومان» می‌شد (Novo، ۲ آذر ۱۴۰۵)
+		. 'N=function(el){if(!el)return 0;var t=el.textContent.replace(/[۰-۹]/g,function(d){return fa.indexOf(d)}),mil=t.indexOf("میلیون")>-1;if(mil){var x=parseFloat(t.replace("٫",".").replace(/[^0-9.]/g,""))||0;return Math.round(x*1e6)}return +t.replace(/[^0-9]/g,"")||0},'
 		. 'run=function(){document.querySelectorAll(".loop-saving-percentage:not([data-stl])").forEach(function(b){b.setAttribute("data-stl",1);var g=b.closest(".products__item-gift-price"),o=N(g&&g.querySelector("del")),n=N(g&&g.querySelector("ins")),p=parseInt(b.textContent.replace(/[۰-۹]/g,function(d){return fa.indexOf(d)}).replace(/\\D/g,""))||0,txt,M=S[P(b)]||G;'
 		. 'if(M==="amount"&&o>n){var d=o-n;txt=d>=1e6?F((Math.round(d/1e5)/10).toString().replace(".","٫"))+" میلیون":d>=1e3?F(Math.round(d/1e3))+" هزار":F(d)+" تومان"}else{txt=F(p)+"٪"}b.textContent=txt})};'
-		. 'document.readyState==="loading"?document.addEventListener("DOMContentLoaded",run):run();if(window.jQuery)jQuery(document).on("ajaxComplete",function(){setTimeout(run,300)})})();' );
+		// برچسبِ مناسبت («جمعه سیاه»…؛ قرارداد ۸) روی کارت‌های دسته و جست‌وجو، زیرِ نام — مثلِ قرصِ تایمر (Novo، ۲ آذر ۱۴۰۵)
+		. 'var L=' . wp_json_encode( (object) stlh_sale_occasion_map() ) . ',TG=' . wp_json_encode( stlh_sale_occasion_tag( '{t}' ) ) . ','
+		. 'lab=function(){document.querySelectorAll("li.product,.products-list article,[data-product_id].product").forEach(function(c){if(c.querySelector(".st-sale-tag"))return;var m=/(?:^|\\s)post-(\\d+)/.exec(c.className||""),id=m?m[1]:(c.getAttribute("data-id")||c.getAttribute("data-product_id")),t=id&&L[id];if(!t)return;'
+		. 'var w=document.createElement("span");w.innerHTML=TG;var g=w.firstChild;g.querySelector("span").textContent=t;var h=c.querySelector(".products__item-fatitle,.product-title,.title,h2,h3");if(h&&h.parentNode){h.parentNode.insertBefore(g,h.nextSibling)}else{c.appendChild(g)}})};'
+		. 'var all=function(){run();lab()};document.readyState==="loading"?document.addEventListener("DOMContentLoaded",all):all();if(window.jQuery)jQuery(document).on("ajaxComplete",function(){setTimeout(all,300)})})();' );
 }, 99 );
 
 /** ۲۰ کالا در هر صفحه به‌جای ۱۲ — با ۴ و ۵ ستونِ تازه ردیفِ ناقص و جای خالی نمی‌ماند (همان تاریخ) */
