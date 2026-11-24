@@ -49,8 +49,12 @@ function stlh_diet_lists(): array {
 	// slick فقط اگر `.slick_carousel` باشد و select2 فقط برای `.bakala_serach_field` صدا زده می‌شوند (general.js) —
 	// هیچ‌کدام در صفحه‌ی محصول نیست. flipclock و فایل‌های متغیر در `stlh_diet_current` شرطی‌اند.
 	$product_js  = [ 'nouislider', 'my_loadmore', 'tippy', 'persian-datepicker', 'slick.min.js', 'bakala-select2', 'flipclock', 'swatches-and-photos', 'wc-add-to-cart-variation' ];
+	// ۳ آذر ۱۴۰۵: CSSِ بلوک‌های ویرایشگر (`wp-block-library`، ~۱۴۰ کیلوبایت) در محصول و دسته هیچ بلوکی را نمی‌آراید (توضیحِ
+	// محصول از کادرهای قالب است). با مسدود کردن در مرورگرِ آزمون (`?LSCWP_CTRL=before_optm`، گوشی) روی گوشیِ ۱۴ پرو و دسته‌ی
+	// آیفون: عکسِ کاملِ صفحه همان (جز ثانیه‌شمار) و بی خطای تازه. در مقاله‌ها می‌ماند — متنشان بلوکی است.
+	$product_css[] = 'wp-block-library';
 	// فروشگاه/دسته/جستجو: فیلترِ قیمت و «بیشتر» لازم است؛ المنتور نه
-	$shop_css = [ 'elementor-frontend', 'elementor-post-12643' ];
+	$shop_css = [ 'elementor-frontend', 'elementor-post-12643', 'wp-block-library' ];
 	$shop_js  = [ 'elementor-frontend', 'elementor-frontend-modules', 'elementor-webpack-runtime' ];
 	// مقاله‌ی وبلاگ (روزِ ۲۸ برنامه‌ی محتوا، ۲۵ آبان ۱۴۰۵): تا حالا هیچ رژیمی نداشت و GSAP/Lenis (~۲۴۵ کیلوبایت) و select2
 	// (۷۷ کیلوبایت) را هم می‌گرفت. با مسدود کردنشان در مرورگرِ آزمون روی «۱۲ کار برای عمر باتری» در گوشی: بی خطای JS و
