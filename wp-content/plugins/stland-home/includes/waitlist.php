@@ -5,8 +5,8 @@
  * هر گوشیِ کارکرده تک‌نسخه است؛ وقتی فروخته شد صفحه‌اش بن‌بست می‌شد. حالا در صفحه‌ی گوشیِ ناموجود یک کادر می‌آید: «وقتی آیفون
  * {نسل}ِ دیگری رسید خبرتان کنیم؟» با شماره و نام. درخواست در خودِ وردپرس می‌ماند («منتظرانِ گوشی» در پیشخوان) و یک نامه به
  * مدیر می‌رود؛ Novo از `GET stland/v1/waitlist` درخواست‌ها را با «گوشی‌های موجودِ هم‌نسل» (`matches`) می‌گیرد تا صاحب فروشگاه
- * تماس بگیرد. پیامکِ خودکار به مشتری بعداً، وقتی الگوی تازه در ملی‌پیامک تأیید شد (خطِ اشتراکی بی الگو به شماره‌های بسته‌شده
- * نمی‌فرستد).
+ * تماس بگیرد. پیامکِ خودکار به مشتری با الگوی ۵۹۹۸۴۵ ملی‌پیامک («استوک لند: آیفون {0} که منتظرش بودید رسید. برای خرید:
+ * stland.ir»، صاحب فروشگاه ۶ آذر ۱۴۰۵) — پایینِ همین فایل.
  * ⛔ هرزنامه مثلِ فرمِ معاوضه: فیلدِ پنهان و سقفِ ۵ درخواست در ساعت برای هر آی‌پی؛ صفحه در حافظه‌ی موقت می‌ماند، پس کدِ یک‌بارمصرف نه.
  */
 defined( 'ABSPATH' ) || exit;
@@ -140,3 +140,65 @@ add_action( 'rest_api_init', static function (): void {
 		},
 	] );
 } );
+
+/* ───── پیامکِ «رسید» (۶ آذر ۱۴۰۵) ─────
+ * وقتی گوشیِ هم‌نسل منتشر/موجود شد (Novo می‌فرستد)، یک دقیقه بعد در پس‌زمینه به هر منتظرِ ۶۰ روزِ اخیرِ همان نسل یک پیامک با
+ * الگوی ملی‌پیامک از راهِ افزونه‌ی «پیامک حرفه‌ای ووکامرس» (`PWSMS()->send_sms`، بایگانی در همان افزونه). هر درخواست فقط یک
+ * بار: «فرستاده شد» (`stlh_notified`) فقط با جوابِ درستِ سامانه نوشته می‌شود — تا الگو تأیید نشده، بارِ بعد دوباره امتحان می‌شود.
+ * ⛔ فقط خواندنِ محصول؛ موجودی و قیمت دست نمی‌خورند. */
+const STLH_WAIT_SMS_PATTERN = '599845';
+
+function stlh_wait_gen_label( int $gen ): string {
+	return stlh_fa( 10 === $gen ? 'X' : ( 9 === $gen ? 'SE' : (string) $gen ) );
+}
+
+function stlh_wait_queue( int $id ): void {
+	if ( 'product' !== get_post_type( $id ) || wp_next_scheduled( 'stlh_wait_notify', [ $id ] ) ) {
+		return;
+	}
+	wp_schedule_single_event( time() + MINUTE_IN_SECONDS, 'stlh_wait_notify', [ $id ] );
+}
+add_action( 'woocommerce_product_set_stock_status', static function ( $id, $status ): void {
+	if ( 'instock' === $status ) {
+		stlh_wait_queue( (int) $id );
+	}
+}, 10, 2 );
+add_action( 'transition_post_status', static function ( $new, $old, $post ): void {
+	if ( 'publish' === $new && 'publish' !== $old && 'product' === $post->post_type ) {
+		stlh_wait_queue( (int) $post->ID );
+	}
+}, 10, 3 );
+
+/** @return array<int,string> شناسه‌ی درخواست => نتیجه */
+function stlh_wait_notify( int $id ): array {
+	if ( ! function_exists( 'PWSMS' ) || ! function_exists( 'wc_get_products' ) ) {
+		return [];
+	}
+	// همان شرطِ «آیفونِ من را پیدا کن»: منتشر، موجود، در دسته‌ی گوشی (با زیردسته‌ها)
+	$p = wc_get_products( [ 'include' => [ $id ], 'status' => 'publish', 'stock_status' => 'instock', 'category' => [ (string) stlh_opt( 'finder_cat' ) ], 'limit' => 1 ] )[0] ?? null;
+	$gen = $p ? stlh_model_number( $p->get_name() ) : 0;
+	if ( $gen < 7 ) {
+		return [];
+	}
+	$out = [];
+	$waits = get_posts( [
+		'post_type'   => STLH_WAIT_PT,
+		'post_status' => 'publish',
+		'numberposts' => 50,
+		'date_query'  => [ [ 'after' => '60 days ago' ] ],
+		'meta_query'  => [
+			[ 'key' => 'stlh_gen', 'value' => $gen, 'type' => 'NUMERIC' ],
+			[ 'key' => 'stlh_notified', 'compare' => 'NOT EXISTS' ],
+		],
+	] );
+	foreach ( $waits as $w ) {
+		$phone = (string) get_post_meta( $w->ID, 'stlh_phone', true );
+		$res   = PWSMS()->send_sms( [ 'mobile' => $phone, 'message' => 'pattern:' . STLH_WAIT_SMS_PATTERN . "\nmodel:" . stlh_wait_gen_label( $gen ), 'post_id' => $id ] );
+		$out[ $w->ID ] = true === $res ? 'ok' : (string) $res;
+		if ( true === $res ) {
+			update_post_meta( $w->ID, 'stlh_notified', gmdate( 'c' ) . ' #' . $id );
+		}
+	}
+	return $out;
+}
+add_action( 'stlh_wait_notify', 'stlh_wait_notify' );

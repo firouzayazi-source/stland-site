@@ -53,5 +53,5 @@ product_id, sku}]`، `sms [{type, result, date}]` (۵ پیامکِ آخرِ هم
 ## منتظرانِ گوشی — «خبرم کن» (۳ آذر ۱۴۰۵، stland-home ۱.۸۴.۴۵)
 
 - مشتری در صفحه‌ی گوشیِ فروخته‌شده شماره (و نامِ اختیاری) می‌گذارد تا وقتی گوشیِ هم‌نسل رسید خبرش کنند.
-- `GET /stland/v1/waitlist?days=60` → `[{id, created_gmt, gen, phone, name, from:{id,name}, matches:[{id,name,price,url,created_gmt}]}]` —
+- `GET /stland/v1/waitlist?days=60` → `[{id, created_gmt, gen, phone, name, from:{id,name}, matches:[{id,name,price,url,created_gmt}], notified}]` (`notified`: زمانِ پیامکِ «رسید» + شناسه‌ی گوشی، خالی یعنی هنوز نه) —
   `matches` گوشی‌های موجودِ همان نسل همین حالا (قیمت به تومان). تماس با دستِ صاحب فروشگاه؛ پیامکِ خودکار بعد از تأییدِ الگو در ملی‌پیامک.
