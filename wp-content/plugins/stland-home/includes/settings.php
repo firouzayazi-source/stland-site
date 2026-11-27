@@ -79,6 +79,8 @@ function stlh_sanitize( mixed $in ): array {
 		$v         = $in[ $k ] ?? $def;
 		$out[ $k ] = match ( true ) {
 			in_array( $k, [ 'banner_desktop', 'banner_mobile', 'flash_product', 'posts_count', 'group_limit', 'recent_span', 'recent_from' ], true ) => absint( $v ),
+			'slides' === $k                                                                              => stlh_sanitize_slides( (array) $v ),
+			'slide_secs' === $k                                                                          => max( 3, min( 15, absint( $v ) ?: 5 ) ),
 			'banner_link' === $k                                                                         => esc_url_raw( (string) $v ),
 			in_array( $k, [ 'categories', 'product_rows', 'faq', 'address', 'trust', 'card_badges', 'opening_hours', 'store_facts', 'payment_methods' ], true ) => sanitize_textarea_field( (string) $v ),
 			'order' === $k                                                                               => implode( "\n", array_values( array_intersect( array_unique( stlh_lines( sanitize_textarea_field( (string) $v ) ) ), array_keys( stlh_sections() ) ) ) ),
@@ -106,6 +108,50 @@ function stlh_sanitize( mixed $in ): array {
 	$out['recent_span'] = max( 1, min( 20, $out['recent_span'] ?: 5 ) );
 	$out['recent_from'] = min( 40, $out['recent_from'] );
 	return $out;
+}
+
+/** بنرهای اسلایدی: هر کدام عکسِ رایانه، عکسِ گوشی (اختیاری)، پیوند و متنِ جایگزین؛ حداکثر ۸ */
+function stlh_sanitize_slides( array $in ): array {
+	$out = [];
+	foreach ( $in as $s ) {
+		$d = absint( $s['d'] ?? 0 );
+		$m = absint( $s['m'] ?? 0 );
+		if ( ! $d && ! $m ) {
+			continue;
+		}
+		$out[] = [ 'd' => $d, 'm' => $m, 'link' => esc_url_raw( (string) ( $s['link'] ?? '' ) ), 'alt' => sanitize_text_field( (string) ( $s['alt'] ?? '' ) ) ];
+	}
+	return array_slice( $out, 0, 8 );
+}
+
+function stlh_slide_media( string $name, int $id, string $label ): string {
+	$img = $id ? wp_get_attachment_image( $id, 'medium', false, [ 'style' => 'max-width:220px;height:auto;border-radius:8px' ] ) : '';
+	return sprintf( '<div class="stlh-media stlh-slide-media"><b>%s</b><input type="hidden" data-f="%s" value="%d"><div class="stlh-prev">%s</div><p><button type="button" class="button stlh-pick">انتخاب تصویر</button> <button type="button" class="button-link-delete stlh-clear">حذف</button></p></div>', esc_html( $label ), esc_attr( $name ), $id, $img );
+}
+
+function stlh_slide_item( array $s ): string {
+	return '<li class="stlh-slide"><span class="stlh-grip" aria-hidden="true" title="بکشید">☰</span><div class="stlh-slide-body"><div class="stlh-slide-imgs">'
+		. stlh_slide_media( 'd', (int) ( $s['d'] ?? 0 ), 'رایانه' ) . stlh_slide_media( 'm', (int) ( $s['m'] ?? 0 ), 'گوشی (اختیاری)' )
+		. '</div><p><label>پیوند (اختیاری) <input data-f="link" type="url" dir="ltr" class="regular-text" value="' . esc_attr( (string) ( $s['link'] ?? '' ) ) . '" placeholder="https://stland.ir/..."></label></p>'
+		. '<p><label>متنِ جایگزین (برای گوگل و نابینایان) <input data-f="alt" type="text" class="regular-text" value="' . esc_attr( (string) ( $s['alt'] ?? '' ) ) . '"></label></p>'
+		. '</div><button type="button" class="button-link-delete stlh-slide-del" aria-label="حذفِ این بنر" title="حذف">✕</button></li>';
+}
+
+/** فهرستِ بنرها با کشیدن و رها کردن؛ اگر خالی است، بنرِ تکیِ قدیمی اولین بنر نشان داده می‌شود تا با «ذخیره» منتقل شود */
+function stlh_row_slides( array $o ): void {
+	$slides = $o['slides'] ?: ( ( (int) $o['banner_desktop'] || (int) $o['banner_mobile'] ) ? [ [ 'd' => (int) $o['banner_desktop'], 'm' => (int) $o['banner_mobile'], 'link' => (string) $o['banner_link'], 'alt' => (string) $o['banner_alt'] ] ] : [] );
+	$secs   = '';
+	foreach ( [ 3, 4, 5, 6, 7, 8, 10, 12, 15 ] as $n ) {
+		$secs .= sprintf( '<option value="%d"%s>%s ثانیه</option>', $n, selected( (int) $o['slide_secs'], $n, false ), esc_html( stlh_fa( (string) $n ) ) );
+	}
+	printf(
+		'<tr><th scope="row">بنرها، به همین ترتیب</th><td>'
+		. '<ul class="stlh-slides" data-base="%1$s">%2$s</ul><template class="stlh-slide-tpl">%3$s</template>'
+		. '<p><button type="button" class="button stlh-slide-add">+ افزودنِ بنر</button></p>'
+		. '<p class="description">اندازه‌ی استاندارد: <b>رایانه ۱۹۲۰×۶۴۰</b> (نسبتِ ۳ به ۱) و <b>گوشی ۱۰۸۰×۱۰۸۰</b> (مربع)، با فرمتِ WebP و کمتر از ۳۰۰ کیلوبایت. همه‌ی بنرهای یک فهرست بهتر است هم‌اندازه باشند؛ اندازه‌ی اولین بنر قابِ همه است. نوشته و چیزِ مهم را وسطِ عکس بگذارید، نه لبه‌ها. اگر عکسِ گوشی نگذارید، همان عکسِ رایانه روی گوشی هم نشان داده می‌شود. یک بنر = بی حرکت؛ دو بنر و بیشتر = خودکار ورق می‌خورد، با انگشت هم کشیده می‌شود و با لمس یا رفتنِ موس روی آن مکث می‌کند.</p>'
+		. '</td></tr><tr><th scope="row">زمانِ هر بنر</th><td><select name="%4$s">%5$s</select></td></tr>',
+		esc_attr( STLH_OPT . '[slides]' ), implode( '', array_map( 'stlh_slide_item', $slides ) ), stlh_slide_item( [] ), esc_attr( STLH_OPT . '[slide_secs]' ), $secs
+	);
 }
 
 /**
@@ -377,6 +423,7 @@ function stlh_settings_page(): void {
 			.stlh-sec{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:10px 12px;margin:0 0 6px;}
 			.stlh-sec .stlh-grip{cursor:grab;font-size:18px;color:#787c82;touch-action:none;padding:0 4px}
 			.stlh-sec.ui-sortable-helper{box-shadow:0 6px 18px rgba(0,0,0,.12)}
+			.stlh-slides{margin:0;max-width:760px}.stlh-slide{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:10px 12px;margin:0 0 8px}.stlh-slide .stlh-grip{cursor:grab;font-size:18px;color:#787c82;touch-action:none;padding:0 4px}.stlh-slide-body{flex:1;min-width:0}.stlh-slide-imgs{display:flex;gap:16px;flex-wrap:wrap}.stlh-slide-body label{display:block}.stlh-slide-body input.regular-text{width:100%;max-width:100%}.stlh-slide.ui-sortable-helper{box-shadow:0 6px 18px rgba(0,0,0,.12)}
 			.stlh-sec label{flex:1}
 			.stlh-lines{margin:0;max-width:760px}
 			.stlh-line{display:flex;align-items:flex-start;gap:10px;background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:10px 12px;margin:0 0 6px}
@@ -454,10 +501,7 @@ function stlh_settings_page(): void {
 			<h2>بنر و عنوان صفحه</h2>
 			<table class="form-table" role="presentation">
 				<?php
-				stlh_row_media( 'بنر دسکتاپ', 'banner_desktop', (int) $o['banner_desktop'], 'پیشنهاد: 1920×600 با فرمت WebP' );
-				stlh_row_media( 'بنر موبایل', 'banner_mobile', (int) $o['banner_mobile'], 'اختیاری. پیشنهاد: 800×800 یا 800×1000. اگر خالی باشد بنر دسکتاپ نمایش داده می‌شود.' );
-				stlh_row_text( 'لینک بنر', 'banner_link', (string) $o['banner_link'], 'اختیاری', 'url' );
-				stlh_row_text( 'متن جایگزین بنر (alt)', 'banner_alt', (string) $o['banner_alt'] );
+				stlh_row_slides( $o );
 				stlh_row_text( 'عنوان H1 صفحه', 'h1', (string) $o['h1'], 'برای سئو؛ دیده نمی‌شود. اگر قالب خودش H1 دارد خالی بگذارید.' );
 				?>
 			</table>

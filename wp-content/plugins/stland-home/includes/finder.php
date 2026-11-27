@@ -59,39 +59,45 @@ function stlh_finder(): string {
 	usort( $items, static fn( $a, $b ) => $a[2] <=> $b[2] ); // ارزان به گران
 	$cards = '';
 	foreach ( $items as [ $p, $gen, $price, $b ] ) {
-		$cards .= '<div class="stlh-fd-it" data-g="' . (int) $gen . '" data-p="' . (int) $price . '" data-b="' . (int) $b . '">' . stlh_card( $p ) . '</div>';
+		$cards .= '<div class="stlh-fx-it" data-g="' . (int) $gen . '" data-p="' . (int) $price . '" data-b="' . (int) $b . '">' . stlh_card( $p ) . '</div>';
 	}
-	$sel = static fn( string $name, string $label, string $opts ) => '<label class="stlh-fd-f"><span>' . esc_html( $label ) . '</span><select name="' . $name . '">' . $opts . '</select></label>';
-	return '<section class="stlh-fd" id="stlh-finder" dir="rtl"><style>' . stlh_finder_css() . '</style>'
-		. '<div class="stlh-fd-head"><h2>' . esc_html( stlh_label( 'finder_title' ) ) . '</h2><p>' . esc_html( stlh_label( 'finder_sub' ) ) . '</p></div>'
-		. '<form class="stlh-fd-form" onsubmit="return false">'
+	// ۶ آذر ۱۴۰۵ (صاحب فروشگاه): «به‌جای دو ردیف کراسول مثلِ سایرِ لاین‌ها، از کناره‌ها هم‌اندازه‌ی فروش ویژه، فلش‌ها داخلِ
+	// کادر بیاید تو، حرفه‌ای‌تر و سبک‌تر، فیلترها در یک خط». پس همان قالبِ ردیف‌ها (`st-pr-wrapper`/`st-pr-track`، دکمه‌های
+	// قبلی/بعدی از home.js) و فیلترها قرصیِ کوچک با برچسبِ پنهان (برای صفحه‌خوان).
+	$chev = 'url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2712%27 height=%2712%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%231d4ed8%27 stroke-width=%273%27 stroke-linecap=%27round%27%3E%3Cpath d=%27M6 9l6 6 6-6%27/%3E%3C/svg%3E")';
+	$sel  = static fn( string $name, string $label, string $opts ) => '<label class="stlh-fx-f"><span class="stlh-fx-sr">' . esc_html( $label ) . '</span><select name="' . $name . '" aria-label="' . esc_attr( $label ) . '">' . $opts . '</select></label>';
+	$icon = '<svg width="22" height="22" style="width:22px;height:22px;flex:0 0 auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
+	return '<section class="st-pr-wrapper stlh-fx-band" id="stlh-finder" dir="rtl"><style>' . stlh_finder_css( $chev ) . '</style><div class="st-pr-container stlh-fx">'
+		. '<div class="stlh-fx-head"><div class="stlh-fx-ttl"><span class="stlh-fx-ic">' . $icon . '</span><div><h2>' . esc_html( stlh_label( 'finder_title' ) ) . '</h2><p>' . esc_html( stlh_label( 'finder_sub' ) ) . '</p></div></div>'
+		. '<span class="stlh-fx-count" aria-live="polite"></span></div>'
+		. '<form class="stlh-fx-form" onsubmit="return false">'
 		. $sel( 'p', stlh_label( 'finder_l_budget' ), $budget ) . $sel( 'g', stlh_label( 'finder_l_model' ), $gen_opts ) . $sel( 'b', stlh_label( 'finder_l_battery' ), $bat )
 		. '</form>'
-		. '<p class="stlh-fd-count" aria-live="polite"></p>'
-		. '<div class="stlh-fd-grid">' . $cards . '</div>'
-		. '<button type="button" class="stlh-fd-more">' . esc_html( stlh_label( 'finder_more' ) ) . '</button>'
-		. '<p class="stlh-fd-none">' . esc_html( stlh_label( 'finder_none' ) ) . ' <a href="' . esc_url( stlh_wa_link( stlh_label( 'finder_wa' ) ) ) . '" target="_blank" rel="noopener">' . esc_html( stlh_label( 'ask_whatsapp' ) ) . '</a></p>'
-		. '<script data-no-optimize="1">(function(){var r=document.getElementById("stlh-finder");if(!r)return;var f=r.querySelector("form"),it=[].slice.call(r.querySelectorAll(".stlh-fd-it")),c=r.querySelector(".stlh-fd-count"),m=r.querySelector(".stlh-fd-more"),n=r.querySelector(".stlh-fd-none"),lim=8,'
+		. '<div class="st-pr-track"><div class="st-pr-row">' . $cards . '</div></div>'
+		. '<p class="stlh-fx-none" hidden>' . esc_html( stlh_label( 'finder_none' ) ) . ' <a href="' . esc_url( stlh_wa_link( stlh_label( 'finder_wa' ) ) ) . '" target="_blank" rel="noopener">' . esc_html( stlh_label( 'ask_whatsapp' ) ) . '</a></p>'
+		. '<script data-no-optimize="1">(function(){var r=document.getElementById("stlh-finder");if(!r)return;var f=r.querySelector("form"),row=r.querySelector(".st-pr-row"),it=[].slice.call(r.querySelectorAll(".stlh-fx-it")),c=r.querySelector(".stlh-fx-count"),n=r.querySelector(".stlh-fx-none"),'
 		. 'fa=function(x){return String(x).replace(/\d/g,function(d){return "۰۱۲۳۴۵۶۷۸۹"[d]})},T=' . wp_json_encode( stlh_label( 'finder_count' ) ) . ';'
-		. 'function run(){var p=+f.p.value,g=+f.g.value,b=+f.b.value,k=0,shown=0;it.forEach(function(e){var ok=(!p||+e.dataset.p<=p)&&(!g||+e.dataset.g===g)&&(!b||+e.dataset.b>=b);if(ok){k++;if(shown<lim){e.hidden=false;shown++}else e.hidden=true}else e.hidden=true});'
-		. 'c.textContent=k?T.replace("{تعداد}",fa(k)):"";n.hidden=!!k;m.hidden=k<=lim}'
-		. 'f.addEventListener("change",function(){lim=8;run()});m.addEventListener("click",function(){lim+=8;run()});run()})();</script>'
-		. '</section>';
+		. 'function run(){var p=+f.p.value,g=+f.g.value,b=+f.b.value,k=0;it.forEach(function(e){var ok=(!p||+e.dataset.p<=p)&&(!g||+e.dataset.g===g)&&(!b||+e.dataset.b>=b);e.hidden=!ok;if(ok)k++});'
+		. 'c.textContent=k?T.replace("{تعداد}",fa(k)):"";n.hidden=!!k;row.parentNode.hidden=!k;row.scrollLeft=0;row.dispatchEvent(new Event("scroll"))}'
+		. 'f.addEventListener("change",run);run()})();</script>'
+		. '</div></section>';
 }
 
-function stlh_finder_css(): string {
-	return '.stlh-fd{max-width:1280px;margin:24px auto;padding:18px 16px;background:linear-gradient(135deg,#eef4ff,#fff);border:1px solid #dbe6ff;border-radius:20px;box-sizing:border-box}'
-		. '.stlh-fd *{box-sizing:border-box}.stlh-fd-head h2{margin:0;font-size:20px;font-weight:900;color:#0f172a}.stlh-fd-head p{margin:4px 0 0;color:#475569;font-size:14px}'
-		. '.stlh-fd-form{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0 6px}'
-		. '.stlh-fd-f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:#334155;font-weight:700}'
-		. '.stlh-fd-f select{width:100%;height:44px;border:1px solid #cbd5e1;border-radius:12px;padding:0 10px;font-size:15px;background:#fff;font-family:inherit;color:#0f172a}'
-		. '.stlh-fd-count{margin:6px 0 10px;color:#1d4ed8;font-weight:800;font-size:14px;min-height:1em}'
-		. '.stlh-fd-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.stlh-fd-it[hidden]{display:none}'
-		. '.stlh-fd-it .st-pr-card{height:100%}'
-		. '.stlh-fd-more{display:block;margin:14px auto 0;border:1px solid #1d4ed8;background:#fff;color:#1d4ed8;border-radius:12px;padding:10px 22px;font-weight:800;font-family:inherit;cursor:pointer}.stlh-fd-more[hidden]{display:none}'
-		. '.stlh-fd-none{text-align:center;color:#475569;margin:10px 0 0}.stlh-fd-none[hidden]{display:none}'
-		. '@media(max-width:900px){.stlh-fd-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}'
-		. '@media(max-width:600px){.stlh-fd{margin:16px 10px;padding:14px 12px}.stlh-fd-form{grid-template-columns:1fr 1fr}.stlh-fd-form .stlh-fd-f:first-child{grid-column:1/-1}.stlh-fd-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}';
+function stlh_finder_css( string $chev = 'none' ): string {
+	return '.stlh-fx-band .st-pr-container.stlh-fx{background:linear-gradient(135deg,#1e3a8a 0%,#2563eb 60%,#3b82f6 100%);border-radius:22px;padding:18px 16px 16px;margin:0 auto!important;box-shadow:0 18px 40px -24px rgba(37,99,235,.9);box-sizing:border-box}'
+		. '.stlh-fx *{box-sizing:border-box}.stlh-fx-sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}'
+		. '.stlh-fx-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;color:#fff}'
+		. '.stlh-fx-ttl{display:flex;align-items:center;gap:10px;min-width:0}.stlh-fx-ic{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,.16);color:#fff;flex:0 0 auto}'
+		. '.stlh-fx-head h2{margin:0;color:#fff;font-size:20px;font-weight:900;line-height:1.4}.stlh-fx-head p{margin:2px 0 0;color:#dbeafe;font-size:12.5px;line-height:1.6}'
+		. '.stlh-fx-count{flex:0 0 auto;background:#fff;color:#1d4ed8;font-weight:900;font-size:12.5px;padding:6px 12px;border-radius:999px;white-space:nowrap}.stlh-fx-count:empty{display:none}'
+		. '.stlh-fx-form{display:flex;gap:8px;margin:0 0 14px}'
+		. '.stlh-fx-f{flex:0 1 230px;min-width:0;position:relative;margin:0}'
+		. '.stlh-fx-f select{-webkit-appearance:none;appearance:none;width:100%;height:40px!important;min-height:0!important;line-height:40px!important;margin:0;border:0!important;border-radius:999px!important;padding:0 14px 0 34px!important;font-size:13.5px;font-weight:700;color:#0f172a;font-family:inherit;cursor:pointer;text-overflow:ellipsis;background:#fff ' . $chev . ' no-repeat left 14px center;background-size:12px;box-shadow:0 2px 8px -4px rgba(15,23,42,.35)}'
+		. '.stlh-fx-f select:focus{outline:2px solid #fde68a;outline-offset:1px}'
+		. '.stlh-fx-band .st-pr-card{background:#fff}.stlh-fx-it[hidden],.stlh-fx .st-pr-track[hidden]{display:none!important}.stlh-fx-it .st-pr-card{height:100%}'
+		. '.stlh-fx-none{text-align:center;color:#fff;margin:6px 0 2px;font-size:14px}.stlh-fx-none a{color:#fde68a;font-weight:800}.stlh-fx-none[hidden]{display:none}'
+		. '@media(max-width:576px){.stlh-fx-band .st-pr-container.stlh-fx{border-radius:18px;padding:14px 10px 12px}.stlh-fx-head h2{font-size:16.5px}.stlh-fx-head p{display:none}.stlh-fx-ic{width:34px;height:34px;border-radius:10px}'
+		. '.stlh-fx-form{gap:6px;margin-bottom:12px}.stlh-fx-f{flex:1 1 0}.stlh-fx-f select{height:36px!important;line-height:36px!important;font-size:12px;padding:0 10px 0 26px!important;background-position:left 10px center;background-size:10px}}';
 }
 
 /* ───── «گوشی‌ات را چند می‌خریم؟» در صفحه‌ی گوشی ───── */

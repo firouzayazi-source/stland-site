@@ -1,24 +1,43 @@
+// انتخابِ تصویر از کتابخانه — با «on» روی سند تا کادرهای تازه‌ی فهرستِ بنرها هم کار کنند
 jQuery(function ($) {
-    $('.stlh-media').each(function () {
-        var box = $(this), input = box.find('input[type=hidden]'), prev = box.find('.stlh-prev'), frame;
-        box.on('click', '.stlh-pick', function (e) {
-            e.preventDefault();
-            if (!frame) {
-                frame = wp.media({ title: 'انتخاب تصویر', library: { type: 'image' }, multiple: false, button: { text: 'انتخاب' } });
-                frame.on('select', function () {
-                    var a = frame.state().get('selection').first().toJSON();
-                    var url = (a.sizes && a.sizes.medium) ? a.sizes.medium.url : a.url;
-                    input.val(a.id);
-                    prev.empty().append($('<img>', { src: url, css: { maxWidth: '320px', height: 'auto', borderRadius: '8px' } }));
+    var frame, box;
+    $(document).on('click', '.stlh-media .stlh-pick', function (e) {
+        e.preventDefault();
+        box = $(this).closest('.stlh-media');
+        if (!frame) {
+            frame = wp.media({ title: 'انتخاب تصویر', library: { type: 'image' }, multiple: false, button: { text: 'انتخاب' } });
+            frame.on('select', function () {
+                var a = frame.state().get('selection').first().toJSON();
+                var url = (a.sizes && a.sizes.medium) ? a.sizes.medium.url : a.url;
+                box.find('input[type=hidden]').first().val(a.id).trigger('change');
+                box.find('.stlh-prev').empty().append($('<img>', { src: url, css: { maxWidth: '320px', height: 'auto', borderRadius: '8px' } }));
+            });
+        }
+        frame.open();
+    });
+    $(document).on('click', '.stlh-media .stlh-clear', function (e) {
+        e.preventDefault();
+        var b = $(this).closest('.stlh-media');
+        b.find('input[type=hidden]').first().val('0').trigger('change');
+        b.find('.stlh-prev').empty();
+    });
+});
+
+// بنرها: کشیدن، افزودن، حذف؛ نامِ فیلدها بعد از هر تغییر از نو شماره می‌خورد
+jQuery(function ($) {
+    $('.stlh-slides').each(function () {
+        var list = $(this), base = list.data('base'), cell = list.closest('td'), tpl = cell.find('.stlh-slide-tpl').get(0);
+        function renumber() {
+            list.children('li').each(function (i) {
+                $(this).find('[data-f]').each(function () {
+                    $(this).attr('name', base + '[' + i + '][' + $(this).data('f') + ']');
                 });
-            }
-            frame.open();
-        });
-        box.on('click', '.stlh-clear', function (e) {
-            e.preventDefault();
-            input.val('0');
-            prev.empty();
-        });
+            });
+        }
+        list.sortable({ handle: '.stlh-grip', axis: 'y', update: renumber });
+        list.on('click', '.stlh-slide-del', function () { $(this).closest('li').remove(); renumber(); });
+        cell.on('click', '.stlh-slide-add', function () { list.append($(document.importNode(tpl.content, true)).children('li')); renumber(); });
+        renumber();
     });
 });
 

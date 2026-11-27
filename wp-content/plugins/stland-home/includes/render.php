@@ -6,42 +6,89 @@ function stlh_woo(): bool {
 }
 
 /* ---------- بنر ---------- */
-function stlh_banner(): string {
-	$h1   = trim( (string) stlh_opt( 'h1' ) );
-	$h1   = $h1 ? '<h1 class="st-sr-only">' . esc_html( $h1 ) . '</h1>' : '';
-	$d_id = (int) stlh_opt( 'banner_desktop' );
-	$m_id = (int) stlh_opt( 'banner_mobile' );
+
+/**
+ * بنرها (۶ آذر ۱۴۰۵؛ صاحب فروشگاه: «چند عکسِ بنر با تایمرِ دلخواه، هم رایانه هم گوشی»). فهرستِ `slides` در تنظیمات؛ خالی
+ * یعنی بنرِ تکیِ قدیمی (`banner_*`). یک بنر = همان تصویرِ ثابت؛ چندتا = نوارِ ورق‌خورِ خودکار (`slide_secs`)، کشیدن با انگشت،
+ * نقطه‌ها، مکث با لمس/موس و بی حرکت برای «کاهشِ حرکت». قابِ همه از اندازه‌ی اولین بنر (رایانه و گوشی جدا) تا صفحه نپرد.
+ * فقط اولین عکس زود و با اولویت؛ بقیه تنبل. سبکِ ضروری داخلِ خروجی (LiteSpeed).
+ */
+function stlh_banner_slides(): array {
+	$slides = (array) stlh_opt( 'slides' );
+	if ( ! $slides && ( (int) stlh_opt( 'banner_desktop' ) || (int) stlh_opt( 'banner_mobile' ) ) ) {
+		$slides = [ [ 'd' => (int) stlh_opt( 'banner_desktop' ), 'm' => (int) stlh_opt( 'banner_mobile' ), 'link' => (string) stlh_opt( 'banner_link' ), 'alt' => (string) stlh_opt( 'banner_alt' ) ] ];
+	}
+	return array_values( array_filter( $slides, static fn( $s ) => is_array( $s ) && ( ! empty( $s['d'] ) || ! empty( $s['m'] ) ) ) );
+}
+
+/** یک بنر: <picture> با نسخه‌ی گوشی و srcset */
+function stlh_banner_picture( array $s, bool $first ): string {
+	$d_id = (int) ( $s['d'] ?? 0 );
+	$m_id = (int) ( $s['m'] ?? 0 );
 	$main = $d_id ?: $m_id;
 	$src  = $main ? wp_get_attachment_image_src( $main, 'full' ) : false;
-
 	if ( ! $src ) {
-		return $h1;
+		return '';
 	}
-
 	// srcset: مرورگر گوشی نسخه‌ی کوچک‌ترِ همان عکس را می‌گیرد، نه ۱۹۲۰ پیکسلی را.
-	// بنر اولین چیزی است که دیده می‌شود، پس وزنش مستقیم زمانِ باز شدن صفحه است.
-	$srcset = static function ( int $id, string $fallback ): string {
-		return wp_get_attachment_image_srcset( $id, 'full' ) ?: $fallback;
-	};
-
+	$set    = static fn( int $id, string $fallback ): string => wp_get_attachment_image_srcset( $id, 'full' ) ?: $fallback;
 	$source = '';
 	if ( $d_id && $m_id && ( $ms = wp_get_attachment_image_src( $m_id, 'full' ) ) ) {
-		$source = sprintf(
-			'<source media="(max-width: 767px)" srcset="%s" sizes="100vw" width="%d" height="%d">',
-			esc_attr( $srcset( $m_id, $ms[0] ) ), $ms[1], $ms[2]
-		);
+		$source = sprintf( '<source media="(max-width: 767px)" srcset="%s" sizes="100vw" width="%d" height="%d">', esc_attr( $set( $m_id, $ms[0] ) ), $ms[1], $ms[2] );
 	}
-
+	$alt = (string) ( $s['alt'] ?? '' ) ?: (string) stlh_opt( 'banner_alt' );
 	$pic = sprintf(
-		'<picture>%s<img src="%s" srcset="%s" sizes="100vw" width="%d" height="%d" alt="%s" fetchpriority="high" decoding="async"></picture>',
-		$source, esc_url( $src[0] ), esc_attr( $srcset( $main, $src[0] ) ), $src[1], $src[2], esc_attr( (string) stlh_opt( 'banner_alt' ) )
+		'<picture>%s<img src="%s" srcset="%s" sizes="100vw" width="%d" height="%d" alt="%s" %s decoding="async"></picture>',
+		$source, esc_url( $src[0] ), esc_attr( $set( $main, $src[0] ) ), $src[1], $src[2], esc_attr( $alt ), $first ? 'fetchpriority="high"' : 'loading="lazy"'
 	);
+	return ! empty( $s['link'] ) ? '<a href="' . esc_url( (string) $s['link'] ) . '">' . $pic . '</a>' : $pic;
+}
 
-	if ( $link = stlh_opt( 'banner_link' ) ) {
-		$pic = '<a href="' . esc_url( $link ) . '">' . $pic . '</a>';
+function stlh_banner(): string {
+	$h1     = trim( (string) stlh_opt( 'h1' ) );
+	$h1     = $h1 ? '<h1 class="st-sr-only">' . esc_html( $h1 ) . '</h1>' : '';
+	$slides = stlh_banner_slides();
+	$pics   = [];
+	foreach ( $slides as $i => $s ) {
+		if ( '' !== ( $p = stlh_banner_picture( $s, 0 === $i ) ) ) {
+			$pics[] = $p;
+		}
 	}
-
-	return '<div class="stland-full-width-banner">' . $h1 . $pic . '</div>';
+	if ( ! $pics ) {
+		return $h1;
+	}
+	if ( 1 === count( $pics ) ) {
+		return '<div class="stland-full-width-banner">' . $h1 . $pics[0] . '</div>';
+	}
+	// قابِ ثابت از اولین بنر: نسبتِ رایانه و گوشی
+	$ratio = static function ( int $id ): string {
+		$i = $id ? wp_get_attachment_image_src( $id, 'full' ) : false;
+		return $i && $i[2] ? $i[1] . '/' . $i[2] : '';
+	};
+	$f   = $slides[0];
+	$ard = $ratio( (int) ( $f['d'] ?: $f['m'] ) ) ?: '3/1';
+	$arm = $ratio( (int) ( $f['m'] ?: $f['d'] ) ) ?: $ard;
+	$css = '.stlh-sl{--ard:' . $ard . ';--arm:' . $arm . '}.stlh-sl-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}.stlh-sl-track::-webkit-scrollbar{display:none}'
+		. '.stlh-sl-it{flex:0 0 100%;scroll-snap-align:start;scroll-snap-stop:always}.stlh-sl-it img{width:100%!important;height:auto!important;aspect-ratio:var(--ard);object-fit:cover}'
+		. '@media(max-width:767px){.stlh-sl-it img{aspect-ratio:var(--arm)}}'
+		. '.stlh-sl-dots{position:absolute;left:0;right:0;bottom:10px;display:flex;justify-content:center;gap:6px;line-height:0;pointer-events:none}'
+		. '.stlh-sl-dots button{pointer-events:auto;width:8px;height:8px;padding:0;border:0;border-radius:99px;background:rgba(255,255,255,.6);box-shadow:0 1px 3px rgba(0,0,0,.35);cursor:pointer;transition:width .25s}.stlh-sl-dots button[aria-current="true"]{width:22px;background:#fff}';
+	$dots = '';
+	foreach ( $pics as $i => $_ ) {
+		$dots .= '<button type="button" aria-label="' . esc_attr( stlh_label( 'banner_go', [ '{n}' => stlh_fa( (string) ( $i + 1 ) ) ] ) ) . '"' . ( 0 === $i ? ' aria-current="true"' : '' ) . '></button>';
+	}
+	$items = implode( '', array_map( static fn( $p ) => '<div class="stlh-sl-it">' . $p . '</div>', $pics ) );
+	$js    = '(function(){var r=document.querySelector(".stlh-sl");if(!r)return;var t=r.querySelector(".stlh-sl-track"),d=[].slice.call(r.querySelectorAll(".stlh-sl-dots button")),n=d.length,ms=' . ( 1000 * (int) stlh_opt( 'slide_secs' ) ) . ',hold=0,over=0,tm;'
+		. 'function cur(){return Math.round(t.scrollLeft/Math.max(1,t.clientWidth))}'
+		. 'function go(i){t.scrollTo({left:((i%n)+n)%n*t.clientWidth,behavior:"smooth"})}'
+		. 't.addEventListener("scroll",function(){var c=cur();d.forEach(function(b,j){b.setAttribute("aria-current",j===c?"true":"false")})},{passive:true});'
+		. 'd.forEach(function(b,j){b.addEventListener("click",function(){go(j);hold=Date.now()})});'
+		. '["pointerdown","touchstart","focusin"].forEach(function(e){r.addEventListener(e,function(){hold=Date.now()},{passive:true})});r.addEventListener("pointerenter",function(e){if(e.pointerType==="mouse")over=1});r.addEventListener("pointerleave",function(){over=0});'
+		. 'if(window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches)return;'
+		. 'tm=setInterval(function(){if(document.hidden||over||Date.now()-hold<ms*1.5)return;go(cur()+1)},ms)})();';
+	return '<div class="stland-full-width-banner stlh-sl" role="region" aria-roledescription="carousel" aria-label="' . esc_attr( stlh_label( 'banner_label' ) ) . '"><style>' . $css . '</style>' . $h1
+		. '<div class="stlh-sl-track" dir="ltr">' . $items . '</div><div class="stlh-sl-dots" dir="ltr">' . $dots . '</div>'
+		. '<script data-no-optimize="1">' . $js . '</script></div>';
 }
 
 /* ---------- نوار اعتماد ---------- */
