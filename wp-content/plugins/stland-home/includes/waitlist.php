@@ -5,8 +5,8 @@
  * هر گوشیِ کارکرده تک‌نسخه است؛ وقتی فروخته شد صفحه‌اش بن‌بست می‌شد. حالا در صفحه‌ی گوشیِ ناموجود یک کادر می‌آید: «وقتی آیفون
  * {نسل}ِ دیگری رسید خبرتان کنیم؟» با شماره و نام. درخواست در خودِ وردپرس می‌ماند («منتظرانِ گوشی» در پیشخوان) و یک نامه به
  * مدیر می‌رود؛ Novo از `GET stland/v1/waitlist` درخواست‌ها را با «گوشی‌های موجودِ هم‌نسل» (`matches`) می‌گیرد تا صاحب فروشگاه
- * تماس بگیرد. پیامکِ خودکار به مشتری با الگوی ۵۹۹۸۴۵ ملی‌پیامک («استوک لند: آیفون {0} که منتظرش بودید رسید. برای خرید:
- * stland.ir»، صاحب فروشگاه ۶ آذر ۱۴۰۵) — پایینِ همین فایل.
+ * تماس بگیرد. پیامکِ خودکار به مشتری با الگوی ۵۹۹۸۴۵ ملی‌پیامک («استوک لند: گوشی درخواستی شما موجود شد. مدل: {0} - برای خرید:
+ * stland.ir»، {0} = نامِ مدلِ گوشیِ رسیده؛ متنِ ۶ آذر را ملی‌پیامک با «متغیر ۰ را مشخص کنید» برگرداند) — پایینِ همین فایل.
  * ⛔ هرزنامه مثلِ فرمِ معاوضه: فیلدِ پنهان و سقفِ ۵ درخواست در ساعت برای هر آی‌پی؛ صفحه در حافظه‌ی موقت می‌ماند، پس کدِ یک‌بارمصرف نه.
  */
 defined( 'ABSPATH' ) || exit;
@@ -148,10 +148,6 @@ add_action( 'rest_api_init', static function (): void {
  * ⛔ فقط خواندنِ محصول؛ موجودی و قیمت دست نمی‌خورند. */
 const STLH_WAIT_SMS_PATTERN = '599845';
 
-function stlh_wait_gen_label( int $gen ): string {
-	return stlh_fa( 10 === $gen ? 'X' : ( 9 === $gen ? 'SE' : (string) $gen ) );
-}
-
 function stlh_wait_queue( int $id ): void {
 	if ( 'product' !== get_post_type( $id ) || wp_next_scheduled( 'stlh_wait_notify', [ $id ] ) ) {
 		return;
@@ -180,6 +176,11 @@ function stlh_wait_notify( int $id ): array {
 	if ( $gen < 7 ) {
 		return [];
 	}
+	// متغیرِ پیامک نامِ مدلِ همان گوشیِ رسیده است («iPhone 15 Pro Max»، «iPhone SE»)، نه فقط شماره‌ی نسل — الگو: «… مدل: {0} …»
+	$model = function_exists( 'stlh_ipt_model_of' ) ? stlh_ipt_model_of( $p->get_name() ) : '';
+	if ( '' === $model ) {
+		$model = 'iPhone ' . ( 10 === $gen ? 'X' : ( 9 === $gen ? 'SE' : (string) $gen ) );
+	}
 	$out = [];
 	$waits = get_posts( [
 		'post_type'   => STLH_WAIT_PT,
@@ -193,7 +194,7 @@ function stlh_wait_notify( int $id ): array {
 	] );
 	foreach ( $waits as $w ) {
 		$phone = (string) get_post_meta( $w->ID, 'stlh_phone', true );
-		$res   = PWSMS()->send_sms( [ 'mobile' => $phone, 'message' => 'pattern:' . STLH_WAIT_SMS_PATTERN . "\nmodel:" . stlh_wait_gen_label( $gen ), 'post_id' => $id ] );
+		$res   = PWSMS()->send_sms( [ 'mobile' => $phone, 'message' => 'pattern:' . STLH_WAIT_SMS_PATTERN . "\nmodel:" . $model, 'post_id' => $id ] );
 		$out[ $w->ID ] = true === $res ? 'ok' : (string) $res;
 		if ( true === $res ) {
 			update_post_meta( $w->ID, 'stlh_notified', gmdate( 'c' ) . ' #' . $id );
