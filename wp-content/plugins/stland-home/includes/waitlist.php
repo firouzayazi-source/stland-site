@@ -176,11 +176,13 @@ function stlh_wait_notify( int $id ): array {
 	if ( $gen < 7 ) {
 		return [];
 	}
-	// متغیرِ پیامک نامِ مدلِ همان گوشیِ رسیده است («iPhone 15 Pro Max»، «iPhone SE»)، نه فقط شماره‌ی نسل — الگو: «… مدل: {0} …»
+	// متغیرِ پیامک نامِ مدلِ همان گوشیِ رسیده است («آیفون ۱۵ پرو مکس»، «آیفون SE»)، نه فقط شماره‌ی نسل — الگو: «… مدل: {0} …»
 	$model = function_exists( 'stlh_ipt_model_of' ) ? stlh_ipt_model_of( $p->get_name() ) : '';
 	if ( '' === $model ) {
 		$model = 'iPhone ' . ( 10 === $gen ? 'X' : ( 9 === $gen ? 'SE' : (string) $gen ) );
 	}
+	// به فارسی (صاحب فروشگاه، ۶ آذر): «آیفون ۱۵ پرو مکس»؛ SE/X/XS/XR و «e» لاتین می‌مانند
+	$model = stlh_fa( strtr( $model, [ 'iPhone' => 'آیفون', 'Pro Max' => 'پرو مکس', 'Pro' => 'پرو', 'Plus' => 'پلاس', 'mini' => 'مینی', 'Mini' => 'مینی', 'Air' => 'ایر', 'Max' => 'مکس' ] ) );
 	$out = [];
 	$waits = get_posts( [
 		'post_type'   => STLH_WAIT_PT,
