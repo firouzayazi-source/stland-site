@@ -946,7 +946,8 @@ function stlh_ipt_url( string $tool ): string {
 	return $id ? (string) get_permalink( $id ) : home_url( '/' . $slug . '/' );
 }
 
-add_action( 'admin_init', static function (): void {
+// برگه‌ها همان بارِ اولِ بعد از نصب ساخته می‌شوند (نه منتظرِ بازدیدِ پیشخوان)؛ بعد فقط یک گزینه خوانده می‌شود
+add_action( 'init', static function (): void {
 	if ( get_option( 'stlh_ipt_pages' ) !== STLH_VER ) {
 		foreach ( array_keys( STLH_IPT_PAGES ) as $t ) {
 			stlh_ipt_url( $t );
