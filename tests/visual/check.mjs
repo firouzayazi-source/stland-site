@@ -39,7 +39,7 @@ for (const [name, width, height] of [['mobile', 390, 844], ['desktop', 1280, 900
   const cards = await page.$$eval('.st-cat-name', (els) => els.map((e) => e.textContent.trim()))
   for (const c of ['آیفون نو', 'آیفون کارکرده', 'ایرپاد']) check(cards.includes(c), `${name}: کارتِ «${c}» نیست (${cards.join('، ')})`)
 
-  const titles = await page.$$eval('.st-pr-wrapper .st-sec-title h2', (els) => els.map((e) => e.textContent.trim()))
+  const titles = await page.$$eval('.st-pr-wrapper:not(.stlh-tl-band) .st-sec-title h2', (els) => els.map((e) => e.textContent.trim()))
   check(
     JSON.stringify(titles.slice(0, wantTitles.length)) === JSON.stringify(wantTitles),
     `${name}: ترتیبِ ردیف‌ها\n  آمد:  ${titles.join(' | ')}\n  باید: ${wantTitles.join(' | ')}`,

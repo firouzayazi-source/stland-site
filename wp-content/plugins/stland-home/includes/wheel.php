@@ -114,7 +114,8 @@ function stlh_wheel_tables(): array {
 }
 
 add_action( 'init', static function (): void {
-	if ( get_option( 'stlh_wheel_dbv' ) === STLH_WHEEL_DBV ) {
+	// هنگامِ نصبِ خودِ وردپرس جدولی نساز (upgrade.php را زودتر بار می‌کرد و نصب با «Cannot redeclare» می‌شکست).
+	if ( wp_installing() || get_option( 'stlh_wheel_dbv' ) === STLH_WHEEL_DBV ) {
 		return;
 	}
 	global $wpdb;
