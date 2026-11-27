@@ -498,11 +498,47 @@ function stlh_row_items( array $slugs, int $limit, string $models = '' ): array 
 }
 
 /* ---------- ردیف محصولات ---------- */
-function stlh_row_html( array $items, string $title, string $subtitle = '', string $url = '', string $extra = '' ): string {
+/* ---------- رنگِ کراسول‌ها ----------
+ * ۶ آذر ۱۴۰۵ (صاحب فروشگاه): «امکانِ انتخابِ رنگ برای تمامِ کراسول‌ها؛ پیش‌فرض فقط فروش ویژه قرمزِ فعلی، بقیه سفید و هماهنگ با
+ * قالب؛ خودم از تنظیمات تنظیم می‌کنم». `band_colors`: کلید (`sale`، `finder`، `best`، `group`، `cat:<شناسه‌ی دسته>`) => رنگ؛
+ * خالی = سفید (بی کادر). رنگِ نوشته خودکار از روشنیِ رنگ (تیره روی روشن، سفید روی تیره). سبک داخلِ خروجی (LiteSpeed). */
+const STLH_SALE_RED = '#ef394e';
+
+function stlh_band_color( string $key ): string {
+	$map = (array) stlh_opt( 'band_colors' );
+	$c   = array_key_exists( $key, $map ) ? (string) $map[ $key ] : ( 'sale' === $key ? STLH_SALE_RED : '' );
+	return (string) sanitize_hex_color( $c );
+}
+
+/** [کلاس، style، css] برای یک کراسولِ رنگی؛ سفید = سه رشته‌ی خالی */
+function stlh_band( string $key ): array {
+	$c = stlh_band_color( $key );
+	if ( '' === $c ) {
+		return [ '', '', '' ];
+	}
+	$hex = ltrim( $c, '#' );
+	if ( 3 === strlen( $hex ) ) {
+		$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+	}
+	[ $r, $g, $b ] = array_map( 'hexdec', str_split( $hex, 2 ) );
+	$light = ( 0.299 * $r + 0.587 * $g + 0.114 * $b ) / 255 > 0.62;
+	$dark  = sprintf( '#%02x%02x%02x', (int) ( $r * .8 ), (int) ( $g * .8 ), (int) ( $b * .8 ) );
+	$vars  = '--band:' . $c . ';--band2:' . $dark . ';--ink:' . ( $light ? '#0f172a' : '#fff' ) . ';--ink2:' . ( $light ? '#334155' : 'rgba(255,255,255,.85)' )
+		. ';--soft:' . ( $light ? 'rgba(15,23,42,.07)' : 'rgba(255,255,255,.18)' ) . ';--chip:#fff;--chipink:' . ( $light ? '#0f172a' : $dark );
+	$css   = '.st-band>.st-pr-container{background:linear-gradient(135deg,var(--band) 0%,var(--band2) 100%);border-radius:22px;padding:18px 16px 16px;box-shadow:0 18px 40px -24px var(--band2)}'
+		. '.st-band .st-sec-title h2,.st-band .st-sec-title h3,.st-band .st-grp-block h3{color:var(--ink)!important}.st-band .st-sec-title p{color:var(--ink2)!important}'
+		. '.st-band .st-sec-more{background:var(--soft)!important;color:var(--ink)!important;border-color:transparent!important}.st-band .st-pr-card{background:#fff}'
+		. '.st-band .st-subcats a{background:var(--soft);color:var(--ink);border-color:transparent}'
+		. '@media(max-width:576px){.st-band>.st-pr-container{border-radius:18px;padding:14px 10px 12px}}';
+	return [ ' st-band', ' style="' . esc_attr( $vars ) . '"', $css ];
+}
+
+function stlh_row_html( array $items, string $title, string $subtitle = '', string $url = '', string $extra = '', string $band = '' ): string {
 	if ( ! $items ) {
 		return '';
 	}
-	return '<section class="st-pr-wrapper"><div class="st-pr-container">'
+	[ $bc, $bs, $bcss ] = $band ? stlh_band( $band ) : [ '', '', '' ];
+	return '<section class="st-pr-wrapper' . $bc . '"' . $bs . '>' . ( $bcss ? '<style>' . $bcss . '</style>' : '' ) . '<div class="st-pr-container">'
 		. stlh_section_head( $title, $subtitle, $url )
 		. $extra
 		. '<div class="st-pr-track"><div class="st-pr-row">' . implode( '', array_map( 'stlh_card', $items ) ) . '</div></div></div></section>';
@@ -697,7 +733,7 @@ function stlh_line_html( array $line ): string {
 	}
 	if ( 'children' !== ( $line['mode'] ?? '' ) ) {
 		$b = $blocks[0];
-		return stlh_row_html( $b['items'], $b['title'], $b['sub'], $b['url'], 'all' === ( $line['mode'] ?? 'all' ) ? stlh_subcat_chips( $t ) : '' );
+		return stlh_row_html( $b['items'], $b['title'], $b['sub'], $b['url'], 'all' === ( $line['mode'] ?? 'all' ) ? stlh_subcat_chips( $t ) : '', 'cat:' . $t->term_id );
 	}
 	$html = '';
 	foreach ( $blocks as $b ) {
@@ -707,7 +743,8 @@ function stlh_line_html( array $line ): string {
 	}
 	$url   = get_term_link( $t );
 	$title = trim( (string) ( $line['title'] ?? '' ) ) ?: stlh_cat_name( $t );
-	return '<section class="st-pr-wrapper st-grp-wrapper"><div class="st-pr-container">'
+	[ $bc, $bs, $bcss ] = stlh_band( 'cat:' . $t->term_id );
+	return '<section class="st-pr-wrapper st-grp-wrapper' . $bc . '"' . $bs . '>' . ( $bcss ? '<style>' . $bcss . '</style>' : '' ) . '<div class="st-pr-container">'
 		. stlh_section_head( $title, '', is_wp_error( $url ) ? '' : $url )
 		. $html . '</div></section>';
 }
@@ -718,7 +755,7 @@ function stlh_best(): string {
 		return '';
 	}
 	$url = get_term_link( $t );
-	return stlh_row_html( stlh_query_products( [ (string) $t->term_id ], 12 ), stlh_cat_name( $t ), '', is_wp_error( $url ) ? '' : $url );
+	return stlh_row_html( stlh_query_products( [ (string) $t->term_id ], 12 ), stlh_cat_name( $t ), '', is_wp_error( $url ) ? '' : $url, '', 'best' );
 }
 
 /* ---------- گروه لوازم جانبی (هر زیردسته یک ردیف) ---------- */
@@ -760,7 +797,8 @@ function stlh_group(): string {
 		return '';
 	}
 	$parent_url = get_term_link( $parent );
-	return '<section class="st-pr-wrapper st-grp-wrapper"><div class="st-pr-container">'
+	[ $bc, $bs, $bcss ] = stlh_band( 'group' );
+	return '<section class="st-pr-wrapper st-grp-wrapper' . $bc . '"' . $bs . '>' . ( $bcss ? '<style>' . $bcss . '</style>' : '' ) . '<div class="st-pr-container">'
 		. stlh_section_head( (string) stlh_opt( 'group_title' ), (string) stlh_opt( 'group_subtitle' ), is_wp_error( $parent_url ) ? '' : $parent_url )
 		. $blocks . '</div></section>';
 }

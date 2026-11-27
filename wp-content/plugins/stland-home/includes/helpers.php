@@ -10,6 +10,7 @@ function stlh_defaults(): array {
 		'banner_alt'     => 'استوک لند',
 		'slides'         => [],
 		'slide_secs'     => 5,
+		'band_colors'    => [ 'sale' => '#ef394e' ],
 		'cat_title'      => 'دسته‌بندی‌های استوک لند',
 		'cat_subtitle'   => 'لوازم جانبی و محصولات اپل با بالاترین کیفیت',
 		'categories'     => "iphone-second-hand\niphone\nairpod\ncharger\naccessories\nlens-protector",

@@ -79,6 +79,7 @@ function stlh_sanitize( mixed $in ): array {
 		$v         = $in[ $k ] ?? $def;
 		$out[ $k ] = match ( true ) {
 			in_array( $k, [ 'banner_desktop', 'banner_mobile', 'flash_product', 'posts_count', 'group_limit', 'recent_span', 'recent_from' ], true ) => absint( $v ),
+			'band_colors' === $k                                                                         => stlh_sanitize_band_colors( (array) $v ),
 			'slides' === $k                                                                              => stlh_sanitize_slides( (array) $v ),
 			'slide_secs' === $k                                                                          => max( 3, min( 15, absint( $v ) ?: 5 ) ),
 			'banner_link' === $k                                                                         => esc_url_raw( (string) $v ),
@@ -108,6 +109,42 @@ function stlh_sanitize( mixed $in ): array {
 	$out['recent_span'] = max( 1, min( 20, $out['recent_span'] ?: 5 ) );
 	$out['recent_from'] = min( 40, $out['recent_from'] );
 	return $out;
+}
+
+/** رنگِ کراسول‌ها: هر ردیف «رنگی» تیک خورده باشد رنگش، وگرنه خالی (= سفید) */
+function stlh_sanitize_band_colors( array $in ): array {
+	$out = [];
+	foreach ( $in as $key => $row ) {
+		$key = (string) $key;
+		if ( ! preg_match( '/^(sale|finder|best|group|cat:\d+)$/', $key ) || ! is_array( $row ) ) {
+			continue;
+		}
+		$out[ $key ] = empty( $row['on'] ) ? '' : (string) sanitize_hex_color( (string) ( $row['c'] ?? '' ) );
+	}
+	return $out;
+}
+
+function stlh_row_band_colors( array $o ): void {
+	$rows = [ 'sale' => 'فروش ویژه', 'finder' => 'آیفونِ مناسبِ خودت را پیدا کن' ];
+	foreach ( function_exists( 'stlh_lines_effective' ) ? stlh_lines_effective() : [] as $l ) {
+		$t = get_term( (int) ( $l['cat'] ?? 0 ), 'product_cat' );
+		if ( $t instanceof WP_Term ) {
+			$rows[ 'cat:' . $t->term_id ] = 'ردیفِ ' . ( trim( (string) ( $l['title'] ?? '' ) ) ?: stlh_cat_name( $t ) );
+		}
+	}
+	$rows['best']  = 'پرفروش‌ها';
+	$rows['group'] = 'لوازم جانبی (اگر جدا نشان داده شود)';
+	$html = '';
+	foreach ( $rows as $key => $label ) {
+		$c    = stlh_band_color( $key );
+		$name = STLH_OPT . '[band_colors][' . $key . ']';
+		$html .= sprintf(
+			'<tr><th scope="row">%s</th><td><label style="margin-inline-end:14px"><input type="checkbox" name="%s[on]" value="1"%s> رنگی</label><input type="color" name="%s[c]" value="%s" style="width:56px;height:32px;padding:0;vertical-align:middle"> <span class="description">%s</span></td></tr>',
+			esc_html( $label ), esc_attr( $name ), checked( '' !== $c, true, false ), esc_attr( $name ), esc_attr( $c ?: ( 'sale' === $key ? '#ef394e' : '#2563eb' ) ), 'sale' === $key ? 'پیش‌فرض: قرمز' : 'پیش‌فرض: سفید (بی تیک)'
+		);
+	}
+	echo $html; // phpcs:ignore WordPress.Security.EscapeOutput -- escaped above
+	echo '<tr><td colspan="2"><p class="description" style="margin:0">بی تیکِ «رنگی» کراسول سفید و هماهنگ با قالب است. رنگِ نوشته خودکار انتخاب می‌شود: روی رنگِ تیره سفید، روی رنگِ روشن تیره. کارت‌های کالا همیشه سفید می‌مانند.</p></td></tr>';
 }
 
 /** بنرهای اسلایدی: هر کدام عکسِ رایانه، عکسِ گوشی (اختیاری)، پیوند و متنِ جایگزین؛ حداکثر ۸ */
@@ -504,6 +541,11 @@ function stlh_settings_page(): void {
 				stlh_row_slides( $o );
 				stlh_row_text( 'عنوان H1 صفحه', 'h1', (string) $o['h1'], 'برای سئو؛ دیده نمی‌شود. اگر قالب خودش H1 دارد خالی بگذارید.' );
 				?>
+			</table>
+
+			<h2>رنگِ کراسول‌ها</h2>
+			<table class="form-table" role="presentation">
+				<?php stlh_row_band_colors( $o ); ?>
 			</table>
 
 			<h2>نوار اعتماد</h2>
