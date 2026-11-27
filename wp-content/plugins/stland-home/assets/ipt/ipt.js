@@ -1604,6 +1604,9 @@ function openCompare(){
     var a=document.getElementById('cmp-a'),b=document.getElementById('cmp-b');
     if(!a||!b)return;
     a.innerHTML=opts;b.innerHTML=opts;a.selectedIndex=0;b.selectedIndex=1;
+    /* سایت: از صفحه‌ی هر آیفون با ?a=<نامِ مدل> همان مدل از پیش انتخاب است، در برابرِ مدلِ کناری‌اش */
+    try{var want=(new URLSearchParams(location.search).get('a')||'').toLowerCase();
+      for(var wi=0;want&&wi<ms.length;wi++){if(String(ms[wi].name).toLowerCase()===want){a.selectedIndex=wi;b.selectedIndex=wi+1<ms.length?wi+1:wi-1;break;}}}catch(e){}
     a.onchange=b.onchange=_cmpRun;
     _cmpRun();
   };

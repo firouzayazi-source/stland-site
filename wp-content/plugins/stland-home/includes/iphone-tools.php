@@ -864,6 +864,10 @@ add_action( 'rest_api_init', static function (): void {
 		}
 		$new['updated'] = gmdate( 'c' );
 		update_option( STLH_IPT_OPT, $new, false );
+		if ( array_key_exists( 'settings', $in ) && function_exists( 'stlh_cache_flush' ) ) {
+			stlh_cache_flush(); // روشن/خاموشِ ابزار: بخشِ صفحه‌ی اصلی و منو
+			do_action( 'litespeed_purge_all' );
+		}
 		return [ 'ok' => true, 'updated' => $new['updated'], 'keys' => array_values( array_diff( array_keys( $new ), [ 'updated' ] ) ) ];
 	} );
 

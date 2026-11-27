@@ -125,7 +125,7 @@ function stlh_sanitize_band_colors( array $in ): array {
 }
 
 function stlh_row_band_colors( array $o ): void {
-	$rows = [ 'sale' => 'فروش ویژه', 'finder' => 'آیفونِ مناسبِ خودت را پیدا کن' ];
+	$rows = [ 'sale' => 'فروش ویژه', 'finder' => 'آیفونِ مناسبِ خودت را پیدا کن', 'tools' => 'ابزارهای رایگانِ آیفون' ];
 	foreach ( function_exists( 'stlh_lines_effective' ) ? stlh_lines_effective() : [] as $l ) {
 		$t = get_term( (int) ( $l['cat'] ?? 0 ), 'product_cat' );
 		if ( $t instanceof WP_Term ) {

@@ -112,5 +112,12 @@ $eq( array_slice( $shape2, 4, 10 ), [
 	'لیست آک و کارکرده',
 ], 'نام، ترتیب و گروهِ تازه با زیرمنو' );
 
+// گروهِ «ابزارهای آیفون» (۶ آذر ۱۴۰۵): بعد از گروه‌های دسته، با زیرمنوی ابزارهای روشن؛ بی ابزار، منو دست‌نخورده
+$tools  = [ [ 'کارشناسی قیمت آیفون', 'https://x/iphone-price/' ], [ 'مقایسه دو آیفون', 'https://x/iphone-compare/' ] ];
+$shape3 = array_map( static fn( $i ) => ( (int) $i->menu_item_parent ? '  ' : '' ) . $i->title, stlh_live_menu_apply( $menu, $tree2, $tools ) );
+$eq( array_slice( $shape3, 13, 4 ), [ 'ابزارهای آیفون', '  کارشناسی قیمت آیفون', '  مقایسه دو آیفون', 'لیست آک و کارکرده' ], 'گروهِ ابزارهای آیفون' );
+$eq( count( array_unique( array_map( static fn( $i ) => $i->menu_order, stlh_live_menu_apply( $menu, $tree2, $tools ) ) ) ), count( $shape3 ), 'ترتیبِ یکتا با ابزارها' );
+$eq( $shape2, array_map( static fn( $i ) => ( (int) $i->menu_item_parent ? '  ' : '' ) . $i->title, stlh_live_menu_apply( $menu, $tree2, [] ) ), 'بی ابزار، همان منو' );
+
 echo $fail ? "live-menu FAIL:\n  " . implode( "\n  ", $fail ) . "\n" : "live-menu ok\n";
 exit( $fail ? 1 : 0 );

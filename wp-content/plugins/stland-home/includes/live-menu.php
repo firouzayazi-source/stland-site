@@ -27,6 +27,7 @@ defined( 'ABSPATH' ) || exit;
 const STLH_LM_TERM = 900000000;
 const STLH_LM_GROUP = 910000000;
 const STLH_LM_ALL = 920000000;
+const STLH_LM_TOOLS = 930000000;
 
 function stlh_live_menu_on(): bool {
 	return '1' === (string) stlh_opt( 'menu_live' );
@@ -134,7 +135,7 @@ function stlh_live_item( object $tpl, int $id, int $parent, string $title, strin
  * فهرستِ کاملِ مواردِ یک منو (به ترتیبِ `menu_order`) → همان، با زیرمنوهای دسته از درختِ زنده.
  * خالص روی ورودی‌اش — آزمونِ `tests/visual/live-menu.php` مستقیم صدایش می‌زند.
  */
-function stlh_live_menu_apply( array $items, array $tree ): array {
+function stlh_live_menu_apply( array $items, array $tree, array $tools = [] ): array {
 	$items = array_values( array_filter( $items, 'is_object' ) );
 	$terms = (array) ( $tree['terms'] ?? [] );
 	$tkids = (array) ( $tree['kids'] ?? [] );
@@ -271,6 +272,14 @@ function stlh_live_menu_apply( array $items, array $tree ): array {
 		}
 		$new_tops[] = [ stlh_live_item( $tpl, $gid, 0, $terms[ $tid ]['n'], '#' ), $subs ];
 	}
+	// گروهِ «ابزارهای آیفون» (`includes/ipt-links.php`) بعد از گروه‌های دسته
+	if ( $tools ) {
+		$subs = [];
+		foreach ( array_values( $tools ) as $i => [ $tt, $tu ] ) {
+			$subs[] = stlh_live_item( $tpl, STLH_LM_TOOLS + 1 + $i, STLH_LM_TOOLS, (string) $tt, (string) $tu );
+		}
+		$new_tops[] = [ stlh_live_item( $tpl, STLH_LM_TOOLS, 0, stlh_label( 'menu_tools' ), '#' ), $subs ];
+	}
 	$after = $groups ? end( $groups ) : 0;
 
 	// چیدنِ دوباره: هر سرِ منو، زیرمنوی ثابتش (با زنده‌ها به جای دسته‌های ثابت) و گروه‌های تازه بعد از آخرین گروهِ دسته
@@ -354,7 +363,7 @@ add_filter( 'wp_get_nav_menu_items', static function ( $items, $menu, $args ) {
 		$busy = true;
 		try {
 			$all          = (array) wp_get_nav_menu_items( $mid );
-			$full[ $mid ] = stlh_live_menu_apply( $all, stlh_live_cat_tree() );
+			$full[ $mid ] = stlh_live_menu_apply( $all, stlh_live_cat_tree(), function_exists( 'stlh_ipt_menu_tools' ) ? stlh_ipt_menu_tools() : [] );
 		} finally {
 			$busy = false;
 		}
