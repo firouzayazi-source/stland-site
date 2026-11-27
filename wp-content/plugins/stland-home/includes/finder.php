@@ -102,7 +102,7 @@ add_action( 'woocommerce_after_add_to_cart_form', static function (): void {
 		return;
 	}
 	$url = add_query_arg( 'want', rawurlencode( $product->get_name() ), stlh_tradein_url() );
-	echo '<a class="stlh-ti-btn" href="' . esc_url( $url ) . '" style="display:flex;align-items:center;justify-content:center;gap:8px;margin:12px 0;padding:11px 14px;border:1.5px dashed #1d4ed8;border-radius:12px;color:#1d4ed8;font-weight:800;text-decoration:none;background:#f3f6ff;font-size:14px;line-height:1.6">'
+	echo '<a class="stlh-ti-btn" href="' . esc_url( $url ) . '" style="display:flex!important;align-items:center;justify-content:center;gap:8px;margin:12px 0;padding:11px 14px;border:1.5px dashed #1d4ed8!important;border-radius:12px;color:#1e3a8a!important;-webkit-text-fill-color:#1e3a8a!important;font-weight:800;text-decoration:none;background:#eef2ff!important;opacity:1!important;filter:none!important;text-shadow:none!important;font-size:14px;line-height:1.6">'
 		. '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>'
-		. '<span>' . esc_html( stlh_label( 'tradein_btn' ) ) . '</span></a>';
+		. '<span style="color:#1e3a8a!important;-webkit-text-fill-color:#1e3a8a!important;opacity:1!important">' . esc_html( stlh_label( 'tradein_btn' ) ) . '</span></a>';
 } );
