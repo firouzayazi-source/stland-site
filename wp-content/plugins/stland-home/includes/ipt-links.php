@@ -8,6 +8,7 @@
  *   • صفحه‌ی هر آیفون (فقط دسته‌ی گوشی‌ها): زیرِ «گوشیِ قبلی‌ات را چند می‌خریم؟» دو پیوندِ «مقایسه با مدلِ دیگر» (همین مدل از پیش
  *     انتخاب‌شده، `?a=`) و «تستِ سلامتِ آیفون».
  *   • برگه‌ی معاوضه: بالای فرم، «اول قیمتِ منصفانه را خودت ببین» → کارشناسی.
+ *   • گردونه‌ی شانس (اگر روشن است) کارتِ چهارمِ بخش و آخرین موردِ منو است (نه در صفحه‌ی گوشی).
  * ابزارِ خاموش در Novo (`settings.price|health|compare`) هیچ‌جا پیوند نمی‌گیرد. متن‌ها از `stlh_label()`.
  */
 defined( 'ABSPATH' ) || exit;
@@ -26,6 +27,10 @@ function stlh_ipt_links(): array {
 			$out[ $t ] = [ stlh_label( 'ipt_' . $t . '_title' ), stlh_label( 'tools_' . $t . '_desc' ), stlh_ipt_url( $t ) ];
 		}
 	}
+	// گردونه‌ی شانس (`includes/wheel.php`) — کنارِ ابزارها، وقتی روشن است
+	if ( function_exists( 'stlh_wheel_cfg' ) && stlh_wheel_cfg()['settings']['enabled'] ) {
+		$out['wheel'] = [ stlh_label( 'wheel_title' ), stlh_label( 'tools_wheel_desc' ), stlh_wheel_url() ];
+	}
 	return $out;
 }
 
@@ -35,6 +40,7 @@ function stlh_ipt_icon( string $tool, int $s = 24 ): string {
 		'price'   => '<path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
 		'health'  => '<path d="M19 14c1.5-1.5 3-3.3 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.8 0-3 .5-4.5 2-1.5-1.5-2.7-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4 3 5.5l7 7z"/><path d="M3.2 12h4.3l2-3 3 6 2-3h6.3"/>',
 		'compare' => '<rect x="3" y="3" width="7" height="18" rx="2"/><rect x="14" y="3" width="7" height="18" rx="2"/><path d="M6.5 7h0M17.5 7h0"/>',
+		'wheel'   => '<circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4"/><circle cx="12" cy="12" r="2.2" fill="currentColor"/>',
 	][ $tool ] ?? '';
 	return '<svg width="' . $s . '" height="' . $s . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $p . '</svg>';
 }
@@ -62,11 +68,11 @@ function stlh_tools(): string {
 
 function stlh_tools_css(): string {
 	return '.stlh-tl{margin:0 auto!important}'
-		. '.stlh-tl-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}'
+		. '.stlh-tl-g{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}'
 		. '.stlh-tl-c{display:flex;align-items:center;gap:12px;padding:14px;border-radius:18px;background:#fff;border:1px solid #e8edf5;text-decoration:none!important;color:#0f172a!important;box-shadow:0 10px 26px -22px rgba(15,23,42,.6);transition:transform .15s,box-shadow .15s;min-width:0}'
 		. '.stlh-tl-c:hover{transform:translateY(-2px);box-shadow:0 16px 30px -20px rgba(15,23,42,.55)}'
 		. '.stlh-tl-ic{flex:0 0 46px;width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center}'
-		. '.stlh-tl-price .stlh-tl-ic{background:#ecfdf5;color:#059669}.stlh-tl-health .stlh-tl-ic{background:#fef2f2;color:#dc2626}.stlh-tl-compare .stlh-tl-ic{background:#eff6ff;color:#1d4ed8}'
+		. '.stlh-tl-price .stlh-tl-ic{background:#ecfdf5;color:#059669}.stlh-tl-health .stlh-tl-ic{background:#fef2f2;color:#dc2626}.stlh-tl-compare .stlh-tl-ic{background:#eff6ff;color:#1d4ed8}.stlh-tl-wheel .stlh-tl-ic{background:#fff7ed;color:#ea580c}'
 		. '.stlh-tl-tx{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px;line-height:1.55}'
 		. '.stlh-tl-tx b{font-size:15px;font-weight:900;color:#0f172a}.stlh-tl-tx small{font-size:12.5px;color:#64748b;font-weight:500}'
 		. '.stlh-tl-go{flex:0 0 auto;display:flex;align-items:center;gap:2px;font-size:12.5px;font-weight:800;color:#1d4ed8;white-space:nowrap}'
@@ -142,7 +148,7 @@ add_action( 'woocommerce_after_add_to_cart_form', static function (): void {
 		return;
 	}
 	$links = stlh_ipt_links();
-	unset( $links['price'] ); // فروشِ گوشیِ قبلی را دکمه‌ی معاوضه دارد
+	unset( $links['price'], $links['wheel'] ); // فروشِ گوشیِ قبلی را دکمه‌ی معاوضه دارد
 	if ( ! $links ) {
 		return;
 	}
